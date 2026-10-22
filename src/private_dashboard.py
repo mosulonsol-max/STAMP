@@ -7,7 +7,7 @@ from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit,quote
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
-PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","candle_quality.json","observations.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json")
+PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json")
 CACHE={"time":0.0,"payload":None}
 LOCK=threading.Lock()
 def age(stamp):
