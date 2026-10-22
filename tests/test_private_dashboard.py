@@ -1,0 +1,32 @@
+"""Security and rendering regressions for the private STAMP dashboard."""
+import base64,importlib.util,json,os,pathlib,sys,tempfile,unittest
+from unittest.mock import patch
+ROOT=pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/"src"))
+import private_dashboard as app
+class PrivateDashboardTests(unittest.TestCase):
+ def test_authentication_denies_missing_and_invalid(self):
+  with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"long-test-password"},clear=True):
+   self.assertFalse(app.authorized(None))
+   self.assertFalse(app.authorized("Bearer abc"))
+   self.assertFalse(app.authorized("Basic invalid@@"))
+   self.assertFalse(app.authorized("Basic "+base64.b64encode(b"private:wrong").decode()))
+   self.assertTrue(app.authorized("Basic "+base64.b64encode(b"private:long-test-password").decode()))
+ def test_numeric_safety(self):
+  self.assertIsNone(app.num(float("nan")))
+  self.assertIsNone(app.num(float("inf")))
+  self.assertIsNone(app.num("bad"))
+  self.assertEqual(app.num("1.5"),1.5)
+ def test_freshness(self):
+  self.assertIsNone(app.age(None))
+  self.assertIsNone(app.age("bad"))
+ def test_dashboard_build_uses_snapshot_and_does_not_leak_secrets(self):
+  fake={"latest.json":{"raw":{"collected_at_utc":"2020-01-01T00:00:00+00:00","mexc":{"ticker":{"data":{"lastPrice":"0.0002","priceChangePercent":"0.01"}}}},"analysis":{"advanced":{"1h":{"rsi14_simple":55}}}},"workflow_health.json":{"pipeline_passed":True},"learning_controller.json":{"champion":None},"forecast_scorecard.json":{"forecasts_total":3},"candle_quality.json":{},"observations.jsonl":[]}
+  def reader(path,token):return fake.get(path,[] if path.startswith("candles/") else {}),None
+  with patch.dict(os.environ,{"DASHBOARD_PASSWORD":"SECRET_NEVER_EXPOSE","GITHUB_READ_TOKEN":""}),patch.object(app,"load",side_effect=reader):
+   result=app.build()
+   self.assertEqual(result["market_status"],"STALE")
+   self.assertEqual(result["market"]["price"],0.0002)
+   self.assertEqual(result["health"]["passed"],True)
+   self.assertNotIn("SECRET_NEVER_EXPOSE",json.dumps(result))
+if __name__=="__main__":unittest.main()
