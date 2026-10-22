@@ -37,6 +37,11 @@ class PrivateUIRegressionTests(unittest.TestCase):
   self.assertTrue(any(url.startswith("https://vercel.com/") for url in doc.links))
   self.assertNotIn('type="password"',HTML)
   self.assertIn("DASHBOARD_PASSWORD",JS)
+  for key in ("holdingQty","holdingCost","portfolioClear","portfolioResults"):
+   self.assertIn(key,doc.ids)
+  self.assertIn("stamp_position",JS)
+  self.assertIn("renderPortfolio",JS)
+  self.assertIn("portfolioCaution",HTML)
   self.assertNotIn("DASHBOARD_PASSWORD=",HTML)
  def test_accessibility_and_localization(self):
   self.assertIn('lang="ar"',HTML)
