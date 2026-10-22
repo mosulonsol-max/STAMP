@@ -110,19 +110,47 @@ function render(data){
  el('clock').textContent=stampText(new Date().toISOString());
  renderPortfolio();renderChart();
 }
+async function fetchDashboard(path){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  const response=await fetch(path,{cache:'no-store',credentials:'same-origin',signal:controller.signal,headers:{Accept:'application/json'}});
+  if(response.status===401||response.status===403)throw new Error('AUTH_'+response.status);
+  if(!response.ok){
+   let code='';try{const obj=await response.json();code=obj.error||obj.code||''}catch(_){}
+   throw new Error('HTTP_'+response.status+(code?'_'+code:''));
+  }
+  const type=response.headers?.get?.('content-type')||'';
+  if(type&&!type.includes('application/json'))throw new Error('NOT_JSON_'+response.status);
+  const data=await response.json();
+  if(!data||typeof data!=='object'||!data.market)throw new Error('INVALID_PAYLOAD');
+  return data;
+ }finally{clearTimeout(timer)}
+}
 async function refresh(){
+ if(el('refresh').disabled)return;
  el('refresh').disabled=true;
  try{
   const embedded=el('stamp-snapshot');
-  if(embedded){render(JSON.parse(embedded.textContent))}
-  else{
-   const res=await fetch('/api/dashboard',{cache:'no-store',credentials:'same-origin'});
-   if(!res.ok)throw new Error('HTTP '+res.status);
-   const data=await res.json();if(!data||typeof data!=='object'||!data.market)throw new Error('Invalid dashboard response');
-   render(data);
+  if(embedded){render(JSON.parse(embedded.textContent));return}
+  let data,primaryError=null;
+  try{data=await fetchDashboard('/api/dashboard')}
+  catch(err){
+   primaryError=err;
+   // A failed public quote or a slow upstream API must not hide archived analysis.
+   if(String(err.message).startsWith('AUTH_'))throw err;
+   try{data=await fetchDashboard('/api/dashboard-lite')}
+   catch(recoveryError){throw new Error('primary='+String(err.message)+'; recovery='+String(recoveryError.message))}
+  }
+  render(data);
+  if(primaryError){
+   el('warning').hidden=false;
+   el('warning').textContent=(lang==='ar'?'وضع الاسترداد: تظهر تحليلات مؤرشفة فقط؛ تعذر الاتصال بالخدمة الأساسية. ':'Recovery mode: archived research only; main API unavailable. ')+String(primaryError.message).slice(0,110);
   }
  }catch(e){
-  el('warning').hidden=false;el('warning').textContent=t('sourceError')+' ('+String(e.message).slice(0,100)+')';
+  const reason=String(e.message||e).slice(0,180);
+  const auth=reason.includes('AUTH_401')||reason.includes('AUTH_403');
+  el('warning').hidden=false;
+  el('warning').textContent=(auth?(lang==='ar'?'انتهت صلاحية الدخول أو رُفض التفويض. أعد تسجيل الدخول وحدّث الصفحة. ':'Authentication rejected. Sign in again and refresh. '):t('sourceError')+' ')+reason;
   el('status').textContent=t('networkError');el('status').className='pill stale';
  }finally{el('refresh').disabled=false}
 }
