@@ -82,7 +82,7 @@ byId("health").innerHTML=Object.entries(health.steps||{}).map(([k,v])=>row("Pipe
  Object.entries(sources).map(([k,v])=>row("Source · "+k,v.status==="ok"?"OK":("UNAVAILABLE"+(v.error?" ("+v.error+")":"")))).join("")+
  Object.entries(result.errors||{}).map(([k,v])=>row("Archive · "+k,"UNAVAILABLE ("+v+")")).join("")+
  row("Research age",researchAge===null?"unknown":Math.round(researchAge/60)+" minutes")+
- row("Research",obs)+row("Pipeline",health.passed===true?"PASS":"UNVERIFIED");
+ row("Research",obs)+row("Production HTTP smoke",health.production_smoke_passed===true?"PASS":health.production_smoke_passed===false?"FAIL":"NOT CHECKED")+row("Pipeline",health.passed===true?"PASS":"UNVERIFIED");
 set("clock",stamp(new Date().toISOString()));renderPortfolio();renderChart();
 }
 async function request(path){
