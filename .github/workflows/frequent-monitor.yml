@@ -69,7 +69,9 @@ jobs:
         if: always()
         run: python src/build_dashboard.py
       - name: Commit data and health status
-        if: always()
+        # Push-triggered runs validate code but must not race scheduled market snapshots.
+        # Only scheduled/manual runs persist observations, preserving time ordering.
+        if: ${{ always() && github.event_name != 'push' }}
         run: |
           git config user.name 'stamp-monitor[bot]'
           git config user.email 'stamp-monitor[bot]@users.noreply.github.com'
@@ -107,7 +109,9 @@ jobs:
             git commit -m "data: scheduled STAMP market observation"
             pushed=0
             for attempt in 1 2 3; do
-              if git pull --rebase && git push; then
+              # During rebase, 'theirs' is this newly generated data commit.
+              # All files in this commit are generated artifacts, never source code.
+              if git pull --rebase -X theirs && git push; then
                 pushed=1
                 break
               fi
