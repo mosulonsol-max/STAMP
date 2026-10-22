@@ -1,5 +1,6 @@
 """Build a factual, read-only dashboard from STAMP artifacts."""
 import html,json,pathlib
+from pine_parity import signals
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 def build(root=ROOT):
     def read(path):
@@ -13,6 +14,12 @@ def build(root=ROOT):
         "Workflow observed UTC":health.get("timestamp_utc"),"Learning status":learning.get("status"),
         "Champion":learning.get("champion") or "none","Forecasts":score.get("forecasts_total"),
         "Evaluated outcomes":score.get("evaluated_total")}
+    try:candles=json.loads((root/"data"/"candles"/"1h.json").read_text())
+    except (OSError,ValueError):candles=[]
+    parity=signals(candles,"1h")
+    fields["Pine-compatible EMA crossover status"]=parity["status"]
+    fields["Confirmed EMA crossover events"]=len(parity["events"])
+    fields["Latest EMA crossover"]=parity["events"][-1]["signal"] if parity["events"] else "none"
     items="".join("<dt>"+html.escape(k)+"</dt><dd>"+html.escape(str(v))+"</dd>" for k,v in fields.items())
     models="".join("<tr><td>"+html.escape(k)+"</td><td>"+html.escape(str(v.get("mae")))+"</td><td>"+html.escape(str(v.get("skill_vs_zero")))+"</td></tr>" for k,v in learning.get("challengers",{}).items())
     page=("<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
