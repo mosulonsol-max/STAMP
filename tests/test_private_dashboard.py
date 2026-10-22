@@ -1,5 +1,6 @@
 """Security and rendering regressions for the private STAMP dashboard."""
-import base64,importlib.util,json,os,pathlib,sys,tempfile,unittest
+import base64,importlib.util,json,os,pathlib,sys,tempfile,unittest,threading,http.client
+from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"src"))
@@ -12,6 +13,27 @@ class PrivateDashboardTests(unittest.TestCase):
    self.assertFalse(app.authorized("Basic invalid@@"))
    self.assertFalse(app.authorized("Basic "+base64.b64encode(b"private:wrong").decode()))
    self.assertTrue(app.authorized("Basic "+base64.b64encode(b"private:long-test-password").decode()))
+ def test_http_requires_auth_for_ui_and_market_api(self):
+  with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"long-test-password"},clear=True):
+   server=ThreadingHTTPServer(("127.0.0.1",0),app.Handler)
+   worker=threading.Thread(target=server.serve_forever,daemon=True)
+   worker.start()
+   try:
+    conn=http.client.HTTPConnection("127.0.0.1",server.server_address[1],timeout=3)
+    for path in ("/","/api/dashboard","/assets/app.js"):
+     conn.request("GET",path)
+     res=conn.getresponse()
+     self.assertEqual(res.status,401)
+     res.read()
+    conn.request("GET","/healthz")
+    res=conn.getresponse()
+    self.assertEqual(res.status,200)
+    self.assertEqual(res.read(),b"ok")
+    conn.close()
+   finally:
+    server.shutdown()
+    server.server_close()
+    worker.join(timeout=3)
  def test_numeric_safety(self):
   self.assertIsNone(app.num(float("nan")))
   self.assertIsNone(app.num(float("inf")))
