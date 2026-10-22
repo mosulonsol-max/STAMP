@@ -30,6 +30,12 @@ function render(data){
  const stale=observedAge===null||observedAge>900;el('status').textContent=stale?'STALE DATA':'FRESH DATA';el('status').className='pill '+(stale?'stale':'fresh');
  el('warning').hidden=!stale&&!Object.keys(data.errors||{}).length;
  el('warning').textContent=(stale?'Market snapshot is '+ageText(observedAge)+' old. Do not treat prices as live. ':'')+(Object.keys(data.errors||{}).length?'Data unavailable: '+Object.keys(data.errors).join(', '):'');
+ const q=data.live_quote||{};
+ const qAge=q.retrieved_at_utc?Math.max(0,Math.floor((Date.now()-Date.parse(q.retrieved_at_utc))/1000)):null;
+ const qFresh=q.status==='fresh'&&qAge!==null&&qAge<=180;
+ el('liveprice').textContent=q.status==='fresh'?price(q.price):'UNAVAILABLE';
+ el('liveprice').className=qFresh?'fresh':'unavailable';
+ el('livetime').textContent=qFresh?'MEXC · '+ageText(qAge)+' · 90s poll':q.status==='fresh'?'Stored quote · '+ageText(qAge)+' · NOT LIVE':'Public API unavailable · no live price';
  el('price').textContent=price(a.price);el('change').textContent=a.change===null?'—':(a.change>=0?'+':'')+number(a.change*100,2)+'%';
  el('change').className='delta '+(a.change>=0?'positive':'negative');el('observed').textContent='Observed: '+(data.observed_utc?new Date(data.observed_utc).toLocaleString():'unknown')+' ('+ageText(observedAge)+')';
  el('source').textContent=data.source==='private_github_api'?'Private GitHub · automatic polling':data.source==='offline_snapshot'?'Private offline snapshot · download newest from GitHub':'Deploy snapshot · updates require redeploy';
