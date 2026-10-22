@@ -32,6 +32,16 @@
  <div class="chart-footer" id="chartnote">—</div>
  <div class="chart-controls"><button id="exportCandles" type="button" data-i18n="export">↓ تنزيل شموع الفريم CSV</button><span id="chartHover" class="small" aria-live="polite">—</span></div>
 </section>
+<section class="panel portfolio-panel" aria-labelledby="portfolioTitle">
+ <div class="panel-title"><div><h2 id="portfolioTitle" data-i18n="portfolioTitle">حاسبة المركز المالي (اختيارية)</h2><p data-i18n="portfolioSub">حسابات تقريبية محلية على جهازك، لا يتم إرسال الكمية أو سعر الشراء إلى الخادم</p></div><span class="small" id="portfolioPriceStatus">—</span></div>
+ <div class="portfolio-inputs">
+  <label><span data-i18n="quantity">عدد عملات STAMP</span><input id="holdingQty" type="number" min="0" step="any" inputmode="decimal" placeholder="0" autocomplete="off"></label>
+  <label><span data-i18n="averageCost">متوسط تكلفة الشراء بالدولار</span><input id="holdingCost" type="number" min="0" step="any" inputmode="decimal" placeholder="0.0000000" autocomplete="off"></label>
+  <button id="portfolioClear" type="button" data-i18n="clearPortfolio">مسح بيانات المركز</button>
+ </div>
+ <div id="portfolioResults" class="portfolio-results">—</div>
+ <p class="hint" data-i18n="portfolioCaution">القيمة والخسارة أو الربح تقديرية قبل الرسوم والانزلاق السعري. لا تمثل سعر بيع قابلًا للتنفيذ.</p>
+</section>
 <section class="panel forecast-panel" aria-labelledby="forecastsTitle">
  <div class="panel-title"><div><h2 id="forecastsTitle" data-i18n="forecastTitle">التوقعات والتحقق منها</h2><p data-i18n="forecastSub">كل أفق زمني يعرض نتيجة البرنامج الفعلية، وليس توصية تداول</p></div><span class="small" id="forecastUpdated">—</span></div>
  <div class="forecast-grid" id="forecasts">—</div>
