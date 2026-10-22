@@ -63,6 +63,24 @@ class PrivateDashboardTests(unittest.TestCase):
     conn.close()
    finally:
     server.shutdown();server.server_close();worker.join(timeout=3)
+ def test_authenticated_html_embeds_archived_fallback_safely(self):
+  archived={"market":{"price":0.00019},"observed_utc":"2026-10-22T10:00:00Z","note":"</script><script>alert(1)</script>"}
+  with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"test-password"},clear=True),patch.object(app,"read_embedded",return_value=archived),patch.dict(app.CACHE,{"time":0.0,"payload":None},clear=True):
+   server=ThreadingHTTPServer(("127.0.0.1",0),app.Handler)
+   worker=threading.Thread(target=server.serve_forever,daemon=True);worker.start()
+   try:
+    conn=http.client.HTTPConnection("127.0.0.1",server.server_address[1],timeout=3)
+    auth={"Authorization":"Basic "+base64.b64encode(b"private:test-password").decode()}
+    conn.request("GET","/",headers=auth)
+    response=conn.getresponse();self.assertEqual(response.status,200)
+    body=response.read().decode()
+    self.assertIn('id="stamp-snapshot"',body)
+    self.assertIn('"price":0.00019',body)
+    self.assertNotIn("</script><script>alert(1)</script>",body)
+    self.assertIn("u003c",body)
+    conn.close()
+   finally:
+    server.shutdown();server.server_close();worker.join(timeout=3)
  def test_live_quote_has_independent_timestamp_and_correct_percent(self):
   stamp=datetime.datetime.now(datetime.timezone.utc)
   provider=int(stamp.timestamp()*1000)
