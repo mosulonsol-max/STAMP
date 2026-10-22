@@ -12,15 +12,15 @@ Updated: 2026-10-22 UTC.
 - GitHub Actions is running the monitor, tests, model research, forecast audit, and archiving. Successful workflow health records exist.
 - The server checks Basic credentials before serving `/`, `/assets/*`, or `/api/dashboard`. Local HTTP integration tests cover anonymous 401 and authenticated API 200.
 - A separate **public MEXC 24-hour ticker quote** is fetched at request time, cached for 90 seconds and displayed separately from the research snapshot. The quote is marked unavailable when the source fails, and the browser marks it stale after 3 minutes.
-- The technical indicators, model research, liquidity history and archived order-book analysis are from **the GitHub snapshot bundled into the deployment**, not from the fresh MEXC quote. Their timestamps and stale status are shown.
+- The technical indicators, model research, liquidity history and archived order-book analysis are from **a private GitHub Actions snapshot embedded as a compressed Python module** once per UTC hour. This avoids reliance on Vercel including loose data files in its Python function. Their timestamps and stale status are shown; the independent MEXC quote is fetched separately.
 
 ## Remaining verification and access limitations
 
 - **Not independently verified:** remote end-to-end authorized login, authenticated JSON response, or live browser rendering. The Vercel connector's protected URL fetch and runtime log APIs returned HTTP **403** for the project/team. A READY deployment is not proof of an operational authenticated website.
-- **Not configured:** `GITHUB_READ_TOKEN`. The backend supports polling the private repository, but no secret can be derived from the existing GitHub connector. Without it, the archived research is only as recent as the last successful deployment. A data-only commit can be ignored to conserve free-tier builds.
+- **Not configured:** `GITHUB_READ_TOKEN`. This is **optional** for 90-second private-repository polling. Without it, GitHub Actions packages a compressed snapshot once per UTC hour and updates `data/vercel_heartbeat_utc.txt` to trigger a Vercel rebuild. Exact completion is best-effort and subject to GitHub Actions and Vercel schedules; data may be older than an hour if runs or deployments fail.
 - The original dashboard password was shared in chat and should be rotated in Vercel by the owner. Do not copy it into code, documentation, issues or logs.
 
-## Owner action to enable automatic private research polling
+## Optional owner action for faster private research polling
 
 1. Open https://github.com/settings/personal-access-tokens and create a **fine-grained** personal access token.
 2. Resource owner: `mosulonsol-max`; repository access: **Only select repositories → STAMP**; permissions: **Contents → Read-only**. Use a limited expiry.
@@ -35,6 +35,8 @@ Updated: 2026-10-22 UTC.
 - [x] Vercel Authentication enabled; encrypted application credentials set.
 - [x] Local tests: anonymous UI/API requests return 401; authenticated API request returns 200.
 - [x] Public quote and historical research displayed with independent timestamps in code.
+- [x] Tokenless hourly embedded-snapshot build and heartbeat integrated into GitHub Actions and Vercel ignored-build configuration.
+- [ ] First real hourly compressed-snapshot commit and production deployment verified.
 - [x] Model forecast scores disclose validation size and promotion eligibility.
 - [ ] Remote GET `/`, `/assets/app.js`, `/api/dashboard` verified to reject unauthenticated requests.
 - [ ] Remote authenticated page and JSON verified to render with nonempty data.
@@ -43,6 +45,6 @@ Updated: 2026-10-22 UTC.
 
 ## Free-tier operation
 
-The Vercel project uses an Ignored Build Step to skip most data-only Git commits, reducing build usage. A deployment snapshot may therefore lag behind the 5-minute GitHub Actions research schedule. The public MEXC quote remains independent and has its own freshness indicator. Avoid exposing private research through public static files or unauthenticated data endpoints.
+The Vercel project uses an Ignored Build Step to skip most data-only Git commits. The hourly heartbeat and generated compressed Python module are exceptions, triggering approximately one deployment per hour. A deployment snapshot therefore normally lags behind the 5-minute GitHub Actions research schedule. The public MEXC quote remains independent and has its own freshness indicator. Avoid exposing private research through public static files or unauthenticated data endpoints.
 
 The server uses HTTP Basic auth behind HTTPS; Vercel Authentication provides a separate protection layer. Basic auth alone does not provide MFA. The `/healthz` endpoint returns only `ok` and does not expose market data.
