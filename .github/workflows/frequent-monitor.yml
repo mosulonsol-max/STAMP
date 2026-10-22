@@ -7,6 +7,7 @@ on:
       - 'src/model.py'
       - 'src/forecast_audit.py'
       - 'src/market_features.py'
+      - 'tests/**'
       - '.github/workflows/frequent-monitor.yml'
   schedule:
     - cron: '*/5 * * * *'
@@ -30,6 +31,8 @@ jobs:
           cache: pip
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Run deterministic pipeline tests
+        run: python -m unittest discover -s tests -v
       - name: Acquire snapshot and analyze
         run: python src/monitor.py
       - name: Evaluate past predictions and journal new validated forecasts
