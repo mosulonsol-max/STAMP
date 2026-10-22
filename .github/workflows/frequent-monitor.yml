@@ -71,6 +71,7 @@ jobs:
           pathlib.Path('data/workflow_health.json').write_text(json.dumps(record,indent=2))
           print('WORKFLOW HEALTH:',json.dumps(record))
           PY
+          python src/build_dashboard.py
           date -u +'%Y-%m-%dT%H:%M:%SZ' > data/last_workflow_attempt_utc.txt
           if [ -f data/latest.json ]; then
             python -c 'import json,datetime,pathlib; d=json.loads(pathlib.Path("data/latest.json").read_text()); print("Latest source timestamp:",d.get("raw",{}).get("collected_at_utc"))'
