@@ -1,0 +1,30 @@
+name: STAMP hourly monitoring
+on:
+  schedule:
+    - cron: '13 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: stamp-hourly
+  cancel-in-progress: false
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch and analyze public data
+        run: python src/monitor.py
+      - name: Commit observations
+        run: |
+          git config user.name 'stamp-monitor[bot]'
+          git config user.email 'stamp-monitor[bot]@users.noreply.github.com'
+          git add data/latest.json data/observations.jsonl
+          if ! git diff --cached --quiet; then
+            git commit -m "data: hourly STAMP snapshot"
+            git push
+          fi
