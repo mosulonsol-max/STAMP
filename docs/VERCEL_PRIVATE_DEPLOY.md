@@ -1,3 +1,12 @@
+# Deployment status — 22 October 2026
+
+The user connected the private GitHub repository to Vercel. Project `stamp` exists and production deployment `dpl_8QjA3PCVUsuYzcz5F62RPegeCn41` reported **READY** for commit `722a858394123d8f69f3344ba23e38f63c7c30a4`. Project domain: https://stamp-one-opal.vercel.app.
+
+Both `DASHBOARD_USER` and `DASHBOARD_PASSWORD` were configured as encrypted Vercel environment variables for Production and Preview. Do not copy or commit the password. Vercel Authentication is enabled on `.vercel.app` domains. The GitHub repository remains private.
+
+**Outstanding:** the connector cannot fetch the protected deployed website because team-scoped protection-bypass access returned HTTP 403. Thus actual HTTP 401/authorized dashboard response has not yet been independently verified; Vercel's READY is a build/deployment status only. `GITHUB_READ_TOKEN` is not configured, so the dashboard serves a bundled **deployment snapshot** rather than continuously polling GitHub. Configure a read-only repository token in Vercel for live research refresh. On a free plan, frequent data-only GitHub commits can trigger excessive builds until ignored-build rules are configured.
+
+---
 # Vercel deployment — STAMP private dashboard
 
 ## Current state
