@@ -58,8 +58,8 @@ def build():
  pools.sort(key=lambda p:p["liquidity"] or 0,reverse=True)
  return dict(fetched_utc=dt.datetime.now(dt.timezone.utc).isoformat(),source="private_github_api" if token else "deployment_snapshot",
   observed_utc=observed,age_seconds=seconds,market_status="FRESH" if seconds is not None and seconds<=900 else "STALE",
-  market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),book=a.get("order_book_features") or {},trades=a.get("trades") or {},flags=a.get("flags") or []),
-  technical=a.get("advanced") or {},candles=frames,dex=pools[:10],learning=learning,scorecard=score,
+  market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},flags=a.get("flags") or []),
+  technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},candles=frames,dex=pools[:10],learning=learning,scorecard=score,
   health=dict(passed=health.get("pipeline_passed"),at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
   errors=errors,note="Research only. Experimental model outputs are not executable trading signals.")
 def cached():
