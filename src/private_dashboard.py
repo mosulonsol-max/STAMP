@@ -197,7 +197,17 @@ class Handler(BaseHTTPRequestHandler):
   paths={"/":"private.html","/index.html":"private.html","/assets/app.js":"private.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
-  try:return self.send(200,(ROOT/"dashboard"/name).read_bytes(),kind+"; charset=utf-8")
+  try:
+   content=(ROOT/"dashboard"/name).read_bytes()
+   if name=="private.html":
+    # A self-contained, authenticated archival fallback survives API/network outages.
+    research=cached_research_only()
+    if research is not None:
+     payload=json.dumps(research,ensure_ascii=False,allow_nan=False,separators=(",",":"))
+     payload=payload.replace("<","\\u003c").replace(">","\\u003e").replace("&","\\u0026")
+     embed=('<script type="application/json" id="stamp-snapshot">'+payload+'</script>').encode("utf-8")
+     content=content.replace(b'<script src="/assets/app.js" defer></script>',embed+b'<script src="/assets/app.js" defer></script>')
+   return self.send(200,content,kind+"; charset=utf-8")
   except OSError:return self.send(503,b"Asset unavailable")
  def do_POST(self):self.send(405,b"Method not allowed")
 def main():
