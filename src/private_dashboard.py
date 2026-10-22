@@ -206,7 +206,9 @@ class Handler(BaseHTTPRequestHandler):
      payload=json.dumps(research,ensure_ascii=False,allow_nan=False,separators=(",",":"))
      payload=payload.replace("<","\\u003c").replace(">","\\u003e").replace("&","\\u0026")
      embed=('<script type="application/json" id="stamp-snapshot">'+payload+'</script>').encode("utf-8")
-     content=content.replace(b'<script src="/assets/app.js" defer></script>',embed+b'<script src="/assets/app.js" defer></script>')
+     # Insert the JSON snapshot before the external script, regardless of cache-busting query.
+     marker=b'<script src="/assets/app.js'
+     if marker in content:content=content.replace(marker,embed+marker,1)
    return self.send(200,content,kind+"; charset=utf-8")
   except OSError:return self.send(503,b"Asset unavailable")
  def do_POST(self):self.send(405,b"Method not allowed")
