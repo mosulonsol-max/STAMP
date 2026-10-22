@@ -31,6 +31,8 @@ def main():
    print(f"FAIL {path} {type(e).__name__}: {e}")
    checks.append({"path":path,"http_status":None,"expected":expected,"passed":False,"error":type(e).__name__})
    failed.append(path+": "+type(e).__name__)
+ pathlib.Path("data").mkdir(exist_ok=True)
+ pathlib.Path("data/production_smoke.json").write_text(json.dumps({"checked_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),"host":HOST,"passed":not failed,"checks":checks},indent=2)+"\\n")
  if failed:
   print("PRODUCTION SMOKE FAILED:",*failed,sep="\n - ")
   return 1
