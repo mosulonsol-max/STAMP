@@ -2,7 +2,12 @@ import pathlib,sys,unittest,datetime as dt,tempfile,json
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/"src"))
 import market_features as mf
 import forecast_audit as fa
+import research_engine as re
 class Features(unittest.TestCase):
+ def test_scorecard_without_outcomes(self):
+  with tempfile.TemporaryDirectory() as d:
+   s=re.score(pathlib.Path(d))
+   self.assertEqual(s['evaluated_total'],0)
  def test_book(self):
   b=mf.orderbook({"bids":[["1.0","10"],["0.99","5"]],"asks":[["1.01","20"],["1.02","2"]]})
   self.assertEqual(b["status"],"snapshot")
