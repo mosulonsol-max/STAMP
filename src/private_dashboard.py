@@ -214,6 +214,19 @@ class Handler(BaseHTTPRequestHandler):
      # Insert the JSON snapshot before the external script, regardless of cache-busting query.
      marker=b'<script src="/assets/app.js'
      if marker in content:content=content.replace(marker,embed+marker,1)
+     # Server-side archived price: visible even when browser JS or API calls fail.
+     market=research.get("market") or {}
+     value=num(market.get("price"))
+     observed=research.get("observed_utc")
+     if value is not None and value>0:
+      from html import escape
+      display=("$"+format(value,".8f")).encode("ascii")
+      timestamp=escape(str(observed or "unknown"),quote=True).encode("utf-8")
+      dash="—".encode("utf-8")
+      content=content.replace(b'id="price">'+dash+b'</div>',b'id="price">'+display+b'</div>',1)
+      content=content.replace(b'id="observed">'+dash+b'</div>',b'id="observed">ARCHIVED UTC: '+timestamp+b'</div>',1)
+      content=content.replace('id="status" role="status">جاري الاتصال</span>'.encode("utf-8"),b'id="status" role="status">ARCHIVED</span>',1)
+      content=content.replace(b'id="sourceLine" aria-live="polite">'+dash+b'</div>',b'id="sourceLine" aria-live="polite">Archived research: '+timestamp+b' UTC. Not a live quote.</div>',1)
    return self.send(200,content,kind+"; charset=utf-8")
   except OSError:return self.send(503,b"Asset unavailable")
  def do_POST(self):self.send(405,b"Method not allowed")
