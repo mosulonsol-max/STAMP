@@ -50,6 +50,8 @@ class Features(unittest.TestCase):
   with tempfile.TemporaryDirectory() as d:
    s=re.score(pathlib.Path(d))
    self.assertEqual(s['evaluated_total'],0)
+   self.assertEqual(s['pending_total'],0)
+   self.assertEqual(s['missing_total'],0)
  def test_book(self):
   b=mf.orderbook({"bids":[["1.0","10"],["0.99","5"]],"asks":[["1.01","20"],["1.02","2"]]})
   self.assertEqual(b["status"],"snapshot")
