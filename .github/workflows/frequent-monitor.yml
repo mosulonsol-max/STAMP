@@ -24,7 +24,7 @@ concurrency:
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,14 +36,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run deterministic pipeline tests
+        id: tests
         run: python -m unittest discover -s tests -v
       - name: Acquire snapshot and analyze
+        id: monitor
         run: python src/monitor.py
       - name: Evaluate past predictions and journal new validated forecasts
+        id: audit
         run: python src/forecast_audit.py
       - name: Archive candles and evaluate model skill
+        id: archive
         run: python src/research_engine.py
       - name: Autonomous research and model competition
+        id: research
         run: python src/autonomous_research.py
       - name: Commit data and health status
         if: always()
@@ -51,13 +56,20 @@ jobs:
           git config user.name 'stamp-monitor[bot]'
           git config user.email 'stamp-monitor[bot]@users.noreply.github.com'
           mkdir -p data
+          python - <<'PY'
+          import json,os,datetime,pathlib
+          steps={'tests':'${{ steps.tests.outcome }}','monitor':'${{ steps.monitor.outcome }}','audit':'${{ steps.audit.outcome }}','archive':'${{ steps.archive.outcome }}','research':'${{ steps.research.outcome }}'}
+          record={'timestamp_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'event_name':os.environ.get('GITHUB_EVENT_NAME'),'run_id':os.environ.get('GITHUB_RUN_ID'),'run_attempt':os.environ.get('GITHUB_RUN_ATTEMPT'),'steps':steps,'pipeline_passed':all(v=='success' for v in steps.values())}
+          pathlib.Path('data/workflow_health.json').write_text(json.dumps(record,indent=2)+'\\n')
+          print('WORKFLOW HEALTH:',json.dumps(record))
+          PY
           date -u +'%Y-%m-%dT%H:%M:%SZ' > data/last_workflow_attempt_utc.txt
           if [ -f data/latest.json ]; then
             python -c 'import json,datetime,pathlib; d=json.loads(pathlib.Path("data/latest.json").read_text()); print("Latest source timestamp:",d.get("raw",{}).get("collected_at_utc"))'
           fi
           git add data/last_workflow_attempt_utc.txt
           if [ -d data/candles ]; then git add data/candles/; fi
-          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/learning_controller.json; do
+          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/learning_controller.json data/workflow_health.json; do
             if [ -f "$path" ]; then git add "$path"; fi
           done
           if ! git diff --cached --quiet; then
