@@ -1,0 +1,41 @@
+name: STAMP frequent monitoring
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: stamp-monitor-write
+  cancel-in-progress: false
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Acquire snapshot and analyze
+        run: python src/monitor.py
+      - name: Commit data and health status
+        if: always()
+        run: |
+          git config user.name 'stamp-monitor[bot]'
+          git config user.email 'stamp-monitor[bot]@users.noreply.github.com'
+          mkdir -p data
+          date -u +'%Y-%m-%dT%H:%M:%SZ' > data/last_workflow_attempt_utc.txt
+          git add data/latest.json data/observations.jsonl data/last_workflow_attempt_utc.txt 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "data: scheduled STAMP market observation"
+            for attempt in 1 2 3; do
+              git pull --rebase && git push && break
+              sleep 5
+            done
+          fi
