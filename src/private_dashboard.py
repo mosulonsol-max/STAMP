@@ -98,9 +98,24 @@ def build():
   if not isinstance(d,dict):continue
   pools.append(dict(dex=d.get("dexId"),quote=(d.get("quoteToken") or {}).get("symbol"),liquidity=num((d.get("liquidity") or {}).get("usd")),volume=num((d.get("volume") or {}).get("h24"))))
  pools.sort(key=lambda p:p["liquidity"] or 0,reverse=True)
+ # Surface upstream availability explicitly; a successful workflow is not proof
+ # that every independent source returned usable data.
+ sources={"mexc_ticker":(raw.get("mexc") or {}).get("ticker"),
+          "mexc_orderbook":(raw.get("mexc") or {}).get("book"),
+          "mexc_trades":(raw.get("mexc") or {}).get("trades"),
+          "mexc_1h_candles":(raw.get("mexc") or {}).get("klines_1h"),
+          "dexscreener":raw.get("dex"),"project_github":raw.get("project"),
+          "macro_coingecko":raw.get("macro")}
+ source_health={}
+ for name,entry in sources.items():
+  valid=isinstance(entry,dict)
+  item=entry if valid else {}
+  payload=item.get("data")
+  source_health[name]={"status":"ok" if payload is not None and not item.get("error") else "unavailable",
+                       "observed_utc":item.get("retrieved_at_utc"),"error":item.get("error")}
  return dict(fetched_utc=dt.datetime.now(dt.timezone.utc).isoformat(),source="private_github_api" if token else "deployment_snapshot",
   observed_utc=observed,age_seconds=seconds,market_status="FRESH" if seconds is not None and seconds<=900 else "STALE",
-  live_quote=live_quote,
+  live_quote=live_quote,source_health=source_health,
   market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},flags=a.get("flags") or []),
   technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},candles=frames,dex=pools[:10],learning=learning,scorecard=score,
   health=dict(passed=health.get("pipeline_passed"),at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
