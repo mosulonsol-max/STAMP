@@ -50,20 +50,22 @@ function render(result,origin){
 if(!result||!result.market)throw new Error("Invalid research data");
 data=result;activeSource=origin;
 const m=result.market,q=result.live_quote||{},health=result.health||{},score=result.scorecard||{},learn=result.learning||{};
-const quoteFresh=origin==="live"&&q.status==="fresh"&&age(q.retrieved_at_utc)!==null&&age(q.retrieved_at_utc)<=180&&n(q.price)>0;
+const quoteFresh=q.status==="fresh"&&age(q.retrieved_at_utc)!==null&&age(q.retrieved_at_utc)<=180&&n(q.price)>0;
+const researchAge=age(result.observed_utc),researchFresh=researchAge!==null&&researchAge<=900;
 const quote=quoteFresh?q:m,obs=stamp(result.observed_utc),qt=quoteFresh?stamp(q.retrieved_at_utc):obs;
-set("status",quoteFresh?"LIVE":origin==="live"?"ARCHIVED":"RECOVERY / ARCHIVED");
+set("status",quoteFresh?(researchFresh&&origin==="live"?"LIVE":"LIVE PRICE / ARCHIVED RESEARCH"):"ARCHIVED / NOT LIVE");
 byId("status").className="pill "+(quoteFresh?"fresh":"stale");
 set("priceLabel",quoteFresh?t("livePrice"):t("archivedPrice"));set("price",price(quote.price));set("liveprice",price(m.price));
-set("livetime",obs);set("change",pct(quoteFresh?q.change_24h_pct:n(m.change)===null?null:m.change*100));
+set("livetime",obs);// MEXC 24hr API supplies fractional change (e.g. 0.018 = 1.8%); do not remove this conversion.
+set("change",pct(quoteFresh?q.change_24h_pct:n(m.change)===null?null:m.change*100));
 set("source",quoteFresh?t("sourceLive"):t("sourceArchive"));set("observed",qt);
-set("sourceLine","MEXC: "+(quoteFresh?stamp(q.retrieved_at_utc):t("unavailable"))+" · Research: "+obs+" · Pipeline: "+stamp(health.at));
+set("sourceLine","MEXC: "+(quoteFresh?stamp(q.provider_at_utc||q.retrieved_at_utc):t("unavailable"))+" · Research: "+obs+" ("+(researchAge===null?"unknown":Math.round(researchAge/60)+" min old")+") · Pipeline: "+stamp(health.at));
 set("bid",price(quote.bid));set("ask",price(quote.ask));
 const bid=n(quote.bid),ask=n(quote.ask);set("spread",bid>0&&ask>=bid?((ask-bid)/((ask+bid)/2)*100).toFixed(3)+"%":"—");
 set("volume",money(quoteFresh?q.volume_24h_usdt:m.volume));
 set("pipeline",health.passed===true?"PASS":"UNVERIFIED");set("model",learn.champion||t("modelNone"));
-const warning=byId("warning");warning.hidden=quoteFresh&&age(result.observed_utc)<=900;
-warning.textContent=(origin!=="live"?"RECOVERY: ":"")+(quoteFresh?"":t("unavailable")+" · ")+(age(result.observed_utc)>900?t("stale")+" · "+obs:"");
+const warning=byId("warning");warning.hidden=quoteFresh&&researchFresh&&origin==="live";
+warning.textContent=(origin!=="live"?"RECOVERY: archived research · ":"")+(quoteFresh?"":t("unavailable")+" · ")+(!researchFresh?t("stale")+" · "+obs:"");
 const horizons=["1h","4h","24h","7d"];
 byId("forecasts").innerHTML=horizons.map(h=>{const v=result.forecasts?.[h];const message=v===null||v===undefined||v===""?t("insufficient"):typeof v==="string"?v:JSON.stringify(v);return '<article class="forecast-card"><h3>'+h.toUpperCase()+'</h3><span class="forecast-tag no">'+t("unverified")+'</span><p>'+txt(message)+'</p></article>'}).join("");
 set("forecastUpdated",obs);
@@ -92,6 +94,20 @@ try{result=await request("/api/dashboard-lite")}catch(err){errors.push(err.messa
 const embedded=byId("stamp-snapshot");if(!embedded)throw new Error(errors.join(" / "));
 result=JSON.parse(embedded.textContent);origin="embedded";
 }}
+// The research API and live ticker are independent. A research outage must
+// not force a fresh quote to be presented as an old archived price.
+if(!result.live_quote||result.live_quote.status!=="fresh"||age(result.live_quote.retrieved_at_utc)>180){
+ try{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),7000);
+  let response;
+  try{response=await fetch("/api/quote",{credentials:"same-origin",cache:"no-store",signal:controller.signal})}
+  finally{clearTimeout(timer)}
+  if(!response.ok)throw new Error("quote HTTP "+response.status);
+  const payload=await response.json();
+  if(payload.quote&&payload.quote.status==="fresh")result={...result,live_quote:payload.quote};
+  else errors.push("live quote unavailable");
+ }catch(quoteError){errors.push("quote: "+quoteError.message)}
+}
 render(result,origin);
 if(errors.length){byId("warning").hidden=false;byId("warning").textContent="Recovery: "+errors.join(" / ")}
 }catch(error){byId("warning").hidden=false;byId("warning").textContent="Connection error: "+error.message;set("status","ERROR")}
@@ -108,7 +124,7 @@ document.querySelectorAll("[data-frame]").forEach(button=>button.addEventListene
 byId("refresh").addEventListener("click",refresh);byId("exportCandles").addEventListener("click",exportCsv);
 byId("settingsButton").addEventListener("click",()=>byId("settings").showModal());
 byId("logoutButton").addEventListener("click",async()=>{try{await fetch("/logout",{method:"POST",credentials:"same-origin",cache:"no-store"})}finally{window.location.href="/"}});
-byId("diagnose").addEventListener("click",async()=>{set("diagnosticResult","Testing…");try{const response=await fetch("/api/status",{credentials:"same-origin",cache:"no-store"});if(!response.ok)throw new Error("HTTP "+response.status);const j=await response.json();set("diagnosticResult","API "+j.api+" · embedded "+j.embedded_research+" · "+stamp(j.observation_utc))}catch(e){set("diagnosticResult","Error "+e.message)}});
+byId("diagnose").addEventListener("click",async()=>{set("diagnosticResult",lang==="ar"?"جار فحص المصدر وعمر البيانات…":"Checking sources and data age…");try{const response=await fetch("/api/status",{credentials:"same-origin",cache:"no-store"});if(!response.ok)throw new Error("HTTP "+response.status);const j=await response.json();const minutes=j.observation_age_seconds===null?"unknown":Math.round(j.observation_age_seconds/60)+" min";set("diagnosticResult","API: "+j.api+" · Research: "+j.research_source+" · Age: "+minutes+" · "+(j.research_fresh?"FRESH":"STALE")+" · Direct GitHub: "+(j.github_refresh_enabled?"ON":"OFF")+" · Quote: "+j.quote_status+" · "+stamp(j.observation_utc))}catch(e){set("diagnosticResult","Error "+e.message)}});
 byId("langSelect").addEventListener("change",e=>{lang=e.target.value==="en"?"en":"ar";try{localStorage.setItem("stamp_language",lang)}catch(x){}translate();if(data)render(data,activeSource)});
 byId("zoneSelect").addEventListener("change",e=>{zone=e.target.value==="UTC"?"UTC":"Asia/Baghdad";try{localStorage.setItem("stamp_timezone",zone)}catch(x){}translate();if(data)render(data,activeSource)});
 try{const p=JSON.parse(localStorage.getItem("stamp_position")||"{}");if(n(p.quantity)>0&&n(p.entry)>0){byId("holdingQty").value=p.quantity;byId("holdingCost").value=p.entry}}catch(e){}
