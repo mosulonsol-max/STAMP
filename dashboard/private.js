@@ -63,7 +63,9 @@ set("sourceLine","MEXC: "+(quoteFresh?stamp(q.provider_at_utc||q.retrieved_at_ut
 set("bid",price(quote.bid));set("ask",price(quote.ask));
 const bid=n(quote.bid),ask=n(quote.ask);set("spread",bid>0&&ask>=bid?((ask-bid)/((ask+bid)/2)*100).toFixed(3)+"%":"—");
 set("volume",money(quoteFresh?q.volume_24h_usdt:m.volume));
-set("pipeline",health.passed===true?"PASS":"UNVERIFIED");set("model",learn.champion||t("modelNone"));
+set("pipeline",health.passed===true?"PASS":"UNVERIFIED");
+const liveModelVerified=Object.values(score.models||{}).some(x=>n(x.evaluated)>=100&&n(x.skill_vs_zero)>0&&x.promotion_eligible===true);
+set("model",liveModelVerified&&learn.champion?learn.champion:t("modelNone"));
 const warning=byId("warning");warning.hidden=quoteFresh&&researchFresh&&origin==="live";
 warning.textContent=(origin!=="live"?"RECOVERY: archived research · ":"")+(quoteFresh?"":t("unavailable")+" · ")+(!researchFresh?t("stale")+" · "+obs:"");
 const horizons=["1h","4h","24h","7d"];
@@ -73,7 +75,7 @@ byId("technical").innerHTML=["15m","1h","4h","1d"].map(tf=>{const v=result.techn
 const b=m.book||{},tr=m.trades||{};
 byId("orderbook").innerHTML=row("Research UTC",result.observed_utc)+row("Bid ±0.5%",money(b.depth_50bps?.bid_notional_usdt))+row("Ask ±0.5%",money(b.depth_50bps?.ask_notional_usdt))+row("Bid ±2%",money(b.depth_200bps?.bid_notional_usdt))+row("Ask ±2%",money(b.depth_200bps?.ask_notional_usdt))+row("Executed buy sample",money(tr.aggressive_buy_notional_usdt))+row("Executed sell sample",money(tr.aggressive_sell_notional_usdt))+'<p class="hint">Archived depth is cancelable and is not executable liquidity.</p>';
 byId("dex").innerHTML=(result.dex||[]).map(x=>row((x.dex||"DEX")+" / "+(x.quote||"?"),money(x.liquidity)+" · 24h "+money(x.volume))).join("")+'<p class="hint">Liquidity values are third-party estimates, not confirmed new deposits.</p>';
-byId("learning").innerHTML=row("Champion",learn.champion||t("modelNone"))+row("Samples",learn.samples)+row("Validation samples",learn.validation_samples)+row("Baseline MAE",learn.baseline_mae)+row("Evaluated forecasts",score.evaluated_total)+row("Pending",score.pending_total)+Object.entries(score.models||{}).map(([key,x])=>row(key,"n="+x.evaluated+" · accuracy "+pct(n(x.direction_accuracy)===null?null:x.direction_accuracy*100)+" · "+t("unverified"))).join("");
+byId("learning").innerHTML=row("Champion",learn.champion||t("modelNone"))+row("Samples",learn.samples)+row("Validation samples",learn.validation_samples)+row("Baseline MAE",learn.baseline_mae)+row("Evaluated forecasts",score.evaluated_total)+row("Pending",score.pending_total)+row("Missing outcomes",score.missing_total)+row("Minimum prospective evaluations",100)+row("Production signal gate",liveModelVerified?"RESEARCH PASS; NOT A TRADE SIGNAL":"NOT APPROVED")+Object.entries(score.models||{}).map(([key,x])=>row(key,"n="+x.evaluated+" · accuracy "+pct(n(x.direction_accuracy)===null?null:x.direction_accuracy*100)+" · "+t("unverified"))).join("");
 set("run",(health.event||"—")+" · "+(health.run||"—")+" · "+stamp(health.at));
 const sources=result.source_health||{};
 byId("health").innerHTML=Object.entries(health.steps||{}).map(([k,v])=>row("Pipeline · "+k,v)).join("")+
