@@ -49,7 +49,10 @@ def score(root=ROOT):
           "direction_accuracy":sum(correct)/len(correct) if correct else None,
           "promotion_eligible":bool(n>=100 and base>0 and mae<base*.9),
           "note":"Promotion eligibility is only a preliminary gate, not an automatic model deployment."}
+    outcome_ids={x.get("forecast_id") for x in rows if x.get("event")=="outcome"}
+    missing=sum(1 for x in rows if x.get("event")=="outcome" and x.get("status")=="missing_timely_observation")
     out={"generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"forecasts_total":len(forecasts),
+         "pending_total":sum(fid not in outcome_ids for fid in forecasts),"missing_total":missing,
          "evaluated_total":sum(len(v) for v in groups.values()),"models":result}
     (root/"data").mkdir(exist_ok=True)
     (root/"data"/"forecast_scorecard.json").write_text(json.dumps(out,indent=2)+"\n")
