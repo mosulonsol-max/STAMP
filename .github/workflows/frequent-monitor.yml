@@ -86,7 +86,7 @@ jobs:
           if [ ! -f data/vercel_heartbeat_utc.txt ] || [ "$(cat data/vercel_heartbeat_utc.txt)" != "$this_hour" ]; then
             python src/build_deployment_snapshot.py
           fi
-          printf '%s\\n' "$this_hour" > data/vercel_heartbeat_utc.txt
+          echo "$this_hour" > data/vercel_heartbeat_utc.txt
           if [ -f data/latest.json ]; then
             python -c 'import json,datetime,pathlib; d=json.loads(pathlib.Path("data/latest.json").read_text()); print("Latest source timestamp:",d.get("raw",{}).get("collected_at_utc"))'
           fi
