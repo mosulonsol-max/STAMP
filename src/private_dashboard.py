@@ -1,10 +1,10 @@
 """Private read-only STAMP web dashboard. Optional private GitHub API refresh."""
-import base64,datetime as dt,hmac,json,math,os,pathlib,threading,time,zlib
+import base64,datetime as dt,hmac,json,math,os,pathlib,threading,time,zlib,hashlib,secrets
 from concurrent.futures import ThreadPoolExecutor,as_completed
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
-from urllib.parse import urlsplit,quote
+from urllib.parse import urlsplit,quote,parse_qs
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
 PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json")
@@ -161,6 +161,36 @@ def authorized(header):
  try:u,p=base64.b64decode(header[6:],validate=True).decode("utf-8").split(":",1)
  except (ValueError,UnicodeError):return False
  return hmac.compare_digest(u.encode(),user.encode()) and hmac.compare_digest(p.encode(),password.encode())
+
+def session_key():
+ user=os.getenv("DASHBOARD_USER","")
+ password=os.getenv("DASHBOARD_PASSWORD","")
+ return hashlib.sha256(("STAMP:session:v1:"+user+"\0"+password).encode()).digest()
+def make_session():
+ expiry=int(time.time())+43200
+ nonce=secrets.token_urlsafe(12)
+ body=str(expiry)+"."+nonce
+ sig=hmac.new(session_key(),body.encode(),hashlib.sha256).hexdigest()
+ return body+"."+sig
+def session_valid(cookie_header):
+ if not cookie_header:return False
+ try:
+  cookies=dict(part.strip().split("=",1) for part in cookie_header.split(";") if "=" in part)
+  expiry,nonce,sig=cookies.get("stamp_session","").split(".",2)
+  if not expiry.isdigit() or int(expiry)<int(time.time()) or int(expiry)>int(time.time())+43200:return False
+  body=expiry+"."+nonce
+  expected=hmac.new(session_key(),body.encode(),hashlib.sha256).hexdigest()
+  return bool(os.getenv("DASHBOARD_USER") and os.getenv("DASHBOARD_PASSWORD")) and hmac.compare_digest(sig,expected)
+ except (ValueError,TypeError):return False
+def login_html(error=False):
+ message='<p role="alert">اسم المستخدم أو كلمة المرور غير صحيحة. / Invalid credentials.</p>' if error else ''
+ return ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+ '<title>STAMP — تسجيل الدخول</title><link rel="stylesheet" href="/assets/style.css"></head><body>'
+ '<main><h1>STAMP INTELLIGENCE</h1><p>لوحة التحليل الخاصة · تسجيل الدخول</p>'+message+
+ '<form method="post" action="/login"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
+ '<p><label for="password">كلمة المرور</label><input id="password" type="password" name="password" autocomplete="current-password" required></p>'
+ '<button type="submit">دخول / Sign in</button></form></main></body></html>').encode("utf-8")
+
 class Handler(BaseHTTPRequestHandler):
  server_version="STAMPPrivate"
  def send(self,status,body,kind="text/plain; charset=utf-8",extra=None):
@@ -177,7 +207,12 @@ class Handler(BaseHTTPRequestHandler):
     healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css")) and read_embedded() is not None
    except Exception:healthy=False
    return self.send(200 if healthy else 503,b"ok" if healthy else b"deployment_assets_or_research_missing")
-  if not authorized(self.headers.get("Authorization")):return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
+  if path=="/assets/style.css" and not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
+   try:return self.send(200,(ROOT/"dashboard"/"private.css").read_bytes(),"text/css; charset=utf-8")
+   except OSError:return self.send(503,b"Asset unavailable")
+  if not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
+   if path in ("/","/index.html","/login"):return self.send(200,login_html(),"text/html; charset=utf-8")
+   return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
   if path=="/api/dashboard":
    try:return self.send(200,json.dumps(cached(),allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
@@ -229,7 +264,21 @@ class Handler(BaseHTTPRequestHandler):
       content=content.replace(b'id="sourceLine" aria-live="polite">'+dash+b'</div>',b'id="sourceLine" aria-live="polite">Archived research: '+timestamp+b' UTC. Not a live quote.</div>',1)
    return self.send(200,content,kind+"; charset=utf-8")
   except OSError:return self.send(503,b"Asset unavailable")
- def do_POST(self):self.send(405,b"Method not allowed")
+ def do_POST(self):
+  path=urlsplit(self.path).path
+  if path=="/logout":
+   return self.send(303,b"",extra={"Location":"/","Set-Cookie":"stamp_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax"})
+  if path!="/login":return self.send(405,b"Method not allowed")
+  try:
+   length=int(self.headers.get("Content-Length","0"))
+   if length<1 or length>2048:return self.send(400,b"Invalid request")
+   fields=parse_qs(self.rfile.read(length).decode("utf-8"),keep_blank_values=True)
+   username=fields.get("user",[""])[0]
+   password=fields.get("password",[""])[0]
+   good=authorized("Basic "+base64.b64encode((username+":"+password).encode()).decode())
+  except (ValueError,UnicodeError,TypeError):good=False
+  if not good:return self.send(401,login_html(True),"text/html; charset=utf-8")
+  return self.send(303,b"",extra={"Location":"/","Set-Cookie":"stamp_session="+make_session()+"; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax"})
 def main():
  if not os.getenv("DASHBOARD_USER") or not os.getenv("DASHBOARD_PASSWORD"):raise SystemExit("Refusing to start without dashboard authentication")
  port=int(os.getenv("PORT","10000"))
