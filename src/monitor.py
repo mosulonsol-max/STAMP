@@ -2,6 +2,7 @@
 """STAMP hourly data acquisition and evidence-gated analysis. Public endpoints; no trading."""
 import os, json, time, math, datetime, pathlib, statistics
 import requests
+from model import predict
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 CONTRACT="EKtmPPLaCbEEKiwoHHtV7TsRsmPXs5CMGtQtZFSiinsc"
 NOW=datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -98,6 +99,7 @@ def main():
     data={"collected_at_utc":NOW,"contract":CONTRACT,"mexc":mexc(),"dex":dex(),"project":project(),"macro":macro()}
     indicators={tf:metrics(candles(data["mexc"][key],ms)) for tf,key,ms in [
         ("15m","klines_15m",900000),("1h","klines_1h",3600000),("4h","klines_4h",14400000),("1d","klines_1d",86400000)]}
+    ml=predict(candles(data["mexc"]["klines_1h"],3600000))
     ob=depth(data["mexc"]["book"].get("data"))
     flags=[]
     if ob.get("quality")=="snapshot_only" and ob.get("bid_depth_usdt_2pct",0)<500:flags.append("thin_visible_bid_depth")
@@ -105,7 +107,7 @@ def main():
         if m.get("count",0)<35:flags.append("insufficient_"+tf+"_candles")
         elif m.get("volume_last_vs_prev20",0)>1.5 and m["last_close"]>m["highest_high_prev20"]:flags.append("confirmed_closed_candle_breakout_"+tf)
         elif m.get("volume_last_vs_prev20",0)>1.5 and m["last_close"]<m["lowest_low_prev20"]:flags.append("confirmed_closed_candle_breakdown_"+tf)
-    analysis={"computed_at_utc":NOW,"order_book":ob,"indicators":indicators,"flags":flags,
+    analysis={"computed_at_utc":NOW,"order_book":ob,"indicators":indicators,"flags":flags,"ml_experimental":ml,
       "forecast_1h":"لا توجد بيانات كافية لتوقع موثوق",
       "forecast_4h":"لا توجد بيانات كافية لتوقع موثوق",
       "forecast_24h":"لا توجد بيانات كافية لتوقع موثوق",
