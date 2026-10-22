@@ -41,6 +41,28 @@ class PrivateDashboardTests(unittest.TestCase):
     server.shutdown()
     server.server_close()
     worker.join(timeout=3)
+ def test_recovery_api_returns_archived_research_without_network(self):
+  archived={"source":"deployment_snapshot","observed_utc":"2026-10-22T10:00:00Z","market":{"price":0.00019}}
+  with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"test-password"},clear=True),patch.object(app,"read_embedded",return_value=archived),patch.object(app,"fetch_mexc_quote",side_effect=AssertionError("should not call network")),patch.dict(app.CACHE,{"time":0.0,"payload":None},clear=True):
+   server=ThreadingHTTPServer(("127.0.0.1",0),app.Handler)
+   worker=threading.Thread(target=server.serve_forever,daemon=True);worker.start()
+   try:
+    conn=http.client.HTTPConnection("127.0.0.1",server.server_address[1],timeout=3)
+    conn.request("GET","/api/dashboard-lite")
+    response=conn.getresponse();self.assertEqual(response.status,401);response.read()
+    auth={"Authorization":"Basic "+base64.b64encode(b"private:test-password").decode()}
+    conn.request("GET","/api/dashboard-lite",headers=auth)
+    response=conn.getresponse();self.assertEqual(response.status,200)
+    payload=json.loads(response.read())
+    self.assertEqual(payload["market"]["price"],0.00019)
+    self.assertEqual(payload["live_quote"]["status"],"unavailable")
+    self.assertEqual(payload["source"],"deployment_snapshot_recovery")
+    conn.request("GET","/api/status",headers=auth)
+    response=conn.getresponse();self.assertEqual(response.status,200)
+    self.assertTrue(json.loads(response.read())["embedded_research"])
+    conn.close()
+   finally:
+    server.shutdown();server.server_close();worker.join(timeout=3)
  def test_live_quote_has_independent_timestamp_and_correct_percent(self):
   stamp=datetime.datetime.now(datetime.timezone.utc)
   provider=int(stamp.timestamp()*1000)
