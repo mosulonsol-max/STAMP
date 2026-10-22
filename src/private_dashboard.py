@@ -134,6 +134,27 @@ def cached():
     CACHE.update(time=now,payload=result)
     return result
   result=build();CACHE.update(time=now,payload=result);return result
+def cached_research_only():
+ """Fast, network-independent recovery endpoint for the private UI.
+
+ The public exchange ticker must not block access to the archived research.
+ """
+ with LOCK:
+  current=CACHE.get("payload")
+  if isinstance(current,dict) and isinstance(current.get("market"),dict):
+   result=dict(current)
+  else:
+   result=read_embedded()
+  if not isinstance(result,dict) or not isinstance(result.get("market"),dict):
+   return None
+  result=dict(result)
+  result["live_quote"]={"status":"unavailable","source":"recovery_mode","error":"Live_quote_not_checked"}
+  result["source"]="deployment_snapshot_recovery"
+  result["fetched_utc"]=dt.datetime.now(dt.timezone.utc).isoformat()
+  result["age_seconds"]=age(result.get("observed_utc"))
+  result["market_status"]="FRESH" if result["age_seconds"] is not None and result["age_seconds"]<=900 else "STALE"
+  return result
+
 def authorized(header):
  user=os.getenv("DASHBOARD_USER","");password=os.getenv("DASHBOARD_PASSWORD","")
  if not user or not password or not header or not header.startswith("Basic "):return False
@@ -154,7 +175,25 @@ class Handler(BaseHTTPRequestHandler):
   if not authorized(self.headers.get("Authorization")):return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
   if path=="/api/dashboard":
    try:return self.send(200,json.dumps(cached(),allow_nan=False).encode(),"application/json; charset=utf-8")
-   except Exception:return self.send(503,b'{"error":"Data temporarily unavailable"}',"application/json")
+   except Exception as exc:
+    # Return a machine-readable, non-secret error code for client recovery.
+    code=type(exc).__name__
+    return self.send(503,json.dumps({"error":"dashboard_unavailable","code":code}).encode(),"application/json; charset=utf-8")
+  if path=="/api/dashboard-lite":
+   try:
+    data=cached_research_only()
+    if data is None:return self.send(503,b'{"error":"no_embedded_research"}',"application/json; charset=utf-8")
+    return self.send(200,json.dumps(data,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except Exception as exc:
+    return self.send(503,json.dumps({"error":"recovery_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/status":
+   # No sensitive data, and still behind the same application authentication.
+   try:
+    embedded=read_embedded()
+    return self.send(200,json.dumps({"api":"ok","embedded_research":bool(embedded),"cached_research":isinstance(CACHE.get("payload"),dict),
+      "observation_utc":embedded.get("observed_utc") if embedded else None,"utc":dt.datetime.now(dt.timezone.utc).isoformat()}).encode(),"application/json; charset=utf-8")
+   except Exception:
+    return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   paths={"/":"private.html","/index.html":"private.html","/assets/app.js":"private.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
