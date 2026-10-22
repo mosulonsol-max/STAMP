@@ -24,7 +24,13 @@ def signals(candles,timeframe="1h",now_ms=None):
             if t%ms or t+ms>now_ms or not math.isfinite(close) or close<=0:continue
             seen[t]=close
         except (KeyError,TypeError,ValueError):continue
-    times=sorted(seen);closes=[seen[t] for t in times]
+    times=sorted(seen)
+    if times:
+        segment_start=0
+        for i in range(1,len(times)):
+            if times[i]-times[i-1]!=ms:segment_start=i
+        times=times[segment_start:]
+    closes=[seen[t] for t in times]
     if len(times)<21:return {"status":"insufficient_closed_candles","closed_candles":len(times),"events":[]}
     fast=pine_ema(closes,6);slow=pine_ema(closes,20)
     events=[]
