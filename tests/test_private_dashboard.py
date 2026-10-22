@@ -65,6 +65,29 @@ class PrivateDashboardTests(unittest.TestCase):
     conn.close()
    finally:
     server.shutdown();server.server_close();worker.join(timeout=3)
+ def test_complete_login_session_loads_html_assets_research_and_logout(self):
+  archived={"market":{"price":0.0001751},"observed_utc":"2026-10-22T23:30:00Z","source":"deployment_snapshot","candles":{}}
+  with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"test-long-password"},clear=True),patch.object(app,"read_embedded",return_value=archived),patch.object(app,"fetch_mexc_quote",return_value={"status":"unavailable"}):
+   server=ThreadingHTTPServer(("127.0.0.1",0),app.Handler)
+   worker=threading.Thread(target=server.serve_forever,daemon=True);worker.start()
+   try:
+    conn=http.client.HTTPConnection("127.0.0.1",server.server_address[1],timeout=4)
+    conn.request("GET","/")
+    res=conn.getresponse();self.assertEqual(res.status,200)
+    self.assertIn(b'action="/login"',res.read())
+    conn.request("POST","/login",body="user=private&password=test-long-password",headers={"Content-Type":"application/x-www-form-urlencoded"})
+    res=conn.getresponse();self.assertEqual(res.status,303)
+    cookie=res.getheader("Set-Cookie").split(";",1)[0];res.read()
+    for path,expected in (("/",b'id="stamp-snapshot"'),("/assets/app.js",b'function refresh()'),("/assets/style.css",b'body'),("/api/dashboard-lite",b'0.0001751'),("/api/status",b'"api": "ok"')):
+     conn.request("GET",path,headers={"Cookie":cookie})
+     res=conn.getresponse();self.assertEqual(res.status,200,path)
+     self.assertIn(expected,res.read(),path)
+    conn.request("POST","/logout",headers={"Cookie":cookie})
+    res=conn.getresponse();self.assertEqual(res.status,303)
+    self.assertIn("Max-Age=0",res.getheader("Set-Cookie"));res.read()
+    conn.close()
+   finally:
+    server.shutdown();server.server_close();worker.join(timeout=3)
  def test_authenticated_live_quote_and_freshness_diagnostics(self):
   archived={"market":{"price":0.00017},"observed_utc":"2026-10-22T23:30:00Z","source":"deployment_snapshot"}
   live={"status":"fresh","price":0.0001777,"change_24h_pct":1.8,"retrieved_at_utc":"2026-10-22T23:31:00Z"}
