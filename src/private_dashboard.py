@@ -1,5 +1,6 @@
 """Private read-only STAMP web dashboard. Optional private GitHub API refresh."""
 import base64,datetime as dt,hmac,json,math,os,pathlib,threading,time
+from concurrent.futures import ThreadPoolExecutor,as_completed
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
@@ -36,9 +37,17 @@ def load(path,token):
 def build():
  token=os.getenv("GITHUB_READ_TOKEN","").strip()
  items={};errors={}
- for path in PATHS:
-  items[path],err=load(path,token)
-  if err:errors[path]=err
+ # GitHub API fetches must run concurrently: serial network requests exceed
+ # serverless time limits and can make the authenticated dashboard unusable.
+ with ThreadPoolExecutor(max_workers=8) as pool:
+  tasks={pool.submit(load,path,token):path for path in PATHS}
+  for task in as_completed(tasks):
+   path=tasks[task]
+   try:items[path],err=task.result()
+   except Exception as exc:
+    items[path]=[] if path.endswith(".jsonl") or path.startswith("candles/") else {}
+    err=type(exc).__name__
+   if err:errors[path]=err
  latest=items["latest.json"];raw=latest.get("raw") or {};a=latest.get("analysis") or {}
  ticker=((raw.get("mexc") or {}).get("ticker") or {}).get("data") or {}
  observed=raw.get("collected_at_utc");seconds=age(observed)
@@ -46,10 +55,10 @@ def build():
  frames={}
  for tf in ("15m","1h","4h","1d"):
   frames[tf]=[]
-  for c in items["candles/"+tf+".json"][-500:]:
+  for c in (items["candles/"+tf+".json"] if isinstance(items["candles/"+tf+".json"],list) else [])[-500:]:
    if not isinstance(c,dict):continue
    t=num(c.get("t"));vals=[num(c.get(k)) for k in ("o","h","l","c","v")]
-   if t is not None and all(v is not None and v>0 for v in vals[:4]):
+   if t is not None and all(v is not None and v>0 for v in vals[:4]) and vals[1]>=max(vals[0],vals[3]) and vals[2]<=min(vals[0],vals[3]):
     frames[tf].append(dict(t=int(t),o=vals[0],h=vals[1],l=vals[2],c=vals[3],v=vals[4]))
  pools=[]
  for d in (raw.get("dex") or {}).get("data") or []:
