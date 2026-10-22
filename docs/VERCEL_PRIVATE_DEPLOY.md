@@ -1,57 +1,48 @@
-# Deployment status — 22 October 2026
+# STAMP — Private Vercel Dashboard: deployment and security
 
-The user connected the private GitHub repository to Vercel. Project `stamp` exists and production deployment `dpl_8QjA3PCVUsuYzcz5F62RPegeCn41` reported **READY** for commit `722a858394123d8f69f3344ba23e38f63c7c30a4`. Project domain: https://stamp-one-opal.vercel.app.
+Updated: 2026-10-22 UTC.
 
-Both `DASHBOARD_USER` and `DASHBOARD_PASSWORD` were configured as encrypted Vercel environment variables for Production and Preview. Do not copy or commit the password. Vercel Authentication is enabled on `.vercel.app` domains. The GitHub repository remains private.
+## Verified
 
-**Outstanding:** the connector cannot fetch the protected deployed website because team-scoped protection-bypass access returned HTTP 403. Thus actual HTTP 401/authorized dashboard response has not yet been independently verified; Vercel's READY is a build/deployment status only. `GITHUB_READ_TOKEN` is not configured, so the dashboard serves a bundled **deployment snapshot** rather than continuously polling GitHub. Configure a read-only repository token in Vercel for live research refresh. An Ignored Build Step has now been configured to skip most data-only commits outside the first ten minutes of each UTC hour, reducing free-plan build consumption. Until a GitHub read-only token is configured, the deployed dashboard is a periodically rebuilt snapshot and may be stale.
+- Vercel project `stamp` exists, connected to the **private** GitHub repository `mosulonsol-max/STAMP`.
+- Production domain: https://stamp-one-opal.vercel.app
+- Vercel has reported **READY** production deployments for the dashboard.
+- Vercel Authentication is enabled for the project's `.vercel.app` domains.
+- `DASHBOARD_USER` and `DASHBOARD_PASSWORD` are configured as encrypted Vercel environment variables for production and preview.
+- GitHub Actions is running the monitor, tests, model research, forecast audit, and archiving. Successful workflow health records exist.
+- The server checks Basic credentials before serving `/`, `/assets/*`, or `/api/dashboard`. Local HTTP integration tests cover anonymous 401 and authenticated API 200.
+- A separate **public MEXC 24-hour ticker quote** is fetched at request time, cached for 90 seconds and displayed separately from the research snapshot. The quote is marked unavailable when the source fails, and the browser marks it stale after 3 minutes.
+- The technical indicators, model research, liquidity history and archived order-book analysis are from **the GitHub snapshot bundled into the deployment**, not from the fresh MEXC quote. Their timestamps and stale status are shown.
 
----
-# Vercel deployment — STAMP private dashboard
+## Remaining verification and access limitations
 
-## Current state
-The Vercel connector is authorized for the user's personal account, but the Vercel account currently reports **zero linked GitHub namespaces**. The account's default team scope is not authorized for the connector. The STAMP repository remains private. A production deployment has not been created.
+- **Not independently verified:** remote end-to-end authorized login, authenticated JSON response, or live browser rendering. The Vercel connector's protected URL fetch and runtime log APIs returned HTTP **403** for the project/team. A READY deployment is not proof of an operational authenticated website.
+- **Not configured:** `GITHUB_READ_TOKEN`. The backend supports polling the private repository, but no secret can be derived from the existing GitHub connector. Without it, the archived research is only as recent as the last successful deployment. A data-only commit can be ignored to conserve free-tier builds.
+- The original dashboard password was shared in chat and should be rotated in Vercel by the owner. Do not copy it into code, documentation, issues or logs.
 
-## Enable live private research updates (one-time owner action)
+## Owner action to enable automatic private research polling
 
-The application has no `GITHUB_READ_TOKEN` yet. To enable real private GitHub polling without exposing the STAMP repository:
+1. Open https://github.com/settings/personal-access-tokens and create a **fine-grained** personal access token.
+2. Resource owner: `mosulonsol-max`; repository access: **Only select repositories → STAMP**; permissions: **Contents → Read-only**. Use a limited expiry.
+3. Open Vercel → `stamp` → **Settings → Environment Variables**. Add `GITHUB_READ_TOKEN` as a sensitive value for **Production** (and Preview if desired). Never paste the token into a chat.
+4. Redeploy production to apply the new environment variable.
+5. After login, confirm the source reads `Private GitHub · automatic polling`, and that the research observation timestamp advances as GitHub Actions updates. Backend cache duration is 90 seconds; this is not exchange tick streaming.
+6. Rotate `DASHBOARD_PASSWORD` to a unique password you generate and save privately. Redeploy once to apply the change.
 
-1. In GitHub, open **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
-2. Set the resource owner to `mosulonsol-max`; choose **Only select repositories** and select **STAMP**.
-3. Set **Repository permissions → Contents: Read-only**. Do not grant Actions, Administration, Secrets, or write permissions. Choose a limited expiration.
-4. In Vercel, open **stamp → Settings → Environment Variables → Add New**. Name: `GITHUB_READ_TOKEN`. Paste the token as a sensitive/encrypted value for Production and Preview. Never commit or send the token in a chat message.
-5. Redeploy the production deployment once so the serverless function receives the new environment variable.
-6. Check that the authenticated dashboard says **Private GitHub · automatic polling** and that its observation timestamp advances when the GitHub monitoring workflow updates. It polls on a 90-second cache, not tick-by-tick exchange streaming.
+## Acceptance tests before calling the hosted site fully operational
 
-If a token expires, the dashboard must show a source error or stale status, not pretend to have live data. The owner should rotate the token through Vercel only.
+- [x] Private GitHub repo connected and Vercel build READY.
+- [x] Vercel Authentication enabled; encrypted application credentials set.
+- [x] Local tests: anonymous UI/API requests return 401; authenticated API request returns 200.
+- [x] Public quote and historical research displayed with independent timestamps in code.
+- [x] Model forecast scores disclose validation size and promotion eligibility.
+- [ ] Remote GET `/`, `/assets/app.js`, `/api/dashboard` verified to reject unauthenticated requests.
+- [ ] Remote authenticated page and JSON verified to render with nonempty data.
+- [ ] `GITHUB_READ_TOKEN` configured, rotated and tested without leaking it.
+- [ ] Original chat-exposed application password rotated.
 
-## Password hygiene
-The initial temporary password was displayed in the project chat. Rotate `DASHBOARD_PASSWORD` in Vercel and redeploy before relying on the dashboard for sensitive research. The assistant must not repeat the new password in public project files or logs.
+## Free-tier operation
 
----
-## One-time action in Vercel (GitHub integration)
-1. Open https://vercel.com/new and sign in to the intended personal Vercel account.
-2. Under **Import Git Repository**, connect GitHub and grant the Vercel GitHub app access to **only** `mosulonsol-max/STAMP` (or the minimal appropriate repository scope).
-3. Select that repository, name the project `stamp-private-intelligence`, and use the repository root as the project root.
-4. In the project's **Environment Variables**, set **DASHBOARD_USER** and **DASHBOARD_PASSWORD** as encrypted variables for Production and Preview **before** making the deployment available. Generate a unique strong password in your own password manager. Never add credentials to GitHub source files.
-5. The Python function `api/index.py` delegates to `src/private_dashboard.py`. `vercel.json` routes all paths through that authenticated function. Confirm that `/`, `/assets/app.js`, `/assets/style.css`, and `/api/dashboard` all return HTTP 401 without valid credentials.
-6. Optionally set `GITHUB_READ_TOKEN` to a fine-grained read-only token for the private STAMP repository (Contents: Read), to refresh archived research without redeploying. This secret is not available from the ChatGPT GitHub connection; create and store it in Vercel directly.
-7. Confirm the deployed URL uses HTTPS. Check the displayed source indicator: `private_github_api` means GitHub polling, `deployment_snapshot` means only bundled data from the last deploy.
+The Vercel project uses an Ignored Build Step to skip most data-only Git commits, reducing build usage. A deployment snapshot may therefore lag behind the 5-minute GitHub Actions research schedule. The public MEXC quote remains independent and has its own freshness indicator. Avoid exposing private research through public static files or unauthenticated data endpoints.
 
-## Performance and build cost
-The GitHub Actions monitoring job may push data updates about every five minutes. **Do not trigger a full Vercel deployment for every data-only commit**, particularly on the free Hobby plan. Set Vercel's Ignored Build Step to skip data-only commits (e.g. `git diff --quiet HEAD^ HEAD -- api src/private_dashboard.py dashboard/private.html dashboard/private.css dashboard/private.js vercel.json`; validate this on your account). Use the optional read-only token to refresh dashboard data at runtime instead.
-
-The repository's root `requirements.txt` contains ML dependencies; monitor Vercel's Python function size and build limits on first deployment. If the Python runtime cannot be packaged within the free limits, move the web-only runtime into a separate minimal deployment root without the ML dependencies.
-
-## Security limitations
-HTTP Basic authentication requires HTTPS and a unique strong password; it does not provide MFA or fine-grained access control. The endpoint `/healthz` returns only the literal `ok` without authentication. No credentials are committed. Do not expose the private offline HTML snapshot in a public static folder. If deployment protection is available on the chosen plan, enable it as an additional layer.
-
-## Acceptance checklist
-- [ ] GitHub repository connected to Vercel
-- [ ] Environment credentials saved privately
-- [ ] Deployment READY
-- [ ] Anonymous requests to UI, assets and API return 401
-- [ ] Authorized login returns the dashboard
-- [ ] The data timestamp and stale indicator reflect actual stored research
-- [ ] Optional private GitHub token enables 90-second polling
-- [ ] Latest GitHub Actions tests are green
+The server uses HTTP Basic auth behind HTTPS; Vercel Authentication provides a separate protection layer. Basic auth alone does not provide MFA. The `/healthz` endpoint returns only `ok` and does not expose market data.
