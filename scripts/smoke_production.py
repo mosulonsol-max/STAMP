@@ -11,9 +11,9 @@ def request(path):
  req=urllib.request.Request(HOST+path,headers={"User-Agent":"STAMP-production-smoke/1.0","Accept":"*/*"})
  try:
   with urllib.request.urlopen(req,timeout=15) as response:
-   return response.status,dict(response.headers),response.read(120)
+   return response.status,{k.lower():v for k,v in response.headers.items()},response.read(120)
  except urllib.error.HTTPError as e:
-  return e.code,dict(e.headers),e.read(120)
+  return e.code,{k.lower():v for k,v in e.headers.items()},e.read(120)
 def main():
  # Allow Vercel production alias propagation following a commit.
  time.sleep(12)
@@ -21,8 +21,8 @@ def main():
  for path,expected in CHECKS:
   try:
    status,headers,body=request(path)
-   challenge=headers.get("WWW-Authenticate","")
-   content_type=headers.get("Content-Type","")
+   challenge=headers.get("www-authenticate","")
+   content_type=headers.get("content-type","")
    ok=status==expected and (path=="/healthz" or 'Basic realm="STAMP Private Dashboard"' in challenge)
    print(f"{'PASS' if ok else 'FAIL'} {path} status={status} expected={expected} content_type={content_type} challenge={'STAMP_BASIC' if 'STAMP Private Dashboard' in challenge else 'OTHER_OR_MISSING'}")
    checks.append({"path":path,"http_status":status,"expected":expected,"passed":ok})
