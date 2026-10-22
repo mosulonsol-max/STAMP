@@ -1,5 +1,5 @@
 """Private read-only STAMP web dashboard. Optional private GitHub API refresh."""
-import base64,datetime as dt,hmac,json,math,os,pathlib,threading,time
+import base64,datetime as dt,hmac,json,math,os,pathlib,threading,time,zlib
 from concurrent.futures import ThreadPoolExecutor,as_completed
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.request import Request,urlopen
@@ -105,10 +105,34 @@ def build():
   technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},candles=frames,dex=pools[:10],learning=learning,scorecard=score,
   health=dict(passed=health.get("pipeline_passed"),at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
   errors=errors,note="Research only. Experimental model outputs are not executable trading signals.")
+def read_embedded():
+ """Import the GitHub Actions-built, private deployment snapshot as a Python module.
+ This works even when Vercel's Python function excludes non-imported data files.
+ """
+ try:
+  from src.deployment_snapshot import COMPRESSED_JSON
+  if not COMPRESSED_JSON:return None
+  obj=json.loads(zlib.decompress(base64.b64decode(COMPRESSED_JSON)).decode("utf-8"))
+  if not isinstance(obj,dict) or not isinstance(obj.get("market"),dict):return None
+  return obj
+ except (ImportError,ValueError,TypeError,zlib.error,UnicodeError):
+  return None
+
 def cached():
  with LOCK:
   now=time.monotonic()
   if CACHE["payload"] is not None and now-CACHE["time"]<90:return CACHE["payload"]
+  if not os.getenv("GITHUB_READ_TOKEN","").strip():
+   result=read_embedded()
+   if result is not None:
+    # Only the exchange quote is fetched live. Research remains an archived snapshot.
+    result["live_quote"]=fetch_mexc_quote()
+    result["source"]="deployment_snapshot"
+    result["fetched_utc"]=dt.datetime.now(dt.timezone.utc).isoformat()
+    result["age_seconds"]=age(result.get("observed_utc"))
+    result["market_status"]="FRESH" if result["age_seconds"] is not None and result["age_seconds"]<=900 else "STALE"
+    CACHE.update(time=now,payload=result)
+    return result
   result=build();CACHE.update(time=now,payload=result);return result
 def authorized(header):
  user=os.getenv("DASHBOARD_USER","");password=os.getenv("DASHBOARD_PASSWORD","")
