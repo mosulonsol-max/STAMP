@@ -83,7 +83,7 @@ jobs:
           # One change per UTC hour triggers an authenticated Vercel snapshot deployment
           # without storing a private GitHub token in the hosted application.
           this_hour="$(date -u +'%Y-%m-%dT%H:00:00Z')"
-          if [ ! -f data/vercel_heartbeat_utc.txt ] || [ "$(cat data/vercel_heartbeat_utc.txt)" != "$this_hour" ]; then
+          if [ ! -f data/vercel_heartbeat_utc.txt ] || [ "$(cat data/vercel_heartbeat_utc.txt)" != "$this_hour" ] || grep -q 'COMPRESSED_JSON = ""' src/deployment_snapshot.py; then
             python src/build_deployment_snapshot.py
           fi
           echo "$this_hour" > data/vercel_heartbeat_utc.txt
