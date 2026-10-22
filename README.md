@@ -11,8 +11,8 @@ Private evidence archive for Solana STAMP (`EKtmPPLaCbEEKiwoHHtV7TsRsmPXs5CMGtQt
 ## Private dashboard
 
 - **No-card option:** The scheduled workflow produces `dashboard/private-offline.html` and a GitHub Actions artifact named `stamp-private-dashboard`, viewable only after GitHub repository authentication. Download the latest artifact for an interactive, self-contained research snapshot.
-- **Hosted option:** `src/private_dashboard.py` implements a password-protected, read-only dashboard with four timeframe charts, market depth, DEX liquidity, research model results, and health checks. It can poll the private GitHub repository with an optional read-only token.
-- **Deployment:** See [Private dashboard setup and security](docs/PRIVATE_DASHBOARD.md). The free Render deployment was blocked by a billing-information requirement; no hosted service is yet live.
+- **Hosted dashboard:** [STAMP Private Intelligence on Vercel](https://stamp-one-opal.vercel.app) (Vercel Authentication + application credentials). The read-only dashboard includes four candle timeframes, market depth, DEX liquidity, audited model performance, a separately timestamped public MEXC quote and pipeline health. GitHub Actions bundles a compact private research snapshot into the Python function once per UTC hour, without any GitHub token. A fine-grained read-only token is optional for faster private-repository polling.
+- **Deployment:** Production builds have reported **READY** on Vercel. See [Vercel deployment status, security and remaining acceptance checks](docs/VERCEL_PRIVATE_DEPLOY.md). Remote authenticated page rendering is still unverified because the connected Vercel session returns 403 for protected URL checks; READY alone is not proof of an operational login.
 
 ## Experimental ML
 `src/model.py` implements a 1-hour gradient boosting regression model with a 60-sample forward holdout and zero-return baseline. It emits a conditional experimental range only when data sufficiency and a minimum validation threshold pass; otherwise it explicitly abstains. This is not a continuously retrained online agent, nor a guaranteed calibrated probability model.
