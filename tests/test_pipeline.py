@@ -4,7 +4,14 @@ import market_features as mf
 import forecast_audit as fa
 import research_engine as re
 import adaptive_feedback as af
+import tradingview_features as tv
 class Features(unittest.TestCase):
+ def test_tradingview_signal_validation(self):
+  event={'schema':'stamp.tv.signal.v1','symbol':'MEXC:STAMPUSDT','timeframe':'60','bar_time_ms':1792660000000,'signal':'bullish','close':.0002,'ema_fast':.00021,'ema_slow':.00019,'rsi':56,'macd_hist':.000001}
+  self.assertEqual(tv.validate(event)['signal'],'bullish')
+  event['rsi']=float('nan')
+  with self.assertRaises(ValueError):tv.validate(event)
+
  def test_feedback_requires_matured_outcomes(self):
   self.assertEqual(af.calibrate([], 'x', .03)['prediction'], .03)
   rows=[{'event':'forecast','id':str(i),'model_version':'x','predicted_log_return':.1} for i in range(25)]
