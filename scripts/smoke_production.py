@@ -6,7 +6,7 @@ a Vercel access page, a redirect, or a missing-function 500.
 """
 import sys,time,urllib.request,urllib.error,json,datetime,pathlib
 HOST="https://stamp-one-opal.vercel.app"
-CHECKS=[("/healthz",200),("/",200),("/assets/app.js",401),("/assets/style.css",200),("/api/dashboard",401),("/api/dashboard-lite",401),("/api/status",401)]
+CHECKS=[("/healthz",200),("/",200),("/assets/app.js",401),("/assets/style.css",200),("/api/dashboard",401),("/api/dashboard-lite",401),("/api/quote",401),("/api/status",401)]
 def request(path):
  req=urllib.request.Request(HOST+path,headers={"User-Agent":"STAMP-production-smoke/1.0","Accept":"*/*"})
  try:
