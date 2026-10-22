@@ -4,6 +4,7 @@ import os, json, time, math, datetime, pathlib, statistics
 import requests
 from model import predict
 from market_features import technical,orderbook,trades
+from candlestick_features import analyze as candle_patterns
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 CONTRACT="EKtmPPLaCbEEKiwoHHtV7TsRsmPXs5CMGtQtZFSiinsc"
 NOW=datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -101,6 +102,7 @@ def main():
     indicators={tf:metrics(candles(data["mexc"][key],ms)) for tf,key,ms in [
         ("15m","klines_15m",900000),("1h","klines_1h",3600000),("4h","klines_4h",14400000),("1d","klines_1d",86400000)]}
     advanced={tf:technical(candles(data["mexc"][key],ms)) for tf,key,ms in [("15m","klines_15m",900000),("1h","klines_1h",3600000),("4h","klines_4h",14400000),("1d","klines_1d",86400000)]}
+    candle_analysis={tf:candle_patterns(candles(data['mexc'][key],ms)) for tf,key,ms in [('15m','klines_15m',900000),('1h','klines_1h',3600000),('4h','klines_4h',14400000),('1d','klines_1d',86400000)]}
     executed_trades=trades(data["mexc"]["trades"].get("data"))
     book_features=orderbook(data["mexc"]["book"].get("data"))
     ml=predict(candles(data["mexc"]["klines_1h"],3600000))
@@ -111,7 +113,7 @@ def main():
         if m.get("count",0)<35:flags.append("insufficient_"+tf+"_candles")
         elif m.get("volume_last_vs_prev20",0)>1.5 and m["last_close"]>m["highest_high_prev20"]:flags.append("confirmed_closed_candle_breakout_"+tf)
         elif m.get("volume_last_vs_prev20",0)>1.5 and m["last_close"]<m["lowest_low_prev20"]:flags.append("confirmed_closed_candle_breakdown_"+tf)
-    analysis={"computed_at_utc":NOW,"order_book":ob,"order_book_features":book_features,"recent_executed_trades":executed_trades,"advanced_indicators":advanced,"indicators":indicators,"flags":flags,"ml_experimental":ml,
+    analysis={"computed_at_utc":NOW,"order_book":ob,"order_book_features":book_features,"recent_executed_trades":executed_trades,"advanced_indicators":advanced,"candlestick_analysis":candle_analysis,"indicators":indicators,"flags":flags,"ml_experimental":ml,
       "forecast_1h":"لا توجد بيانات كافية لتوقع موثوق",
       "forecast_4h":"لا توجد بيانات كافية لتوقع موثوق",
       "forecast_24h":"لا توجد بيانات كافية لتوقع موثوق",
@@ -121,7 +123,7 @@ def main():
     (ROOT/"data").mkdir(exist_ok=True)
     (ROOT/"data"/"latest.json").write_text(json.dumps({"raw":data,"analysis":analysis},ensure_ascii=False,indent=2)+"\n")
     with (ROOT/"data"/"observations.jsonl").open("a") as f:
-        f.write(json.dumps({"at":NOW,"mexc_ticker":data["mexc"]["ticker"],"mexc_book_summary":ob,"dex":data["dex"],"project":data["project"],"macro":data["macro"],"indicators":indicators,"advanced_indicators":advanced,"order_book_features":book_features,"recent_executed_trades":executed_trades,"flags":flags},ensure_ascii=False)+"\n")
+        f.write(json.dumps({"at":NOW,"mexc_ticker":data["mexc"]["ticker"],"mexc_book_summary":ob,"dex":data["dex"],"project":data["project"],"macro":data["macro"],"indicators":indicators,"advanced_indicators":advanced,"candlestick_analysis":candle_analysis,"order_book_features":book_features,"recent_executed_trades":executed_trades,"flags":flags},ensure_ascii=False)+"\n")
     errors={k:v["error"] for k,v in data["mexc"].items() if v["error"]}
     critical=[]
     for k in ("ticker","book","klines_1h"):
