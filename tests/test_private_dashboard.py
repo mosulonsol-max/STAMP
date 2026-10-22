@@ -1,5 +1,5 @@
 """Security and rendering regressions for the private STAMP dashboard."""
-import base64,importlib.util,json,os,pathlib,sys,tempfile,unittest,threading,http.client
+import base64,datetime,io,importlib.util,json,os,pathlib,sys,tempfile,unittest,threading,http.client
 from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -41,6 +41,25 @@ class PrivateDashboardTests(unittest.TestCase):
     server.shutdown()
     server.server_close()
     worker.join(timeout=3)
+ def test_live_quote_has_independent_timestamp_and_correct_percent(self):
+  stamp=datetime.datetime.now(datetime.timezone.utc)
+  provider=int(stamp.timestamp()*1000)
+  payload=json.dumps({"symbol":"STAMPUSDT","lastPrice":"0.0001837","bidPrice":"0.0001836","askPrice":"0.0001838","priceChangePercent":"0.042","quoteVolume":"1250","closeTime":provider}).encode()
+  class Response(io.BytesIO):
+   status=200
+  with patch.object(app,"urlopen",return_value=Response(payload)):
+   result=app.fetch_mexc_quote()
+  self.assertEqual(result["status"],"fresh")
+  self.assertEqual(result["price"],0.0001837)
+  self.assertAlmostEqual(result["change_24h_pct"],4.2)
+  self.assertIsNotNone(result["provider_at_utc"])
+ def test_live_quote_fails_closed_on_bad_symbol(self):
+  class Response(io.BytesIO):
+   status=200
+  with patch.object(app,"urlopen",return_value=Response(b'{"symbol":"WRONG","lastPrice":"1"}')):
+   result=app.fetch_mexc_quote()
+  self.assertEqual(result["status"],"unavailable")
+  self.assertNotIn("price",result)
  def test_numeric_safety(self):
   self.assertIsNone(app.num(float("nan")))
   self.assertIsNone(app.num(float("inf")))
@@ -52,7 +71,7 @@ class PrivateDashboardTests(unittest.TestCase):
  def test_dashboard_build_uses_snapshot_and_does_not_leak_secrets(self):
   fake={"latest.json":{"raw":{"collected_at_utc":"2020-01-01T00:00:00+00:00","mexc":{"ticker":{"data":{"lastPrice":"0.0002","priceChangePercent":"0.01"}}}},"analysis":{"advanced_indicators":{"1h":{"rsi14_simple":55}},"recent_executed_trades":{"aggressive_buy_notional_usdt":42},"forecast_1h":"insufficient_evidence"}},"workflow_health.json":{"pipeline_passed":True},"learning_controller.json":{"champion":None},"forecast_scorecard.json":{"forecasts_total":3},"candle_quality.json":{},"observations.jsonl":[]}
   def reader(path,token):return fake.get(path,[] if path.startswith("candles/") else {}),None
-  with patch.dict(os.environ,{"DASHBOARD_PASSWORD":"SECRET_NEVER_EXPOSE","GITHUB_READ_TOKEN":""}),patch.object(app,"load",side_effect=reader):
+  with patch.dict(os.environ,{"DASHBOARD_PASSWORD":"SECRET_NEVER_EXPOSE","GITHUB_READ_TOKEN":""}),patch.object(app,"load",side_effect=reader),patch.object(app,"fetch_mexc_quote",return_value={"status":"unavailable"}):
    result=app.build()
    self.assertEqual(result["market_status"],"STALE")
    self.assertEqual(result["market"]["price"],0.0002)
