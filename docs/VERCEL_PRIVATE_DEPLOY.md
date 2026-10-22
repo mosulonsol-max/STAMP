@@ -14,6 +14,16 @@ Updated: 2026-10-22 UTC.
 - A separate **public MEXC 24-hour ticker quote** is fetched at request time, cached for 90 seconds and displayed separately from the research snapshot. The quote is marked unavailable when the source fails, and the browser marks it stale after 3 minutes.
 - The technical indicators, model research, liquidity history and archived order-book analysis are from **a private GitHub Actions snapshot embedded as a compressed Python module** once per UTC hour. This avoids reliance on Vercel including loose data files in its Python function. Their timestamps and stale status are shown; the independent MEXC quote is fetched separately.
 
+## Dashboard interface v2 (2026-10-22)
+
+- Arabic by default, with an English language switch and Iraqi (UTC+3) / UTC display timezone selection. These preferences are stored locally in the browser only.
+- Main price, bid/ask, 24h volume and price change use the independently fetched public MEXC quote **only while the quote is fresh**. If it becomes unavailable, the UI explicitly falls back to the archived research quote with an **archived/not live** label.
+- Quote timestamp, archived analysis collection timestamp, and pipeline verification timestamp are displayed independently. Historical candles remain archival.
+- A dedicated 1h/4h/24h/7d forecast panel displays the research engine's **actual** forecast text. If there is insufficient evidence, the panel abstains; the UI never invents a target price or confidence percentage.
+- Charts support four timeframes, show only closed candles, allow candle OHLC inspection and CSV export. Archived order-book and DEX liquidity are labeled as snapshots, not executable quotes.
+- The settings dialog contains **Change password in Vercel**. This opens the real credential administration platform. It is intentionally not an in-app password form: the application does not have permission to write persistent Vercel environment variables, and pretending to rotate them locally would be insecure. Update `DASHBOARD_PASSWORD` in the Vercel project, redeploy, then sign in with the new value.
+- Regression tests cover the language and timezone controls, live/archive separation, forecast abstention, password link, and security endpoints.
+
 ## Remaining verification and access limitations
 
 - **Not independently verified:** remote end-to-end authorized login, authenticated JSON response, or live browser rendering. The Vercel connector's protected URL fetch and runtime log APIs returned HTTP **403** for the project/team. A READY deployment is not proof of an operational authenticated website.
@@ -38,6 +48,7 @@ Updated: 2026-10-22 UTC.
 - [x] Tokenless hourly embedded-snapshot build and heartbeat integrated into GitHub Actions and Vercel ignored-build configuration.
 - [x] First real compressed-snapshot commit and production deployment verified: production READY on commit `1f7ac017c03f5956921dbdab5e77113a781482aa` (2026-10-22).
 - [x] Model forecast scores disclose validation size and promotion eligibility.
+- [x] Dashboard v2: Arabic/English, UTC+3/UTC, independent clocks, forecast abstention cards, CSV export and password-management entry point.
 - [ ] Remote GET `/`, `/assets/app.js`, `/api/dashboard` verified to reject unauthenticated requests.
 - [ ] Remote authenticated page and JSON verified to render with nonempty data.
 - [ ] `GITHUB_READ_TOKEN` configured, rotated and tested without leaking it.
