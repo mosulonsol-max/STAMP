@@ -8,6 +8,12 @@ import tradingview_features as tv
 import pine_parity as pp
 import build_dashboard as bd
 class Features(unittest.TestCase):
+ def test_dashboard_empty_data(self):
+  with tempfile.TemporaryDirectory() as d:
+   out=bd.build(pathlib.Path(d))
+   self.assertTrue(out.exists())
+   self.assertIn('UNKNOWN',out.read_text())
+
  def test_pine_gap_resets_ema_history(self):
   ms=3600000
   bars=[{'t':i*ms,'c':1+i*.01} for i in range(25)] + [{'t':i*ms,'c':2+i*.01} for i in range(27,51)]
