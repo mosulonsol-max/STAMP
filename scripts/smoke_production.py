@@ -4,7 +4,7 @@ No password is needed or logged. Public /healthz must return 200.
 All other routes must return 401 with the app's Basic challenge, not
 a Vercel access page, a redirect, or a missing-function 500.
 """
-import sys,time,urllib.request,urllib.error
+import sys,time,urllib.request,urllib.error,json,datetime,pathlib
 HOST="https://stamp-one-opal.vercel.app"
 CHECKS=[("/healthz",200),("/",401),("/assets/app.js",401),("/assets/style.css",401),("/api/dashboard",401),("/api/dashboard-lite",401),("/api/status",401)]
 def request(path):
@@ -17,7 +17,7 @@ def request(path):
 def main():
  # Allow Vercel production alias propagation following a commit.
  time.sleep(12)
- failed=[]
+ failed=[];checks=[]
  for path,expected in CHECKS:
   try:
    status,headers,body=request(path)
@@ -25,9 +25,11 @@ def main():
    content_type=headers.get("Content-Type","")
    ok=status==expected and (path=="/healthz" or 'Basic realm="STAMP Private Dashboard"' in challenge)
    print(f"{'PASS' if ok else 'FAIL'} {path} status={status} expected={expected} content_type={content_type} challenge={'STAMP_BASIC' if 'STAMP Private Dashboard' in challenge else 'OTHER_OR_MISSING'}")
+   checks.append({"path":path,"http_status":status,"expected":expected,"passed":ok})
    if not ok:failed.append(f"{path}: HTTP {status}, expected {expected} (or wrong authentication challenge)")
   except Exception as e:
    print(f"FAIL {path} {type(e).__name__}: {e}")
+   checks.append({"path":path,"http_status":None,"expected":expected,"passed":False,"error":type(e).__name__})
    failed.append(path+": "+type(e).__name__)
  if failed:
   print("PRODUCTION SMOKE FAILED:",*failed,sep="\n - ")
