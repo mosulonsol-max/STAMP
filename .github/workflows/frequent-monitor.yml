@@ -14,6 +14,7 @@ on:
       - 'src/tradingview_features.py'
       - 'src/build_dashboard.py'
       - 'src/private_dashboard.py'
+      - 'src/build_offline_dashboard.py'
       - 'dashboard/private.*'
       - 'src/pine_parity.py'
       - 'tradingview/**'
@@ -74,12 +75,14 @@ jobs:
           print('WORKFLOW HEALTH:',json.dumps(record))
           PY
           python src/build_dashboard.py
+          python src/build_offline_dashboard.py
           date -u +'%Y-%m-%dT%H:%M:%SZ' > data/last_workflow_attempt_utc.txt
           if [ -f data/latest.json ]; then
             python -c 'import json,datetime,pathlib; d=json.loads(pathlib.Path("data/latest.json").read_text()); print("Latest source timestamp:",d.get("raw",{}).get("collected_at_utc"))'
           fi
           git add data/last_workflow_attempt_utc.txt
           if [ -f dashboard/index.html ]; then git add dashboard/index.html; fi
+          if [ -f dashboard/private-offline.html ]; then git add dashboard/private-offline.html; fi
           if [ -d data/candles ]; then git add data/candles/; fi
           for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/learning_controller.json data/workflow_health.json; do
             if [ -f "$path" ]; then git add "$path"; fi
@@ -100,3 +103,12 @@ jobs:
               exit 1
             fi
           fi
+
+      - name: Archive private dashboard download
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stamp-private-dashboard
+          path: dashboard/private-offline.html
+          retention-days: 7
+          if-no-files-found: warn
