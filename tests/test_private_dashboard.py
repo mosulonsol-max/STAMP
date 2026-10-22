@@ -43,12 +43,15 @@ class PrivateDashboardTests(unittest.TestCase):
   self.assertIsNone(app.age(None))
   self.assertIsNone(app.age("bad"))
  def test_dashboard_build_uses_snapshot_and_does_not_leak_secrets(self):
-  fake={"latest.json":{"raw":{"collected_at_utc":"2020-01-01T00:00:00+00:00","mexc":{"ticker":{"data":{"lastPrice":"0.0002","priceChangePercent":"0.01"}}}},"analysis":{"advanced":{"1h":{"rsi14_simple":55}}}},"workflow_health.json":{"pipeline_passed":True},"learning_controller.json":{"champion":None},"forecast_scorecard.json":{"forecasts_total":3},"candle_quality.json":{},"observations.jsonl":[]}
+  fake={"latest.json":{"raw":{"collected_at_utc":"2020-01-01T00:00:00+00:00","mexc":{"ticker":{"data":{"lastPrice":"0.0002","priceChangePercent":"0.01"}}}},"analysis":{"advanced_indicators":{"1h":{"rsi14_simple":55}},"recent_executed_trades":{"aggressive_buy_notional_usdt":42},"forecast_1h":"insufficient_evidence"}},"workflow_health.json":{"pipeline_passed":True},"learning_controller.json":{"champion":None},"forecast_scorecard.json":{"forecasts_total":3},"candle_quality.json":{},"observations.jsonl":[]}
   def reader(path,token):return fake.get(path,[] if path.startswith("candles/") else {}),None
   with patch.dict(os.environ,{"DASHBOARD_PASSWORD":"SECRET_NEVER_EXPOSE","GITHUB_READ_TOKEN":""}),patch.object(app,"load",side_effect=reader):
    result=app.build()
    self.assertEqual(result["market_status"],"STALE")
    self.assertEqual(result["market"]["price"],0.0002)
    self.assertEqual(result["health"]["passed"],True)
+   self.assertEqual(result["technical"]["1h"]["rsi14_simple"],55)
+   self.assertEqual(result["market"]["trades"]["aggressive_buy_notional_usdt"],42)
+   self.assertEqual(result["forecasts"]["1h"],"insufficient_evidence")
    self.assertNotIn("SECRET_NEVER_EXPOSE",json.dumps(result))
 if __name__=="__main__":unittest.main()
