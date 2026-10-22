@@ -5,7 +5,16 @@ import forecast_audit as fa
 import research_engine as re
 import adaptive_feedback as af
 import tradingview_features as tv
+import pine_parity as pp
 class Features(unittest.TestCase):
+ def test_pine_ema_and_closed_candles(self):
+  self.assertEqual(pp.pine_ema([10,12,14],3),[10,11,12.5])
+  ms=3600000
+  bars=[{'t':i*ms,'c':1+i*.01} for i in range(30)]
+  result=pp.signals(bars,'1h',now_ms=29*ms)
+  self.assertEqual(result['closed_candles'],29)
+  self.assertEqual(result['last_closed_bar_ms'],28*ms)
+
  def test_tradingview_signal_validation(self):
   event={'schema':'stamp.tv.signal.v1','symbol':'MEXC:STAMPUSDT','timeframe':'60','bar_time_ms':1792660000000,'signal':'bullish','close':.0002,'ema_fast':.00021,'ema_slow':.00019,'rsi':56,'macd_hist':.000001}
   self.assertEqual(tv.validate(event)['signal'],'bullish')
