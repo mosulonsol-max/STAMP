@@ -31,6 +31,9 @@ jobs:
           git config user.email 'stamp-monitor[bot]@users.noreply.github.com'
           mkdir -p data
           date -u +'%Y-%m-%dT%H:%M:%SZ' > data/last_workflow_attempt_utc.txt
+          if [ -f data/latest.json ]; then
+            python -c 'import json,datetime,pathlib; d=json.loads(pathlib.Path("data/latest.json").read_text()); print("Latest source timestamp:",d.get("raw",{}).get("collected_at_utc"))'
+          fi
           git add data/latest.json data/observations.jsonl data/last_workflow_attempt_utc.txt 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "data: scheduled STAMP market observation"
