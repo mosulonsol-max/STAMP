@@ -171,7 +171,12 @@ class Handler(BaseHTTPRequestHandler):
   self.end_headers();self.wfile.write(body)
  def do_GET(self):
   path=urlsplit(self.path).path
-  if path=="/healthz":return self.send(200,b"ok")
+  if path=="/healthz":
+   # A 200 response must mean the deployment can actually serve its UI and archived data.
+   try:
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css")) and read_embedded() is not None
+   except Exception:healthy=False
+   return self.send(200 if healthy else 503,b"ok" if healthy else b"deployment_assets_or_research_missing")
   if not authorized(self.headers.get("Authorization")):return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
   if path=="/api/dashboard":
    try:return self.send(200,json.dumps(cached(),allow_nan=False).encode(),"application/json; charset=utf-8")
