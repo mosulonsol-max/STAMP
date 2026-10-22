@@ -1,5 +1,11 @@
 name: STAMP frequent monitoring
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/monitor.py'
+      - 'src/model.py'
+      - '.github/workflows/frequent-monitor.yml'
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
