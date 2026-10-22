@@ -213,6 +213,14 @@ class Handler(BaseHTTPRequestHandler):
   if not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
    if path in ("/","/index.html","/login"):return self.send(200,login_html(),"text/html; charset=utf-8")
    return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
+  if path=="/api/quote":
+   # Independently fetched public exchange quote; research can remain archived.
+   # Endpoint stays authenticated, like the rest of the private dashboard.
+   try:
+    quote=fetch_mexc_quote()
+    return self.send(200,json.dumps({"quote":quote,"server_utc":dt.datetime.now(dt.timezone.utc).isoformat()},allow_nan=False).encode(),"application/json; charset=utf-8")
+   except Exception as exc:
+    return self.send(503,json.dumps({"error":"quote_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/dashboard":
    try:return self.send(200,json.dumps(cached(),allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
@@ -230,8 +238,15 @@ class Handler(BaseHTTPRequestHandler):
    # No sensitive data, and still behind the same application authentication.
    try:
     embedded=read_embedded()
-    return self.send(200,json.dumps({"api":"ok","embedded_research":bool(embedded),"cached_research":isinstance(CACHE.get("payload"),dict),
-      "observation_utc":embedded.get("observed_utc") if embedded else None,"utc":dt.datetime.now(dt.timezone.utc).isoformat()}).encode(),"application/json; charset=utf-8")
+    current=CACHE.get("payload")
+    obs=(current or embedded or {}).get("observed_utc")
+    return self.send(200,json.dumps({"api":"ok","embedded_research":bool(embedded),"cached_research":isinstance(current,dict),
+      "research_source":(current or embedded or {}).get("source","unavailable"),
+      "observation_utc":obs,"observation_age_seconds":age(obs),
+      "research_fresh":age(obs) is not None and age(obs)<=900,
+      "github_refresh_enabled":bool(os.getenv("GITHUB_READ_TOKEN","").strip()),
+      "quote_status":(current or {}).get("live_quote",{}).get("status","not_checked"),
+      "utc":dt.datetime.now(dt.timezone.utc).isoformat()}).encode(),"application/json; charset=utf-8")
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   paths={"/":"private.html","/index.html":"private.html","/assets/app.js":"private.js","/assets/style.css":"private.css"}
