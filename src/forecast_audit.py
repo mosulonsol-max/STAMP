@@ -50,22 +50,26 @@ def run(snapshot):
     evaluate(rows,now,price)
     model=snapshot["analysis"]["ml_experimental"]
     # Predictions are issued only when out-of-sample gate passed.
-    if model.get("status")!="experimental_validated":
-        return {"status":"abstain","reason":model.get("reason",model.get("status"))}
+    validated=model.get("status")=="experimental_validated"
+    # Shadow forecasts accumulate evidence even when ML fails validation; never publish as signals.
+    if not validated and snapshot["analysis"]["indicators"]["1h"].get("quality")!="indicators_only_not_calibrated_forecast":
+        return {"status":"abstain","reason":"insufficient hourly indicators"}
     # one forecast per hourly candle, prevent duplicate issuance across five-minute polls
     candle=snapshot["analysis"]["indicators"]["1h"].get("last_closed_open_time_ms")
     if candle is None:return {"status":"no_candle"}
     key=str(candle)
     if any(x.get("event")=="forecast" and x.get("source_candle")==key for x in rows):
         return {"status":"already_issued"}
-    prediction=float(model["predicted_return_log"])
+    prediction=float(model["predicted_return_log"]) if validated else math.log(snapshot["analysis"]["indicators"]["1h"]["ema6"]/snapshot["analysis"]["indicators"]["1h"]["ema20"])*0.10
     if not math.isfinite(prediction):return {"status":"invalid_prediction"}
     fid=str(uuid.uuid4())
     append({"event":"forecast","id":fid,"source_candle":key,"created_at_utc":now.isoformat(),
             "due_at_utc":(now+dt.timedelta(hours=1)).isoformat(),"horizon":"1h",
             "reference_price":price,"predicted_log_return":prediction,
             "predicted_direction":"up" if prediction>0 else "down" if prediction<0 else "flat",
-            "model_status":model["status"],"validation_mae":model.get("mae"),
+            "model_status":model["status"],"forecast_class":"validated_experimental" if validated else "shadow_unvalidated",
+            "model_version":"gradient_boosting_v1" if validated else "ema_gap_shadow_v1",
+            "validation_mae":model.get("mae"),
             "baseline_mae":model.get("zero_return_baseline_mae"),
             "evidence_flags":snapshot["analysis"].get("flags",[])})
     return {"status":"forecast_issued","id":fid}
