@@ -17,6 +17,7 @@ on:
       - 'api/**'
       - 'vercel.json'
       - 'src/build_offline_dashboard.py'
+      - 'src/build_deployment_snapshot.py'
       - 'dashboard/private.*'
       - 'src/pine_parity.py'
       - 'tradingview/**'
@@ -81,11 +82,15 @@ jobs:
           date -u +'%Y-%m-%dT%H:%M:%SZ' > data/last_workflow_attempt_utc.txt
           # One change per UTC hour triggers an authenticated Vercel snapshot deployment
           # without storing a private GitHub token in the hosted application.
-          date -u +'%Y-%m-%dT%H:00:00Z' > data/vercel_heartbeat_utc.txt
+          this_hour="$(date -u +'%Y-%m-%dT%H:00:00Z')"
+          if [ ! -f data/vercel_heartbeat_utc.txt ] || [ "$(cat data/vercel_heartbeat_utc.txt)" != "$this_hour" ]; then
+            python src/build_deployment_snapshot.py
+          fi
+          printf '%s\\n' "$this_hour" > data/vercel_heartbeat_utc.txt
           if [ -f data/latest.json ]; then
             python -c 'import json,datetime,pathlib; d=json.loads(pathlib.Path("data/latest.json").read_text()); print("Latest source timestamp:",d.get("raw",{}).get("collected_at_utc"))'
           fi
-          git add data/last_workflow_attempt_utc.txt data/vercel_heartbeat_utc.txt
+          git add data/last_workflow_attempt_utc.txt data/vercel_heartbeat_utc.txt src/deployment_snapshot.py
           if [ -f dashboard/index.html ]; then git add dashboard/index.html; fi
           if [ -f dashboard/private-offline.html ]; then git add dashboard/private-offline.html; fi
           if [ -d data/candles ]; then git add data/candles/; fi
