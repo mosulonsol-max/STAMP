@@ -118,5 +118,14 @@ def main():
     (ROOT/"data"/"latest.json").write_text(json.dumps({"raw":data,"analysis":analysis},ensure_ascii=False,indent=2)+"\n")
     with (ROOT/"data"/"observations.jsonl").open("a") as f:
         f.write(json.dumps({"at":NOW,"mexc_ticker":data["mexc"]["ticker"],"mexc_book_summary":ob,"dex":data["dex"],"project":data["project"],"macro":data["macro"],"indicators":indicators,"flags":flags},ensure_ascii=False)+"\n")
-    print(json.dumps({"timestamp":NOW,"flags":flags,"errors":{k:v["error"] for k,v in data["mexc"].items() if v["error"]}},ensure_ascii=False))
+    errors={k:v["error"] for k,v in data["mexc"].items() if v["error"]}
+    critical=[]
+    for k in ("ticker","book","klines_1h"):
+        if data["mexc"][k]["error"] or data["mexc"][k]["data"] is None:
+            critical.append(k)
+    if ob.get("quality")!="snapshot_only":critical.append("invalid_order_book")
+    if indicators["1h"].get("count",0)<35:critical.append("insufficient_hourly_candles")
+    print(json.dumps({"timestamp":NOW,"flags":flags,"errors":errors,"critical":critical},ensure_ascii=False))
+    if critical:
+        raise SystemExit("Critical market data unavailable: "+", ".join(critical))
 if __name__=="__main__":main()
