@@ -1,0 +1,25 @@
+name: Validate STAMP archive
+on:
+  push:
+    paths:
+      - 'data/**'
+      - '.github/workflows/archive-validation.yml'
+  pull_request:
+    paths:
+      - 'data/**'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON and contract
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('data/STAMP_archive.json')
+          d=json.loads(p.read_text())
+          assert d['contract']=='EKtmPPLaCbEEKiwoHHtV7TsRsmPXs5CMGtQtZFSiinsc'
+          assert isinstance(d['historical_observations'],list)
+          print('Archive validation passed')
+          PY
