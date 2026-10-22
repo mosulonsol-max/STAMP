@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: stamp-private-intelligence
+    runtime: python
+    plan: free
+    region: frankfurt
+    repo: https://github.com/mosulonsol-max/STAMP
+    branch: main
+    autoDeploy: true
+    buildCommand: python -m compileall -q src/private_dashboard.py
+    startCommand: python src/private_dashboard.py
+    healthCheckPath: /healthz
+    envVars:
+      - key: DASHBOARD_USER
+        sync: false
+      - key: DASHBOARD_PASSWORD
+        sync: false
+      # Optional read-only fine-grained GitHub PAT enables refresh without redeploy.
+      # Configure GITHUB_READ_TOKEN manually in Render environment settings.
