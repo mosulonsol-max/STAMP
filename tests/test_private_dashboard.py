@@ -76,6 +76,8 @@ class PrivateDashboardTests(unittest.TestCase):
     body=response.read().decode()
     self.assertIn('id="stamp-snapshot"',body)
     self.assertIn('"price":0.00019',body)
+    self.assertIn('id="price">$0.00019000</div>',body)
+    self.assertIn('ARCHIVED UTC: 2026-10-22T10:00:00Z',body)
     self.assertNotIn("</script><script>alert(1)</script>",body)
     self.assertIn("u003c",body)
     conn.close()
