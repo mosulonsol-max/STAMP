@@ -34,12 +34,43 @@ def load(path,token):
   return ([json.loads(line) for line in text.splitlines() if line.strip()] if path.endswith(".jsonl") else json.loads(text)),None
  except (OSError,HTTPError,URLError,ValueError,UnicodeError) as exc:
   return ([] if path.endswith(".jsonl") or path.startswith("candles/") else {}),type(exc).__name__
+def fetch_mexc_quote():
+ """Independently timestamped public MEXC ticker; never a substitute for archived analytics."""
+ url="https://api.mexc.com/api/v3/ticker/24hr?symbol=STAMPUSDT"
+ try:
+  req=Request(url,headers={"Accept":"application/json","User-Agent":"STAMP-private-dashboard/1.0"})
+  with urlopen(req,timeout=5) as response:
+   if response.status!=200:raise ValueError("unexpected_http_status")
+   raw=response.read(16385)
+  if len(raw)>16384:raise ValueError("oversized_quote")
+  ticker=json.loads(raw)
+  if not isinstance(ticker,dict) or ticker.get("symbol")!="STAMPUSDT":raise ValueError("unexpected_symbol")
+  price=num(ticker.get("lastPrice"));bid=num(ticker.get("bidPrice"));ask=num(ticker.get("askPrice"))
+  if not price or price<=0 or (bid is not None and bid<=0) or (ask is not None and ask<=0):
+   raise ValueError("invalid_quote")
+  stamp=dt.datetime.now(dt.timezone.utc)
+  provider_ms=num(ticker.get("closeTime"))
+  provider_utc=None
+  if provider_ms is not None:
+   try:
+    provider=dt.datetime.fromtimestamp(provider_ms/1000,dt.timezone.utc)
+    provider_utc=provider.isoformat()
+    if abs((stamp-provider).total_seconds())>600:raise ValueError("stale_provider_timestamp")
+   except (OverflowError,OSError) as exc:raise ValueError("invalid_provider_timestamp") from exc
+  return dict(status="fresh",source="MEXC public 24h ticker",retrieved_at_utc=stamp.isoformat(),
+   provider_at_utc=provider_utc,price=price,bid=bid,ask=ask,
+   change_24h_pct=(num(ticker.get("priceChangePercent"))*100 if num(ticker.get("priceChangePercent")) is not None else None),
+   volume_24h_usdt=num(ticker.get("quoteVolume")))
+ except (OSError,HTTPError,URLError,ValueError,TypeError,json.JSONDecodeError) as exc:
+  return dict(status="unavailable",source="MEXC public 24h ticker",error=type(exc).__name__)
+
 def build():
  token=os.getenv("GITHUB_READ_TOKEN","").strip()
  items={};errors={}
  # GitHub API fetches must run concurrently: serial network requests exceed
  # serverless time limits and can make the authenticated dashboard unusable.
  with ThreadPoolExecutor(max_workers=8) as pool:
+  quote_task=pool.submit(fetch_mexc_quote)
   tasks={pool.submit(load,path,token):path for path in PATHS}
   for task in as_completed(tasks):
    path=tasks[task]
@@ -48,6 +79,8 @@ def build():
     items[path]=[] if path.endswith(".jsonl") or path.startswith("candles/") else {}
     err=type(exc).__name__
    if err:errors[path]=err
+  try:live_quote=quote_task.result()
+  except Exception as exc:live_quote={"status":"unavailable","error":type(exc).__name__}
  latest=items["latest.json"];raw=latest.get("raw") or {};a=latest.get("analysis") or {}
  ticker=((raw.get("mexc") or {}).get("ticker") or {}).get("data") or {}
  observed=raw.get("collected_at_utc");seconds=age(observed)
@@ -67,6 +100,7 @@ def build():
  pools.sort(key=lambda p:p["liquidity"] or 0,reverse=True)
  return dict(fetched_utc=dt.datetime.now(dt.timezone.utc).isoformat(),source="private_github_api" if token else "deployment_snapshot",
   observed_utc=observed,age_seconds=seconds,market_status="FRESH" if seconds is not None and seconds<=900 else "STALE",
+  live_quote=live_quote,
   market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},flags=a.get("flags") or []),
   technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},candles=frames,dex=pools[:10],learning=learning,scorecard=score,
   health=dict(passed=health.get("pipeline_passed"),at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
