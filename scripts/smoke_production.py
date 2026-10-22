@@ -1,12 +1,12 @@
 """Test actual production responses from GitHub Actions (outside Vercel).
 
-No password is needed or logged. Public /healthz must return 200.
+No password is needed or logged. Public /healthz and the login form must return 200.
 All other routes must return 401 with the app's Basic challenge, not
 a Vercel access page, a redirect, or a missing-function 500.
 """
 import sys,time,urllib.request,urllib.error,json,datetime,pathlib
 HOST="https://stamp-one-opal.vercel.app"
-CHECKS=[("/healthz",200),("/",401),("/assets/app.js",401),("/assets/style.css",401),("/api/dashboard",401),("/api/dashboard-lite",401),("/api/status",401)]
+CHECKS=[("/healthz",200),("/",200),("/assets/app.js",401),("/assets/style.css",200),("/api/dashboard",401),("/api/dashboard-lite",401),("/api/status",401)]
 def request(path):
  req=urllib.request.Request(HOST+path,headers={"User-Agent":"STAMP-production-smoke/1.0","Accept":"*/*"})
  try:
@@ -23,7 +23,7 @@ def main():
    status,headers,body=request(path)
    challenge=headers.get("www-authenticate","")
    content_type=headers.get("content-type","")
-   ok=status==expected and (path=="/healthz" or 'Basic realm="STAMP Private Dashboard"' in challenge)
+   ok=status==expected and (expected==200 or 'Basic realm="STAMP Private Dashboard"' in challenge)
    print(f"{'PASS' if ok else 'FAIL'} {path} status={status} expected={expected} content_type={content_type} challenge={'STAMP_BASIC' if 'STAMP Private Dashboard' in challenge else 'OTHER_OR_MISSING'}")
    checks.append({"path":path,"http_status":status,"expected":expected,"passed":ok})
    if not ok:failed.append(f"{path}: HTTP {status}, expected {expected} (or wrong authentication challenge)")
