@@ -118,7 +118,8 @@ def build():
   live_quote=live_quote,source_health=source_health,
   market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},flags=a.get("flags") or []),
   technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},candles=frames,dex=pools[:10],learning=learning,scorecard=score,
-  health=dict(passed=health.get("pipeline_passed"),at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
+  health=dict(passed=health.get("pipeline_passed"),production_smoke_passed=health.get("production_smoke_passed"),
+              at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
   errors=errors,note="Research only. Experimental model outputs are not executable trading signals.")
 def read_embedded():
  """Import the GitHub Actions-built, private deployment snapshot as a Python module.
