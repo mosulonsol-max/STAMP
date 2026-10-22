@@ -130,21 +130,26 @@ async function refresh(){
  if(el('refresh').disabled)return;
  el('refresh').disabled=true;
  try{
-  const embedded=el('stamp-snapshot');
-  if(embedded){render(JSON.parse(embedded.textContent));return}
   let data,primaryError=null;
   try{data=await fetchDashboard('/api/dashboard')}
   catch(err){
    primaryError=err;
-   // A failed public quote or a slow upstream API must not hide archived analysis.
    if(String(err.message).startsWith('AUTH_'))throw err;
    try{data=await fetchDashboard('/api/dashboard-lite')}
-   catch(recoveryError){throw new Error('primary='+String(err.message)+'; recovery='+String(recoveryError.message))}
+   catch(recoveryError){
+    const embedded=el('stamp-snapshot');
+    if(embedded){
+     try{
+      data=JSON.parse(embedded.textContent);
+      if(!data||!data.market)throw new Error('invalid embedded research');
+     }catch(parseError){throw new Error('primary='+err.message+'; recovery='+recoveryError.message+'; embedded='+parseError.message)}
+    }else throw new Error('primary='+err.message+'; recovery='+recoveryError.message);
+   }
   }
   render(data);
   if(primaryError){
    el('warning').hidden=false;
-   el('warning').textContent=(lang==='ar'?'وضع الاسترداد: تظهر تحليلات مؤرشفة فقط؛ تعذر الاتصال بالخدمة الأساسية. ':'Recovery mode: archived research only; main API unavailable. ')+String(primaryError.message).slice(0,110);
+   el('warning').textContent=(lang==='ar'?'وضع الاسترداد: البيانات مؤرشفة، وليست سعرًا مباشرًا. ':'Recovery mode: archived research, not a live quote. ')+String(primaryError.message).slice(0,110);
   }
  }catch(e){
   const reason=String(e.message||e).slice(0,180);
