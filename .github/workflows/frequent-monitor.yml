@@ -8,6 +8,7 @@ on:
       - 'src/forecast_audit.py'
       - 'src/market_features.py'
       - 'src/candlestick_features.py'
+      - 'src/research_engine.py'
       - 'tests/**'
       - '.github/workflows/frequent-monitor.yml'
   schedule:
@@ -38,6 +39,8 @@ jobs:
         run: python src/monitor.py
       - name: Evaluate past predictions and journal new validated forecasts
         run: python src/forecast_audit.py
+      - name: Archive candles and evaluate model skill
+        run: python src/research_engine.py
       - name: Commit data and health status
         if: always()
         run: |
@@ -49,7 +52,8 @@ jobs:
             python -c 'import json,datetime,pathlib; d=json.loads(pathlib.Path("data/latest.json").read_text()); print("Latest source timestamp:",d.get("raw",{}).get("collected_at_utc"))'
           fi
           git add data/last_workflow_attempt_utc.txt
-          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl; do
+          if [ -d data/candles ]; then git add data/candles/; fi
+          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json; do
             if [ -f "$path" ]; then git add "$path"; fi
           done
           if ! git diff --cached --quiet; then
