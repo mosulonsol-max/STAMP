@@ -77,7 +77,8 @@ jobs:
           python - <<'PY'
           import json,os,datetime,pathlib
           steps={'tests':'${{ steps.tests.outcome }}','monitor':'${{ steps.monitor.outcome }}','audit':'${{ steps.audit.outcome }}','archive':'${{ steps.archive.outcome }}','research':'${{ steps.research.outcome }}','dashboard':'${{ steps.dashboard.outcome }}'}
-          record={'timestamp_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'event_name':os.environ.get('GITHUB_EVENT_NAME'),'run_id':os.environ.get('GITHUB_RUN_ID'),'run_attempt':os.environ.get('GITHUB_RUN_ATTEMPT'),'steps':steps,'pipeline_passed':all(v=='success' for v in steps.values())}
+          production_smoke='${{ steps.production_smoke.outcome }}'
+          record={'timestamp_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'event_name':os.environ.get('GITHUB_EVENT_NAME'),'run_id':os.environ.get('GITHUB_RUN_ID'),'run_attempt':os.environ.get('GITHUB_RUN_ATTEMPT'),'steps':steps,'pipeline_passed':all(v=='success' for v in steps.values()),'production_smoke_passed':production_smoke=='success','production_smoke_outcome':production_smoke}
           pathlib.Path('data/workflow_health.json').write_text(json.dumps(record,indent=2))
           print('WORKFLOW HEALTH:',json.dumps(record))
           PY
