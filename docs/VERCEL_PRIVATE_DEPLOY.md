@@ -36,7 +36,7 @@ Updated: 2026-10-22 UTC.
 - [x] Local tests: anonymous UI/API requests return 401; authenticated API request returns 200.
 - [x] Public quote and historical research displayed with independent timestamps in code.
 - [x] Tokenless hourly embedded-snapshot build and heartbeat integrated into GitHub Actions and Vercel ignored-build configuration.
-- [ ] First real hourly compressed-snapshot commit and production deployment verified.
+- [x] First real compressed-snapshot commit and production deployment verified: production READY on commit `1f7ac017c03f5956921dbdab5e77113a781482aa` (2026-10-22).
 - [x] Model forecast scores disclose validation size and promotion eligibility.
 - [ ] Remote GET `/`, `/assets/app.js`, `/api/dashboard` verified to reject unauthenticated requests.
 - [ ] Remote authenticated page and JSON verified to render with nonempty data.
