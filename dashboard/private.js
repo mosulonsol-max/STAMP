@@ -75,7 +75,12 @@ byId("orderbook").innerHTML=row("Research UTC",result.observed_utc)+row("Bid ±0
 byId("dex").innerHTML=(result.dex||[]).map(x=>row((x.dex||"DEX")+" / "+(x.quote||"?"),money(x.liquidity)+" · 24h "+money(x.volume))).join("")+'<p class="hint">Liquidity values are third-party estimates, not confirmed new deposits.</p>';
 byId("learning").innerHTML=row("Champion",learn.champion||t("modelNone"))+row("Samples",learn.samples)+row("Validation samples",learn.validation_samples)+row("Baseline MAE",learn.baseline_mae)+row("Evaluated forecasts",score.evaluated_total)+row("Pending",score.pending_total)+Object.entries(score.models||{}).map(([key,x])=>row(key,"n="+x.evaluated+" · accuracy "+pct(n(x.direction_accuracy)===null?null:x.direction_accuracy*100)+" · "+t("unverified"))).join("");
 set("run",(health.event||"—")+" · "+(health.run||"—")+" · "+stamp(health.at));
-byId("health").innerHTML=Object.entries(health.steps||{}).map(([k,v])=>row(k,v)).join("")+row("Research",obs)+row("Pipeline",health.passed===true?"PASS":"UNVERIFIED");
+const sources=result.source_health||{};
+byId("health").innerHTML=Object.entries(health.steps||{}).map(([k,v])=>row("Pipeline · "+k,v)).join("")+
+ Object.entries(sources).map(([k,v])=>row("Source · "+k,v.status==="ok"?"OK":("UNAVAILABLE"+(v.error?" ("+v.error+")":"")))).join("")+
+ Object.entries(result.errors||{}).map(([k,v])=>row("Archive · "+k,"UNAVAILABLE ("+v+")")).join("")+
+ row("Research age",researchAge===null?"unknown":Math.round(researchAge/60)+" minutes")+
+ row("Research",obs)+row("Pipeline",health.passed===true?"PASS":"UNVERIFIED");
 set("clock",stamp(new Date().toISOString()));renderPortfolio();renderChart();
 }
 async function request(path){
