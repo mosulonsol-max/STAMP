@@ -7,6 +7,12 @@ import adaptive_feedback as af
 import tradingview_features as tv
 import pine_parity as pp
 class Features(unittest.TestCase):
+ def test_pine_gap_resets_ema_history(self):
+  ms=3600000
+  bars=[{'t':i*ms,'c':1+i*.01} for i in range(25)] + [{'t':i*ms,'c':2+i*.01} for i in range(27,51)]
+  result=pp.signals(bars,'1h',now_ms=52*ms)
+  self.assertEqual(result['closed_candles'],24)
+  self.assertEqual(result['last_closed_bar_ms'],50*ms)
  def test_pine_ema_and_closed_candles(self):
   self.assertEqual(pp.pine_ema([10,12,14],3),[10,11,12.5])
   ms=3600000
