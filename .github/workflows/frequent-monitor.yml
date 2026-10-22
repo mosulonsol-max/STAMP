@@ -95,6 +95,7 @@ jobs:
             python -c 'import json,datetime,pathlib; d=json.loads(pathlib.Path("data/latest.json").read_text()); print("Latest source timestamp:",d.get("raw",{}).get("collected_at_utc"))'
           fi
           git add data/last_workflow_attempt_utc.txt data/vercel_heartbeat_utc.txt src/deployment_snapshot.py
+          if [ -f data/production_smoke.json ]; then git add data/production_smoke.json; fi
           if [ -f dashboard/index.html ]; then git add dashboard/index.html; fi
           if [ -f dashboard/private-offline.html ]; then git add dashboard/private-offline.html; fi
           if [ -d data/candles ]; then git add data/candles/; fi
