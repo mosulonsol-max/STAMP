@@ -8,6 +8,13 @@ import tradingview_features as tv
 import pine_parity as pp
 import build_dashboard as bd
 class Features(unittest.TestCase):
+ def test_dashboard_stale_and_bad_candle(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=pathlib.Path(d)
+   (root/'data'/'candles').mkdir(parents=True)
+   (root/'data'/'latest.json').write_text(json.dumps({'raw':{'collected_at_utc':'2020-01-01T00:00:00+00:00'}}))
+   (root/'data'/'candles'/'1h.json').write_text(json.dumps([{'t':0,'c':'bad'},{'t':3600000,'c':1}]))
+   self.assertIn('STALE',bd.build(root).read_text())
  def test_dashboard_empty_data(self):
   with tempfile.TemporaryDirectory() as d:
    out=bd.build(pathlib.Path(d))
