@@ -1,5 +1,5 @@
 """Build a factual, read-only dashboard from STAMP artifacts."""
-import html,json,pathlib
+import html,json,pathlib,datetime,math
 from pine_parity import signals
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 def build(root=ROOT):
@@ -17,10 +17,22 @@ def build(root=ROOT):
     try:candles=json.loads((root/"data"/"candles"/"1h.json").read_text())
     except (OSError,ValueError):candles=[]
     parity=signals(candles,"1h")
+    # Data freshness is a safety gate: never imply stale archived prices are live.
+    observed=latest.get("raw",{}).get("collected_at_utc")
+    try:
+        age=(datetime.datetime.now(datetime.timezone.utc)-datetime.datetime.fromisoformat(observed.replace("Z","+00:00"))).total_seconds()
+        freshness="fresh" if 0<=age<=900 else "STALE"
+    except (AttributeError,TypeError,ValueError):freshness="UNKNOWN"
+    fields["Market data freshness"]=freshness
     fields["Pine-compatible EMA crossover status"]=parity["status"]
     fields["Confirmed EMA crossover events"]=len(parity["events"])
     fields["Latest EMA crossover"]=parity["events"][-1]["signal"] if parity["events"] else "none"
-    values=[float(x["c"]) for x in candles[-500:] if isinstance(x,dict) and x.get("c") is not None]
+    values=[]
+    for x in candles[-500:]:
+        try:
+            v=float(x["c"])
+            if math.isfinite(v) and v>0:values.append(v)
+        except (TypeError,KeyError,ValueError):pass
     if len(values)>1:
         lo=min(values)
         spread=max(values)-lo or 1
