@@ -60,6 +60,10 @@ jobs:
       - name: Autonomous research and model competition
         id: research
         run: python src/autonomous_research.py
+      - name: Verify production HTTP endpoints
+        id: production_smoke
+        continue-on-error: true
+        run: python scripts/smoke_production.py
       - name: Build research dashboard
         id: dashboard
         if: always()
