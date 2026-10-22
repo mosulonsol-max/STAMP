@@ -4,6 +4,7 @@ Forecasts are experimental observations, NOT trading recommendations.
 Run on every monitoring cycle; outcomes use future observed prices only.
 """
 import datetime as dt,json,math,pathlib,uuid
+from adaptive_feedback import calibrate
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 JOURNAL=ROOT/"data"/"forecast_journal.jsonl"
 HORIZONS={"15m":900,"1h":3600,"4h":14400,"24h":86400,"7d":604800}
@@ -62,13 +63,17 @@ def run(snapshot):
         return {"status":"already_issued"}
     prediction=float(model["predicted_return_log"]) if validated else math.log(snapshot["analysis"]["indicators"]["1h"]["ema6"]/snapshot["analysis"]["indicators"]["1h"]["ema20"])*0.10
     if not math.isfinite(prediction):return {"status":"invalid_prediction"}
+    version="gradient_boosting_v1" if validated else "ema_gap_shadow_v1"
+    # Re-read to include outcomes appended by evaluate() in this cycle.
+    feedback=calibrate(read(),version,prediction)
+    prediction=feedback["prediction"]
     fid=str(uuid.uuid4())
     append({"event":"forecast","id":fid,"source_candle":key,"created_at_utc":now.isoformat(),
             "due_at_utc":(now+dt.timedelta(hours=1)).isoformat(),"horizon":"1h",
             "reference_price":price,"predicted_log_return":prediction,
             "predicted_direction":"up" if prediction>0 else "down" if prediction<0 else "flat",
             "model_status":model["status"],"forecast_class":"validated_experimental" if validated else "shadow_unvalidated",
-            "model_version":"gradient_boosting_v1" if validated else "ema_gap_shadow_v1",
+            "model_version":version,"feedback":feedback,
             "validation_mae":model.get("mae"),
             "baseline_mae":model.get("zero_return_baseline_mae"),
             "evidence_flags":snapshot["analysis"].get("flags",[])})
