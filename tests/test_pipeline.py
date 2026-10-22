@@ -3,7 +3,13 @@ sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/"src"))
 import market_features as mf
 import forecast_audit as fa
 import research_engine as re
+import adaptive_feedback as af
 class Features(unittest.TestCase):
+ def test_feedback_requires_matured_outcomes(self):
+  self.assertEqual(af.calibrate([], 'x', .03)['prediction'], .03)
+  rows=[{'event':'forecast','id':str(i),'model_version':'x','predicted_log_return':.1} for i in range(25)]
+  rows += [{'event':'outcome','forecast_id':str(i),'status':'evaluated','actual_log_return':0.0} for i in range(25)]
+  self.assertEqual(af.calibrate(rows,'x',.03)['prediction'],0.0)
  def test_scorecard_without_outcomes(self):
   with tempfile.TemporaryDirectory() as d:
    s=re.score(pathlib.Path(d))
