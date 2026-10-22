@@ -107,6 +107,7 @@ const url=URL.createObjectURL(new Blob([lines],{type:"text/csv"})),a=document.cr
 document.querySelectorAll("[data-frame]").forEach(button=>button.addEventListener("click",()=>{frame=button.dataset.frame;document.querySelectorAll("[data-frame]").forEach(b=>b.classList.toggle("selected",b===button));renderChart()}));
 byId("refresh").addEventListener("click",refresh);byId("exportCandles").addEventListener("click",exportCsv);
 byId("settingsButton").addEventListener("click",()=>byId("settings").showModal());
+byId("logoutButton").addEventListener("click",async()=>{try{await fetch("/logout",{method:"POST",credentials:"same-origin",cache:"no-store"})}finally{window.location.href="/"}});
 byId("diagnose").addEventListener("click",async()=>{set("diagnosticResult","Testing…");try{const response=await fetch("/api/status",{credentials:"same-origin",cache:"no-store"});if(!response.ok)throw new Error("HTTP "+response.status);const j=await response.json();set("diagnosticResult","API "+j.api+" · embedded "+j.embedded_research+" · "+stamp(j.observation_utc))}catch(e){set("diagnosticResult","Error "+e.message)}});
 byId("langSelect").addEventListener("change",e=>{lang=e.target.value==="en"?"en":"ar";try{localStorage.setItem("stamp_language",lang)}catch(x){}translate();if(data)render(data,activeSource)});
 byId("zoneSelect").addEventListener("change",e=>{zone=e.target.value==="UTC"?"UTC":"Asia/Baghdad";try{localStorage.setItem("stamp_timezone",zone)}catch(x){}translate();if(data)render(data,activeSource)});
