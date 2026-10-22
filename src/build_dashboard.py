@@ -13,7 +13,10 @@ def build(root=ROOT):
         "Workflow trigger":health.get("event_name"),"Workflow successful":health.get("pipeline_passed"),
         "Workflow observed UTC":health.get("timestamp_utc"),"Learning status":learning.get("status"),
         "Champion":learning.get("champion") or "none","Forecasts":score.get("forecasts_total"),
-        "Evaluated outcomes":score.get("evaluated_total")}
+        "Evaluated outcomes":score.get("evaluated_total"),
+        "Pending outcomes":score.get("pending_total"),"Missing timely outcomes":score.get("missing_total"),
+        "Validation samples":learning.get("validation_samples"),
+        "Baseline MAE":learning.get("baseline_mae")}
     try:candles=json.loads((root/"data"/"candles"/"1h.json").read_text())
     except (OSError,ValueError):candles=[]
     parity=signals(candles,"1h")
