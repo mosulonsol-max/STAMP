@@ -24,7 +24,11 @@ def predict(candles):
         if not math.isfinite(mae) or baseline==0 or mae>=baseline*0.90:
             return {"status":"unreliable","samples":len(y),"test_samples":60,"mae":mae,"zero_return_baseline_mae":baseline,"reason":"did not beat zero-return baseline by 10%"}
         residuals=np.abs(y[cut:]-p);q=float(np.quantile(residuals,.9))
-        m.fit(X,y);est=float(m.predict(X[-1:])[0]);price=candles[-1]["c"]
+        m.fit(X,y)
+        i=len(candles)-1
+        f=[math.log(candles[i-j]["c"]/candles[i-j-1]["c"]) for j in (0,1,2,3,5,12,23)]
+        f += [(candles[i]["h"]-candles[i]["l"])/candles[i]["c"],math.log1p(candles[i]["v"]),sum(candles[k]["c"]/candles[k-1]["c"]-1 for k in range(i-5,i+1))]
+        est=float(m.predict(np.asarray([f]))[0]);price=candles[-1]["c"]
         return {"status":"experimental_validated","horizon":"1h","samples":len(y),"test_samples":60,"mae":mae,
           "zero_return_baseline_mae":baseline,"predicted_return_log":est,
           "conditional_price_range_usd":[price*math.exp(est-q),price*math.exp(est+q)],
