@@ -20,11 +20,14 @@ class PrivateDashboardTests(unittest.TestCase):
    worker.start()
    try:
     conn=http.client.HTTPConnection("127.0.0.1",server.server_address[1],timeout=3)
-    for path in ("/","/api/dashboard","/assets/app.js"):
+    for path in ("/api/dashboard","/assets/app.js"):
      conn.request("GET",path)
      res=conn.getresponse()
      self.assertEqual(res.status,401)
      res.read()
+    conn.request("GET","/")
+    res=conn.getresponse();self.assertEqual(res.status,200)
+    self.assertIn(b'action="/login"',res.read())
     with patch.object(app,"cached",return_value={"source":"deployment_snapshot","market":{"price":0.0001851},"observed_utc":"2026-10-22T11:24:29Z"}):
      header="Basic "+base64.b64encode(b"private:long-test-password").decode()
      conn.request("GET","/api/dashboard",headers={"Authorization":header})
@@ -41,6 +44,27 @@ class PrivateDashboardTests(unittest.TestCase):
     server.shutdown()
     server.server_close()
     worker.join(timeout=3)
+ def test_cookie_login_protects_api_and_survives_browser_subrequests(self):
+  with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"long-test-password"},clear=True):
+   server=ThreadingHTTPServer(("127.0.0.1",0),app.Handler)
+   worker=threading.Thread(target=server.serve_forever,daemon=True);worker.start()
+   try:
+    conn=http.client.HTTPConnection("127.0.0.1",server.server_address[1],timeout=3)
+    form="user=private&password=long-test-password"
+    conn.request("POST","/login",body=form,headers={"Content-Type":"application/x-www-form-urlencoded"})
+    res=conn.getresponse();self.assertEqual(res.status,303)
+    cookie=res.getheader("Set-Cookie");self.assertIn("HttpOnly",cookie);self.assertIn("Secure",cookie)
+    res.read()
+    with patch.object(app,"cached",return_value={"market":{"price":0.0002}}):
+     conn.request("GET","/api/dashboard",headers={"Cookie":cookie.split(";",1)[0]})
+     res=conn.getresponse();self.assertEqual(res.status,200)
+     self.assertEqual(json.loads(res.read())["market"]["price"],0.0002)
+    conn.request("POST","/login",body="user=private&password=wrong",headers={"Content-Type":"application/x-www-form-urlencoded"})
+    res=conn.getresponse();self.assertEqual(res.status,401);res.read()
+    self.assertFalse(app.session_valid("stamp_session=bad"))
+    conn.close()
+   finally:
+    server.shutdown();server.server_close();worker.join(timeout=3)
  def test_recovery_api_returns_archived_research_without_network(self):
   archived={"source":"deployment_snapshot","observed_utc":"2026-10-22T10:00:00Z","market":{"price":0.00019}}
   with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"test-password"},clear=True),patch.object(app,"read_embedded",return_value=archived),patch.object(app,"fetch_mexc_quote",side_effect=AssertionError("should not call network")),patch.dict(app.CACHE,{"time":0.0,"payload":None},clear=True):
