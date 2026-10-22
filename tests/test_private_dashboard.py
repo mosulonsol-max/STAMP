@@ -25,6 +25,13 @@ class PrivateDashboardTests(unittest.TestCase):
      res=conn.getresponse()
      self.assertEqual(res.status,401)
      res.read()
+    with patch.object(app,"cached",return_value={"source":"deployment_snapshot","market":{"price":0.0001851},"observed_utc":"2026-10-22T11:24:29Z"}):
+     header="Basic "+base64.b64encode(b"private:long-test-password").decode()
+     conn.request("GET","/api/dashboard",headers={"Authorization":header})
+     res=conn.getresponse()
+     self.assertEqual(res.status,200)
+     self.assertEqual(res.getheader("Cache-Control"),"no-store, max-age=0")
+     self.assertEqual(json.loads(res.read())["market"]["price"],0.0001851)
     conn.request("GET","/healthz")
     res=conn.getresponse()
     self.assertEqual(res.status,200)
