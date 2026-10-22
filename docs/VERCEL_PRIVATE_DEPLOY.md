@@ -12,6 +12,23 @@ Both `DASHBOARD_USER` and `DASHBOARD_PASSWORD` were configured as encrypted Verc
 ## Current state
 The Vercel connector is authorized for the user's personal account, but the Vercel account currently reports **zero linked GitHub namespaces**. The account's default team scope is not authorized for the connector. The STAMP repository remains private. A production deployment has not been created.
 
+## Enable live private research updates (one-time owner action)
+
+The application has no `GITHUB_READ_TOKEN` yet. To enable real private GitHub polling without exposing the STAMP repository:
+
+1. In GitHub, open **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+2. Set the resource owner to `mosulonsol-max`; choose **Only select repositories** and select **STAMP**.
+3. Set **Repository permissions → Contents: Read-only**. Do not grant Actions, Administration, Secrets, or write permissions. Choose a limited expiration.
+4. In Vercel, open **stamp → Settings → Environment Variables → Add New**. Name: `GITHUB_READ_TOKEN`. Paste the token as a sensitive/encrypted value for Production and Preview. Never commit or send the token in a chat message.
+5. Redeploy the production deployment once so the serverless function receives the new environment variable.
+6. Check that the authenticated dashboard says **Private GitHub · automatic polling** and that its observation timestamp advances when the GitHub monitoring workflow updates. It polls on a 90-second cache, not tick-by-tick exchange streaming.
+
+If a token expires, the dashboard must show a source error or stale status, not pretend to have live data. The owner should rotate the token through Vercel only.
+
+## Password hygiene
+The initial temporary password was displayed in the project chat. Rotate `DASHBOARD_PASSWORD` in Vercel and redeploy before relying on the dashboard for sensitive research. The assistant must not repeat the new password in public project files or logs.
+
+---
 ## One-time action in Vercel (GitHub integration)
 1. Open https://vercel.com/new and sign in to the intended personal Vercel account.
 2. Under **Import Git Repository**, connect GitHub and grant the Vercel GitHub app access to **only** `mosulonsol-max/STAMP` (or the minimal appropriate repository scope).
