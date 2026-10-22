@@ -6,6 +6,7 @@ import research_engine as re
 import adaptive_feedback as af
 import tradingview_features as tv
 import pine_parity as pp
+import build_dashboard as bd
 class Features(unittest.TestCase):
  def test_pine_gap_resets_ema_history(self):
   ms=3600000
