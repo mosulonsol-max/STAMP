@@ -32,7 +32,9 @@ def load(path,token):
   if len(raw)>3000000:raise ValueError("size")
   text=raw.decode("utf-8")
   return ([json.loads(line) for line in text.splitlines() if line.strip()] if path.endswith(".jsonl") else json.loads(text)),None
- except (OSError,HTTPError,URLError,ValueError,UnicodeError) as exc:
+ except HTTPError as exc:
+  return ([] if path.endswith(".jsonl") or path.startswith("candles/") else {}),"HTTP_"+str(exc.code)
+ except (OSError,URLError,ValueError,UnicodeError) as exc:
   return ([] if path.endswith(".jsonl") or path.startswith("candles/") else {}),type(exc).__name__
 def fetch_mexc_quote():
  """Independently timestamped public MEXC ticker; never a substitute for archived analytics."""
