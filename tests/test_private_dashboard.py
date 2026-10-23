@@ -178,6 +178,20 @@ class PrivateDashboardTests(unittest.TestCase):
     self.assertNotIn("long-test-password",body)
     conn.close()
    finally:server.shutdown();server.server_close();worker.join(timeout=3)
+ def test_forecast_history_joins_outcomes_without_fabricating_results(self):
+  events=[
+   {"event":"forecast","id":"f1","created_at_utc":"2026-10-22T10:00:00Z","due_at_utc":"2026-10-22T11:00:00Z","predicted_log_return":0.02,"reference_price":0.00018,"model_version":"shadow","forecast_class":"shadow_unvalidated"},
+   {"event":"outcome","forecast_id":"f1","status":"evaluated","actual_price":0.000181,"actual_log_return":0.0055,"direction_correct":True},
+   {"event":"forecast","id":"f2","created_at_utc":"2026-10-22T12:00:00Z","due_at_utc":"2026-10-22T13:00:00Z","predicted_log_return":-0.01,"reference_price":0.000181},
+   {"event":"outcome","forecast_id":"f2","status":"missing_timely_observation"},
+   {"event":"forecast","id":"f3","created_at_utc":"2099-10-22T12:00:00Z","due_at_utc":"2099-10-22T13:00:00Z","predicted_log_return":-0.01,"reference_price":0.000182}
+  ]
+  history=app.recent_forecasts(events)
+  self.assertEqual([x["status"] for x in history],["pending","missing_timely_observation","evaluated"])
+  self.assertIsNone(history[1]["actual_price"])
+  self.assertIsNone(history[0]["actual_price"])
+  self.assertTrue(history[2]["direction_correct"])
+  self.assertEqual(history[2]["actual_price"],0.000181)
  def test_live_quote_has_independent_timestamp_and_correct_percent(self):
   stamp=datetime.datetime.now(datetime.timezone.utc)
   provider=int(stamp.timestamp()*1000)
