@@ -28,7 +28,7 @@ class PrivateUIRegressionTests(unittest.TestCase):
   if not node:self.skipTest("Node.js not available on runner")
   result=subprocess.run([node,str(ROOT/"tests"/"browser_runtime_smoke.cjs")],capture_output=True,text=True,timeout=20)
   self.assertEqual(result.returncode,0,result.stdout+"\n"+result.stderr)
-  self.assertEqual(result.stdout.count("PASS "),3,result.stdout)
+  self.assertEqual(result.stdout.count("PASS "),4,result.stdout)
  def test_price_sources_are_separate_and_recovery_is_present(self):
   for value in ('quoteFresh?q:m','quoteFresh?q.change_24h_pct','quoteFresh?q.volume_24h_usdt','/api/dashboard','/api/dashboard-lite','stamp-snapshot','/api/status'):
    self.assertIn(value,JS)
