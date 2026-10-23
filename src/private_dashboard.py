@@ -154,7 +154,11 @@ def read_embedded():
  This works even when Vercel's Python function excludes non-imported data files.
  """
  try:
-  from src.deployment_snapshot import COMPRESSED_JSON
+  try:
+   from src.deployment_snapshot import COMPRESSED_JSON
+  except ImportError:
+   # When started as `python src/private_dashboard.py`, the repo root is not on sys.path.
+   from deployment_snapshot import COMPRESSED_JSON
   if not COMPRESSED_JSON:return None
   obj=json.loads(zlib.decompress(base64.b64decode(COMPRESSED_JSON)).decode("utf-8"))
   if not isinstance(obj,dict) or not isinstance(obj.get("market"),dict):return None
