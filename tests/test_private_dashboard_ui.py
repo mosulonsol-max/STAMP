@@ -23,6 +23,12 @@ class PrivateUIRegressionTests(unittest.TestCase):
   else:self.skipTest("Node.js not available on runner")
   for name in ("render","refresh","renderChart","renderPortfolio","exportCsv"):
    self.assertEqual(len(re.findall(r"function\s+"+name+r"\s*\(",JS)),1,name+" duplicated")
+ def test_browser_runtime_renders_live_and_recovers_from_api_failures(self):
+  node=shutil.which("node")
+  if not node:self.skipTest("Node.js not available on runner")
+  result=subprocess.run([node,str(ROOT/"tests"/"browser_runtime_smoke.cjs")],capture_output=True,text=True,timeout=20)
+  self.assertEqual(result.returncode,0,result.stdout+"\n"+result.stderr)
+  self.assertEqual(result.stdout.count("PASS "),3,result.stdout)
  def test_price_sources_are_separate_and_recovery_is_present(self):
   for value in ('quoteFresh?q:m','quoteFresh?q.change_24h_pct','quoteFresh?q.volume_24h_usdt','/api/dashboard','/api/dashboard-lite','stamp-snapshot','/api/status'):
    self.assertIn(value,JS)
