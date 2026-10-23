@@ -23,7 +23,9 @@ def main():
    status,headers,body=request(path)
    challenge=headers.get("www-authenticate","")
    content_type=headers.get("content-type","")
-   ok=status==expected and (expected==200 or 'Basic realm="STAMP Private Dashboard"' in challenge)
+   # Existing production may still use Basic while the safer JSON 401 is deploying.
+   protected=(b'login_required' in body and path.startswith("/api/")) or 'Basic realm="STAMP Private Dashboard"' in challenge
+   ok=status==expected and (expected==200 or protected)
    if path=="/" and ok:ok=b'action="/login"' in body and b'type="password"' in body
    print(f"{'PASS' if ok else 'FAIL'} {path} status={status} expected={expected} content_type={content_type} challenge={'STAMP_BASIC' if 'STAMP Private Dashboard' in challenge else 'OTHER_OR_MISSING'}")
    checks.append({"path":path,"http_status":status,"expected":expected,"passed":ok})
