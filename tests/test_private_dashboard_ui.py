@@ -36,6 +36,10 @@ class PrivateUIRegressionTests(unittest.TestCase):
   self.assertIn("forecast-grid",HTML)
   self.assertIn('["1h","4h","24h","7d"]',JS)
   self.assertIn('t("unverified")',JS)
+  self.assertIn('id="forecastHistory"',HTML)
+  self.assertIn('result.forecast_history||[]',JS)
+  self.assertIn('MISSING OBSERVATION',JS)
+  self.assertIn('OVERDUE / NOT VERIFIED',JS)
   self.assertNotIn("STRONG BUY",JS)
  def test_security_controls_are_real_not_fake(self):
   doc=Elements();doc.feed(HTML)
