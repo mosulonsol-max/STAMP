@@ -1,0 +1,55 @@
+name: STAMP real browser integration
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/private_dashboard.py'
+      - 'src/deployment_snapshot.py'
+      - 'dashboard/private.*'
+      - 'api/index.py'
+      - 'browser-tests/**'
+      - '.github/workflows/browser-e2e.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium test runner
+        run: |
+          npm install --no-save @playwright/test@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start real STAMP application with isolated test credentials
+        env:
+          DASHBOARD_USER: test-user
+          DASHBOARD_PASSWORD: long-test-password
+          PORT: '10000'
+        run: |
+          python src/private_dashboard.py > /tmp/stamp-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:10000/healthz; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/stamp-server.log
+          exit 1
+      - name: Verify login and data in real Chromium browser
+        run: npx playwright test browser-tests/stamp.spec.cjs --workers=1 --reporter=line
+      - name: Upload browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stamp-browser-failure
+          path: |
+            test-results/
+            /tmp/stamp-server.log
+          retention-days: 3
+          if-no-files-found: ignore
