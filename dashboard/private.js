@@ -88,6 +88,7 @@ set("clock",stamp(new Date().toISOString()));renderPortfolio();renderChart();
 async function request(path){
 const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
 try{const response=await fetch(path,{credentials:"same-origin",cache:"no-store",signal:controller.signal,headers:{Accept:"application/json"}});
+if(response.status===401){window.location.href="/login";throw new Error("AUTH_401 "+path)}
 if(!response.ok)throw new Error("HTTP "+response.status+" "+path);
 const body=await response.json();if(!body||!body.market)throw new Error("Invalid JSON "+path);return body
 }finally{clearTimeout(timer)}
@@ -96,7 +97,7 @@ async function refresh(){
 if(loading)return;loading=true;byId("refresh").disabled=true;
 try{
 let result,origin="live",errors=[];
-try{result=await request("/api/dashboard")}catch(e){errors.push(e.message);origin="recovery";
+try{result=await request("/api/dashboard")}catch(e){if(String(e.message).startsWith("AUTH_401"))throw e;errors.push(e.message);origin="recovery";
 try{result=await request("/api/dashboard-lite")}catch(err){errors.push(err.message);
 const embedded=byId("stamp-snapshot");if(!embedded)throw new Error(errors.join(" / "));
 result=JSON.parse(embedded.content?embedded.content.textContent:embedded.textContent);origin="embedded";
