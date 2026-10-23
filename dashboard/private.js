@@ -99,7 +99,7 @@ let result,origin="live",errors=[];
 try{result=await request("/api/dashboard")}catch(e){errors.push(e.message);origin="recovery";
 try{result=await request("/api/dashboard-lite")}catch(err){errors.push(err.message);
 const embedded=byId("stamp-snapshot");if(!embedded)throw new Error(errors.join(" / "));
-result=JSON.parse(embedded.textContent);origin="embedded";
+result=JSON.parse(embedded.content?embedded.content.textContent:embedded.textContent);origin="embedded";
 }}
 // The research API and live ticker are independent. A research outage must
 // not force a fresh quote to be presented as an old archived price.
