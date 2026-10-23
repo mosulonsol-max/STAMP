@@ -7,7 +7,7 @@ from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit,quote,parse_qs
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
-PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json")
+PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json")
 CACHE={"time":0.0,"payload":None}
 LOCK=threading.Lock()
 def age(stamp):
@@ -117,10 +117,36 @@ def build():
   observed_utc=observed,age_seconds=seconds,market_status="FRESH" if seconds is not None and seconds<=900 else "STALE",
   live_quote=live_quote,source_health=source_health,
   market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},flags=a.get("flags") or []),
-  technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},candles=frames,dex=pools[:10],learning=learning,scorecard=score,
+  technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},forecast_history=recent_forecasts(items["forecast_journal.jsonl"]),candles=frames,dex=pools[:10],learning=learning,scorecard=score,
   health=dict(passed=health.get("pipeline_passed"),production_smoke_passed=health.get("production_smoke_passed"),
               at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
   errors=errors,note="Research only. Experimental model outputs are not executable trading signals.")
+def recent_forecasts(events,limit=12):
+ """Join immutable forecast and outcome events without inventing evaluations."""
+ if not isinstance(events,list):return []
+ outcomes={}
+ for e in events:
+  if isinstance(e,dict) and e.get("event")=="outcome" and e.get("forecast_id"):
+   outcomes[e["forecast_id"]]=e
+ forecasts=[e for e in events if isinstance(e,dict) and e.get("event")=="forecast" and e.get("id")]
+ now=dt.datetime.now(dt.timezone.utc)
+ result=[]
+ for e in forecasts[-limit:][::-1]:
+  outcome=outcomes.get(e["id"],{})
+  status=outcome.get("status")
+  if not status:
+   try:status="overdue_unverified" if dt.datetime.fromisoformat(e["due_at_utc"].replace("Z","+00:00"))<now else "pending"
+   except (ValueError,KeyError,TypeError):status="pending"
+  result.append({"created_utc":e.get("created_at_utc"),"due_utc":e.get("due_at_utc"),
+   "model":e.get("model_version"),"class":e.get("forecast_class"),"horizon":e.get("horizon"),
+   "reference_price":num(e.get("reference_price")),"predicted_log_return":num(e.get("predicted_log_return")),
+   "direction":e.get("predicted_direction"),"status":status,
+   "actual_price":num(outcome.get("actual_price")) if status=="evaluated" else None,
+   "actual_log_return":num(outcome.get("actual_log_return")) if status=="evaluated" else None,
+   "direction_correct":outcome.get("direction_correct") if status=="evaluated" else None,
+   "evaluated_utc":outcome.get("evaluated_at_utc")})
+ return result
+
 def read_embedded():
  """Import the GitHub Actions-built, private deployment snapshot as a Python module.
  This works even when Vercel's Python function excludes non-imported data files.
