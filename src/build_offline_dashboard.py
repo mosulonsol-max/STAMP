@@ -13,7 +13,7 @@ def generate(root=ROOT):
  data["source"]="offline_snapshot"
  payload=json.dumps(data,allow_nan=False,separators=(",",":")).replace("&","\\u0026").replace("<","\\u003c").replace(">","\\u003e")
  template,styles=re.subn(r'<link\s+rel="stylesheet"\s+href="/assets/style\.css(?:\?[^"]*)?"\s*/?>',lambda m:"<style>"+css+"</style>",template,count=1)
- template,scripts=re.subn(r'<script\s+src="/assets/app\.js(?:\?[^"]*)?"\s+defer></script>',lambda m:'<script type="application/json" id="stamp-snapshot">'+payload+'</script><script>'+js+'</script>',template,count=1)
+ template,scripts=re.subn(r'<script\s+src="/assets/app\.js(?:\?[^"]*)?"\s+defer></script>',lambda m:'<template id="stamp-snapshot">'+payload+'</template><script>'+js+'</script>',template,count=1)
  if styles!=1 or scripts!=1 or 'id="stamp-snapshot"' not in template:
   raise ValueError("Offline template integration failed: expected exactly one CSS and JS asset")
  dest=root/"dashboard"/"private-offline.html"
