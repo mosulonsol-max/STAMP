@@ -6,6 +6,14 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"src"))
 import private_dashboard as app
 class PrivateDashboardTests(unittest.TestCase):
+ def test_direct_github_connection_is_not_assumed_from_configured_token(self):
+  self.assertEqual(app.github_connection_state(None,True),"not_checked")
+  self.assertEqual(app.github_connection_state(None,False),"not_configured")
+  self.assertEqual(app.github_connection_state({"source":"deployment_snapshot"},True),"not_checked")
+  self.assertEqual(app.github_connection_state({"source":"private_github_api","errors":{}},True),"connected")
+  self.assertEqual(app.github_connection_state({"source":"private_github_api","errors":{"candles/1h.json":"HTTPError"}},True),"degraded")
+  self.assertEqual(app.github_connection_state({"source":"private_github_api","errors":{"latest.json":"HTTPError"}},True),"failed")
+  self.assertEqual(app.github_connection_state({"source":"deployment_snapshot_github_fallback","github_errors":{"latest.json":"HTTPError"}},True),"failed_fallback")
  def test_authentication_denies_missing_and_invalid(self):
   with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"long-test-password"},clear=True):
    self.assertFalse(app.authorized(None))
