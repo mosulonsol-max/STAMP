@@ -143,7 +143,7 @@ class PrivateDashboardTests(unittest.TestCase):
     conn.request("GET","/",headers=auth)
     response=conn.getresponse();self.assertEqual(response.status,200)
     body=response.read().decode()
-    self.assertIn('id="stamp-snapshot"',body)
+    self.assertIn('<template id="stamp-snapshot">',body)
     self.assertIn('"price":0.00019',body)
     self.assertIn('id="price">$0.00019000</div>',body)
     self.assertIn('ARCHIVED UTC: 2026-10-22T10:00:00Z',body)
@@ -152,6 +152,32 @@ class PrivateDashboardTests(unittest.TestCase):
     conn.close()
    finally:
     server.shutdown();server.server_close();worker.join(timeout=3)
+ def test_github_failure_falls_back_to_archived_research(self):
+  archived={"market":{"price":0.00019},"observed_utc":"2026-10-22T10:00:00Z"}
+  broken={"market":{"price":None},"live_quote":{"status":"unavailable"},"errors":{"latest.json":"HTTPError"}}
+  with patch.dict(os.environ,{"GITHUB_READ_TOKEN":"test-token"},clear=True),patch.object(app,"build",return_value=broken),patch.object(app,"read_embedded",return_value=archived),patch.dict(app.CACHE,{"time":0.0,"payload":None},clear=True):
+   result=app.cached()
+   self.assertEqual(result["market"]["price"],0.00019)
+   self.assertEqual(result["source"],"deployment_snapshot_github_fallback")
+   self.assertEqual(result["github_errors"]["latest.json"],"HTTPError")
+ def test_diagnostics_reports_snapshot_freshness_without_credentials(self):
+  archived={"market":{"price":0.00019},"observed_utc":"2026-10-22T10:00:00Z"}
+  with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"long-test-password","GITHUB_READ_TOKEN":""},clear=True),patch.object(app,"read_embedded",return_value=archived):
+   server=ThreadingHTTPServer(("127.0.0.1",0),app.Handler)
+   worker=threading.Thread(target=server.serve_forever,daemon=True);worker.start()
+   try:
+    conn=http.client.HTTPConnection("127.0.0.1",server.server_address[1],timeout=3)
+    conn.request("GET","/api/diagnostics")
+    res=conn.getresponse();self.assertEqual(res.status,401);res.read()
+    header="Basic "+base64.b64encode(b"private:long-test-password").decode()
+    conn.request("GET","/api/diagnostics",headers={"Authorization":header})
+    res=conn.getresponse();self.assertEqual(res.status,200)
+    body=res.read().decode();payload=json.loads(body)
+    self.assertTrue(payload["snapshot_available"])
+    self.assertFalse(payload["github_live_refresh_configured"])
+    self.assertNotIn("long-test-password",body)
+    conn.close()
+   finally:server.shutdown();server.server_close();worker.join(timeout=3)
  def test_live_quote_has_independent_timestamp_and_correct_percent(self):
   stamp=datetime.datetime.now(datetime.timezone.utc)
   provider=int(stamp.timestamp()*1000)
