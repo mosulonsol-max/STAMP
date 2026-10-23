@@ -149,7 +149,20 @@ def cached():
     result["market_status"]="FRESH" if result["age_seconds"] is not None and result["age_seconds"]<=900 else "STALE"
     CACHE.update(time=now,payload=result)
     return result
-  result=build();CACHE.update(time=now,payload=result);return result
+  result=build()
+  # A broken GitHub token/network must not replace a usable archived snapshot with blanks.
+  if not isinstance(result.get("market"),dict) or result["market"].get("price") is None:
+   archive=read_embedded()
+   if archive is not None:
+    archive=dict(archive)
+    archive["live_quote"]=result.get("live_quote") or {"status":"unavailable"}
+    archive["source"]="deployment_snapshot_github_fallback"
+    archive["github_errors"]=result.get("errors") or {}
+    archive["fetched_utc"]=dt.datetime.now(dt.timezone.utc).isoformat()
+    archive["age_seconds"]=age(archive.get("observed_utc"))
+    archive["market_status"]="FRESH" if archive["age_seconds"] is not None and archive["age_seconds"]<=900 else "STALE"
+    result=archive
+  CACHE.update(time=now,payload=result);return result
 def cached_research_only():
  """Fast, network-independent recovery endpoint for the private UI.
 
@@ -250,6 +263,22 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(200,json.dumps(data,allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"recovery_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/diagnostics":
+   # This endpoint is authenticated; never return credentials or token values.
+   try:
+    snapshot=read_embedded()
+    current=cached_research_only()
+    snapshot_age=age(snapshot.get("observed_utc")) if snapshot else None
+    payload={"api":"ok","utc":dt.datetime.now(dt.timezone.utc).isoformat(),
+      "snapshot_available":bool(snapshot),"snapshot_at_utc":snapshot.get("observed_utc") if snapshot else None,
+      "snapshot_age_seconds":snapshot_age,"snapshot_fresh":snapshot_age is not None and snapshot_age<=900,
+      "github_live_refresh_configured":bool(os.getenv("GITHUB_READ_TOKEN","").strip()),
+      "snapshot_mode":"hourly_deployment" if not os.getenv("GITHUB_READ_TOKEN","").strip() else "github_api_with_fallback",
+      "research_available":bool(current),"live_quote_status":"not_checked",
+      "auth":"authenticated_session"}
+    return self.send(200,json.dumps(payload,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except Exception as exc:
+    return self.send(503,json.dumps({"error":"diagnostics_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/status":
    # No sensitive data, and still behind the same application authentication.
    try:
