@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
-const HOST = 'http://127.0.0.1:10000';
+// Chromium permits Secure session cookies on localhost (not plain 127.0.0.1).
+const HOST = 'http://localhost:10000';
 
 test('login, archived market display, authenticated API and logout', async ({ page }) => {
   await page.goto(HOST + '/');
@@ -7,6 +8,8 @@ test('login, archived market display, authenticated API and logout', async ({ pa
   await page.locator('#user').fill('test-user');
   await page.locator('#password').fill('long-test-password');
   await page.locator('form[action="/login"] button[type="submit"]').click();
+  const cookies = await page.context().cookies(HOST);
+  expect(cookies.some(c => c.name === 'stamp_session')).toBeTruthy();
   await expect(page.locator('#price')).not.toHaveText('—', { timeout: 20000 });
   await expect(page.locator('#status')).not.toHaveText('ERROR');
   await expect(page.locator('#sourceLine')).not.toHaveText('—');
