@@ -1,0 +1,32 @@
+name: STAMP code regression tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'api/**'
+      - 'dashboard/private.*'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - 'vercel.json'
+      - '.github/workflows/code-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install requirements
+        run: pip install -r requirements.txt
+      - name: Verify private dashboard browser JavaScript
+        run: node --check dashboard/private.js && node tests/browser_runtime_smoke.cjs
+      - name: Run all deterministic Python regression tests
+        run: python -m unittest discover -s tests -v
