@@ -241,6 +241,9 @@ class Handler(BaseHTTPRequestHandler):
    except OSError:return self.send(503,b"Asset unavailable")
   if not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
    if path in ("/","/index.html","/login"):return self.send(200,login_html(),"text/html; charset=utf-8")
+   if path.startswith("/api/"):
+    # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
+    return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
    return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
   if path=="/api/quote":
    # Independently fetched public exchange quote; research can remain archived.
