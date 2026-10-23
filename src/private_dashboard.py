@@ -305,7 +305,8 @@ class Handler(BaseHTTPRequestHandler):
     if research is not None:
      payload=json.dumps(research,ensure_ascii=False,allow_nan=False,separators=(",",":"))
      payload=payload.replace("<","\\u003c").replace(">","\\u003e").replace("&","\\u0026")
-     embed=('<script type="application/json" id="stamp-snapshot">'+payload+'</script>').encode("utf-8")
+     # Non-executable template is compatible with a strict script-src 'self' CSP.
+     embed=('<template id="stamp-snapshot">'+payload+'</template>').encode("utf-8")
      # Insert the JSON snapshot before the external script, regardless of cache-busting query.
      marker=b'<script src="/assets/app.js'
      if marker in content:content=content.replace(marker,embed+marker,1)
