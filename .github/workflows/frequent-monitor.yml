@@ -1,28 +1,5 @@
 name: STAMP frequent monitoring
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/monitor.py'
-      - 'src/model.py'
-      - 'src/forecast_audit.py'
-      - 'src/market_features.py'
-      - 'src/candlestick_features.py'
-      - 'src/research_engine.py'
-      - 'src/adaptive_feedback.py'
-      - 'src/autonomous_research.py'
-      - 'src/tradingview_features.py'
-      - 'src/build_dashboard.py'
-      - 'src/private_dashboard.py'
-      - 'api/**'
-      - 'vercel.json'
-      - 'src/build_offline_dashboard.py'
-      - 'src/build_deployment_snapshot.py'
-      - 'dashboard/private.*'
-      - 'src/pine_parity.py'
-      - 'tradingview/**'
-      - 'tests/**'
-      - '.github/workflows/frequent-monitor.yml'
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
