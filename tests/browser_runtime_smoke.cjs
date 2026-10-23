@@ -27,6 +27,7 @@ async function scenario(mode){
  const localStorage={getItem(){return null},setItem(){},removeItem(){}};
  const fetch=async url=>{
   urls.push(url);
+  if(url==="/api/dashboard"&&mode==="unauthorized")return {ok:false,status:401,json:async()=>({error:"login_required"})};
   if(url==="/api/dashboard"&&mode!=="primary")throw Error("primary offline");
   if(url==="/api/dashboard-lite"&&mode==="embedded")throw Error("lite offline");
   if(url==="/api/quote")return {ok:true,json:async()=>({quote:{status:"unavailable"}})};
@@ -38,6 +39,11 @@ async function scenario(mode){
  setTimeout(){return 1},clearTimeout(){},setInterval(){return 1},console};
  vm.runInNewContext(js,context,{filename:"dashboard/private.js",timeout:3000});
  for(let i=0;i<12;i++)await new Promise(resolve=>setImmediate(resolve));
+ if(mode==="unauthorized"){
+  assert.equal(window.location.href,"/login","expired session must redirect");
+  assert.equal(get("price").textContent,"","must not render private research");
+  return {mode,redirect:window.location.href,requests:urls};
+ }
  const expected=mode==="primary"?"$0.0001760":"$0.0001751";
  assert.equal(get("price").textContent,expected,mode+" price");
  assert.match(get("forecasts").innerHTML,/insufficient_evidence/,mode+" forecast");
@@ -50,5 +56,5 @@ async function scenario(mode){
  return {mode,price:get("price").textContent,status:get("status").textContent,requests:urls};
 }
 (async()=>{
- for(const mode of ["primary","recovery","embedded"])console.log("PASS",JSON.stringify(await scenario(mode)));
+ for(const mode of ["primary","recovery","embedded","unauthorized"])console.log("PASS",JSON.stringify(await scenario(mode)));
 })().catch(e=>{console.error("FAIL",e);process.exitCode=1});
