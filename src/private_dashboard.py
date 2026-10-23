@@ -189,6 +189,18 @@ def cached():
     archive["market_status"]="FRESH" if archive["age_seconds"] is not None and archive["age_seconds"]<=900 else "STALE"
     result=archive
   CACHE.update(time=now,payload=result);return result
+def github_connection_state(current,configured):
+ """Report observed private GitHub API access, never just token presence."""
+ if not configured:return "not_configured"
+ if not isinstance(current,dict):return "not_checked"
+ origin=current.get("source")
+ if origin=="private_github_api":
+  errors=current.get("errors") or {}
+  if "latest.json" in errors:return "failed"
+  return "degraded" if errors else "connected"
+ if origin=="deployment_snapshot_github_fallback":return "failed_fallback"
+ return "not_checked"
+
 def cached_research_only():
  """Fast, network-independent recovery endpoint for the private UI.
 
@@ -302,6 +314,7 @@ class Handler(BaseHTTPRequestHandler):
       "snapshot_available":bool(snapshot),"snapshot_at_utc":snapshot.get("observed_utc") if snapshot else None,
       "snapshot_age_seconds":snapshot_age,"snapshot_fresh":snapshot_age is not None and snapshot_age<=900,
       "github_live_refresh_configured":bool(os.getenv("GITHUB_READ_TOKEN","").strip()),
+      "github_connection_state":github_connection_state(CACHE.get("payload"),bool(os.getenv("GITHUB_READ_TOKEN","").strip())),
       "snapshot_mode":"hourly_deployment" if not os.getenv("GITHUB_READ_TOKEN","").strip() else "github_api_with_fallback",
       "research_available":bool(current),"live_quote_status":"not_checked",
       "auth":"authenticated_session"}
@@ -319,6 +332,8 @@ class Handler(BaseHTTPRequestHandler):
       "observation_utc":obs,"observation_age_seconds":age(obs),
       "research_fresh":age(obs) is not None and age(obs)<=900,
       "github_refresh_enabled":bool(os.getenv("GITHUB_READ_TOKEN","").strip()),
+      "github_connection_state":github_connection_state(current,bool(os.getenv("GITHUB_READ_TOKEN","").strip())),
+      "github_errors":(current or {}).get("errors") or (current or {}).get("github_errors") or {},
       "quote_status":(current or {}).get("live_quote",{}).get("status","not_checked"),
       "utc":dt.datetime.now(dt.timezone.utc).isoformat()}).encode(),"application/json; charset=utf-8")
    except Exception:
