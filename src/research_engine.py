@@ -41,35 +41,49 @@ def score(root=ROOT):
             try:rows.append(json.loads(line))
             except ValueError:pass
     forecasts={x["id"]:x for x in rows if x.get("event")=="forecast" and x.get("id")}
-    groups={}
+    # Append-only journal: a historical recovery supersedes the earlier missing marker.
+    latest_outcomes={}
     for x in rows:
-        if x.get("event")!="outcome" or x.get("status")!="evaluated":continue
-        f=forecasts.get(x.get("forecast_id"))
-        if not f:continue
+        if x.get("event")=="outcome" and x.get("forecast_id") in forecasts:
+            latest_outcomes[x["forecast_id"]]=x
+    groups={};historical_groups={}
+    for fid,x in latest_outcomes.items():
+        f=forecasts[fid]
         key=f.get("model_version","unknown")+"|"+f.get("horizon","unknown")
-        groups.setdefault(key,[]).append(x)
+        if x.get("status")=="evaluated":groups.setdefault(key,[]).append(x)
+        elif x.get("status")=="evaluated_historical":historical_groups.setdefault(key,[]).append(x)
     result={}
-    for k,v in groups.items():
+    for k in sorted(set(groups)|set(historical_groups)):
+        v=groups.get(k,[])
         n=len(v);correct=[x["direction_correct"] for x in v if x.get("direction_correct") is not None]
-        mae=sum(x["absolute_log_error"] for x in v)/n
-        base=sum(x["baseline_zero_error"] for x in v)/n
+        mae=sum(x["absolute_log_error"] for x in v)/n if n else None
+        base=sum(x["baseline_zero_error"] for x in v)/n if n else None
         low,high=wilson_interval(sum(correct),len(correct))
-        # This is a strict preliminary research gate, NOT an execution authorization.
-        gate=bool(n>=100 and len(correct)>=100 and base>0 and mae<base*.9 and low is not None and low>0.5)
+        # Historical reconstructions never count toward the live promotion gate.
+        gate=bool(n>=100 and len(correct)>=100 and base and mae<base*.9 and low is not None and low>0.5)
+        historical=historical_groups.get(k,[])
+        hn=len(historical)
+        hc=[x["direction_correct"] for x in historical if x.get("direction_correct") is not None]
         result[k]={"evaluated":n,"mae":mae,"zero_baseline_mae":base,
-          "skill_vs_zero":1-mae/base if base>0 else None,
+          "skill_vs_zero":1-mae/base if base else None,
           "direction_accuracy":sum(correct)/len(correct) if correct else None,
           "direction_correct":sum(correct),"direction_scored":len(correct),
           "direction_accuracy_wilson_95":[low,high],
+          "historical_reconstructions":hn,
+          "historical_direction_accuracy":sum(hc)/len(hc) if hc else None,
           "promotion_eligible":gate,
-          "note":"Preliminary research gate only. Out-of-sample statistical evidence, fees, slippage and execution tests are still required."}
-    outcome_ids={x.get("forecast_id") for x in rows if x.get("event")=="outcome"}
-    missing=sum(1 for x in rows if x.get("event")=="outcome" and x.get("status")=="missing_timely_observation")
+          "note":"Only timely ticker observations count toward the live gate. Historical 15m candle reconstructions are approximate, separate and never counted as live outcomes."}
+    statuses=[x.get("status") for x in latest_outcomes.values()]
+    live=sum(s=="evaluated" for s in statuses)
+    historical=sum(s=="evaluated_historical" for s in statuses)
+    missing=sum(s=="missing_timely_observation" for s in statuses)
     out={"generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"forecasts_total":len(forecasts),
-         "pending_total":sum(fid not in outcome_ids for fid in forecasts),"missing_total":missing,
-         "evaluated_total":sum(len(v) for v in groups.values()),"models":result}
-    out["evaluation_coverage"]=out["evaluated_total"]/out["forecasts_total"] if out["forecasts_total"] else None
-    out["reliability_warning"]="Missing or pending outcomes are excluded from accuracy. This is not evidence of profitable execution."
+         "pending_total":len(forecasts)-len(latest_outcomes),"missing_total":missing,
+         "evaluated_total":live,"evaluated_historical_total":historical,
+         "models":result}
+    out["evaluation_coverage"]=(live+historical)/len(forecasts) if forecasts else None
+    out["live_evaluation_coverage"]=live/len(forecasts) if forecasts else None
+    out["reliability_warning"]="Historical 15m candle outcomes are approximate and reported separately; missing/pending outcomes are excluded from accuracy. No evidence of profitable execution."
     (root/"data").mkdir(exist_ok=True)
     (root/"data"/"forecast_scorecard.json").write_text(json.dumps(out,indent=2)+"\n")
     return out
