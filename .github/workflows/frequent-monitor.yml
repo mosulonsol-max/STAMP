@@ -36,6 +36,9 @@ jobs:
         run: python src/forecast_audit.py
       - name: Rebuild scorecard after new forecast outcomes
         run: python -c "import sys; sys.path.insert(0,'src'); from research_engine import score; print(score())"
+      - name: Verify forecast issuance and market freshness
+        id: forecast_health
+        run: python src/forecast_health.py
       - name: Autonomous research and model competition
         id: research
         run: python src/autonomous_research.py
@@ -57,7 +60,7 @@ jobs:
           mkdir -p data
           python - <<'PY'
           import json,os,datetime,pathlib
-          steps={'tests':'${{ steps.tests.outcome }}','monitor':'${{ steps.monitor.outcome }}','audit':'${{ steps.audit.outcome }}','archive':'${{ steps.archive.outcome }}','research':'${{ steps.research.outcome }}','dashboard':'${{ steps.dashboard.outcome }}'}
+          steps={'tests':'${{ steps.tests.outcome }}','monitor':'${{ steps.monitor.outcome }}','audit':'${{ steps.audit.outcome }}','archive':'${{ steps.archive.outcome }}','forecast_health':'${{ steps.forecast_health.outcome }}','research':'${{ steps.research.outcome }}','dashboard':'${{ steps.dashboard.outcome }}'}
           production_smoke='${{ steps.production_smoke.outcome }}'
           record={'timestamp_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'event_name':os.environ.get('GITHUB_EVENT_NAME'),'run_id':os.environ.get('GITHUB_RUN_ID'),'run_attempt':os.environ.get('GITHUB_RUN_ATTEMPT'),'steps':steps,'pipeline_passed':all(v=='success' for v in steps.values()),'production_smoke_passed':production_smoke=='success','production_smoke_outcome':production_smoke}
           pathlib.Path('data/workflow_health.json').write_text(json.dumps(record,indent=2))
@@ -81,7 +84,7 @@ jobs:
           if [ -f dashboard/index.html ]; then git add dashboard/index.html; fi
           if [ -f dashboard/private-offline.html ]; then git add dashboard/private-offline.html; fi
           if [ -d data/candles ]; then git add data/candles/; fi
-          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/learning_controller.json data/workflow_health.json; do
+          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/forecast_activity.json data/learning_controller.json data/workflow_health.json; do
             if [ -f "$path" ]; then git add "$path"; fi
           done
           if ! git diff --cached --quiet; then
