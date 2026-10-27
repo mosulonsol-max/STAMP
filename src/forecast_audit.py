@@ -20,27 +20,71 @@ def read():
 def append(event):
     JOURNAL.parent.mkdir(exist_ok=True)
     with JOURNAL.open("a") as f:f.write(json.dumps(event,ensure_ascii=False,sort_keys=True)+"\n")
-def evaluate(rows,now,price):
-    """Do not score a matured prediction against an unrelated much later price."""
+def historical_close(due,now,root=ROOT):
+    """Nearest *completed* 15m exchange candle close at/after due (max 15m late).
+
+    This is a retrospective, approximate outcome, never a live-at-due tick.
+    """
+    path=root/"data"/"candles"/"15m.json"
+    try: candles=json.loads(path.read_text())
+    except (OSError,ValueError):return None
+    due_ms=int(due.timestamp()*1000)
+    now_ms=int(now.timestamp()*1000)
+    choices=[]
+    for c in candles:
+        try:
+            close_ms=int(c["t"])+900000
+            price=float(c["c"])
+            if due_ms<=close_ms<=min(due_ms+900000,now_ms) and math.isfinite(price) and price>0:
+                choices.append((close_ms,price))
+        except (TypeError,ValueError,KeyError):continue
+    if not choices:return None
+    close_ms,price=min(choices)
+    return price,dt.datetime.fromtimestamp(close_ms/1000,dt.timezone.utc)
+
+def evaluate(rows,now,price,root=ROOT):
+    """Use exchange candle history when GitHub scheduled runs arrive too late.
+
+    Preserve original missing outcomes and append a separately labelled recovery;
+    never silently promote retrospective candles to live observations.
+    """
+    outcomes={x.get("forecast_id"):x for x in rows if x.get("event")=="outcome"}
     for event in rows:
         if event.get("event")!="forecast":continue
         fid=event["id"]
-        if any(x.get("event")=="outcome" and x.get("forecast_id")==fid for x in rows):continue
+        previous=outcomes.get(fid,{})
+        if previous.get("status") in ("evaluated","evaluated_historical"):continue
         due=utc(event["due_at_utc"])
         elapsed=(now-due).total_seconds()
         if elapsed<0:continue
-        # 5-minute scheduled polls can drift; after 20 minutes outcome is missing, not a valid backfill.
-        if elapsed>1200:
-            append({"event":"outcome","forecast_id":fid,"status":"missing_timely_observation","evaluated_at_utc":now.isoformat()})
+        observation=historical_close(due,now,root)
+        if observation is not None:
+            actual_price,measurement_time=observation
+            status="evaluated_historical"
+            provenance={"price_source":"MEXC_15m_completed_candle","measurement_time_utc":measurement_time.isoformat(),
+                        "measurement_offset_seconds":round((measurement_time-due).total_seconds()),
+                        "historical_reconstruction":True}
+        elif 0<=elapsed<=1200 and not previous:
+            # A current ticker is a delayed observation, not a timestamp-perfect price.
+            actual_price=price
+            status="evaluated"
+            provenance={"price_source":"MEXC_current_ticker","measurement_time_utc":now.isoformat(),
+                        "measurement_offset_seconds":round(elapsed),"historical_reconstruction":False}
+        else:
+            if elapsed>1200 and not previous:
+                append({"event":"outcome","forecast_id":fid,"status":"missing_timely_observation",
+                        "evaluated_at_utc":now.isoformat(),"reason":"No close-enough completed candle or timely ticker"})
             continue
-        base=event["reference_price"]
-        actual=math.log(price/base)
-        predicted=event["predicted_log_return"]
-        append({"event":"outcome","forecast_id":fid,"status":"evaluated","evaluated_at_utc":now.isoformat(),
-                "actual_price":price,"actual_log_return":actual,"predicted_log_return":predicted,
+        base=float(event["reference_price"])
+        predicted=float(event["predicted_log_return"])
+        if not all(map(math.isfinite,(base,actual_price,predicted))) or base<=0:continue
+        actual=math.log(actual_price/base)
+        append({"event":"outcome","forecast_id":fid,"status":status,"evaluated_at_utc":now.isoformat(),
+                "actual_price":actual_price,"actual_log_return":actual,"predicted_log_return":predicted,
                 "absolute_log_error":abs(actual-predicted),"baseline_zero_error":abs(actual),
                 "direction_correct":(actual>0)==(predicted>0) if actual!=0 and predicted!=0 else None,
-                "explanation":"Outcome comparison only; causal attribution not established."})
+                "explanation":"Historical candle close is approximate, not proof of execution or a live price at due.",
+                **provenance})
 def run(snapshot):
     now=utc(snapshot["raw"]["collected_at_utc"])
     ticker=snapshot["raw"]["mexc"]["ticker"]["data"]
