@@ -68,7 +68,7 @@ class Features(unittest.TestCase):
    try:
     now=dt.datetime(2026,10,22,12,tzinfo=dt.timezone.utc)
     fa.append({"event":"forecast","id":"a","due_at_utc":now.isoformat(),"reference_price":1.0,"predicted_log_return":0.01})
-    fa.evaluate(fa.read(),now+dt.timedelta(minutes=3),1.02,root=pathlib.Path(d))
+    fa.evaluate(fa.read(),now+dt.timedelta(minutes=1),1.02,root=pathlib.Path(d))
     out=[x for x in fa.read() if x.get("event")=="outcome"]
     self.assertEqual(len(out),1);self.assertTrue(out[0]["direction_correct"])
     fa.evaluate(fa.read(),now+dt.timedelta(minutes=4),1.02,root=pathlib.Path(d))
