@@ -7,7 +7,7 @@ from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit,quote,parse_qs
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
-PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json")
+PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json")
 CACHE={"time":0.0,"payload":None}
 LOCK=threading.Lock()
 def age(stamp):
@@ -86,7 +86,7 @@ def build():
  latest=items["latest.json"];raw=latest.get("raw") or {};a=latest.get("analysis") or {}
  ticker=((raw.get("mexc") or {}).get("ticker") or {}).get("data") or {}
  observed=raw.get("collected_at_utc");seconds=age(observed)
- health=items["workflow_health.json"];learning=items["learning_controller.json"];score=items["forecast_scorecard.json"]
+ health=items["workflow_health.json"];learning=items["learning_controller.json"];score=items["forecast_scorecard.json"];activity=items["forecast_activity.json"]
  frames={}
  for tf in ("15m","1h","4h","1d"):
   frames[tf]=[]
@@ -119,7 +119,7 @@ def build():
   observed_utc=observed,age_seconds=seconds,market_status="FRESH" if seconds is not None and seconds<=900 else "STALE",
   live_quote=live_quote,source_health=source_health,
   market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},flags=a.get("flags") or []),
-  technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},forecast_history=recent_forecasts(items["forecast_journal.jsonl"]),candles=frames,dex=pools[:10],learning=learning,scorecard=score,
+  technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},forecast_history=recent_forecasts(items["forecast_journal.jsonl"]),forecast_activity=activity,candles=frames,dex=pools[:10],learning=learning,scorecard=score,
   health=dict(passed=health.get("pipeline_passed"),production_smoke_passed=health.get("production_smoke_passed"),
               at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
   errors=errors,note="Research only. Experimental model outputs are not executable trading signals.")
