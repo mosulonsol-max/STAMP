@@ -10,8 +10,8 @@ const row=(k,v)=>'<div class="row"><span>'+txt(k)+'</span><strong>'+txt(v)+'</st
 let lang="ar",zone="Asia/Baghdad",frame="1h",data=null,loading=false,activeSource="none";
 try{lang=localStorage.getItem("stamp_language")==="en"?"en":"ar";zone=localStorage.getItem("stamp_timezone")==="UTC"?"UTC":"Asia/Baghdad"}catch(e){}
 const words={
-ar:{historyTitle:'سجل التوقعات الفعلية ونتائجها',subtitle:"لوحة التحليل الخاصة · بيانات موثّقة",refresh:"↻ تحديث",settings:"⚙ الإعدادات",livePrice:"سعر MEXC المباشر",archivedPrice:"سعر التحليل المؤرشف — ليس مباشرًا",archiveLabel:"آخر سعر في سجل التحليل",bestBid:"أفضل طلب شراء",bestAsk:"أفضل عرض بيع",spread:"الفارق السعري",volume:"حجم التداول 24 ساعة",pipeline:"حالة نظام التحليل",modelStatus:"اعتماد النموذج",history:"الرسم البياني للسعر",chartSub:"شموع MEXC المؤرشفة والمغلقة فقط",export:"↓ تنزيل شموع CSV",forecastTitle:"التوقعات والتحقق منها",forecastSub:"مخرجات البرنامج الفعلية وليست توصيات",forecastDisclaimer:"عند عدم كفاية الأدلة يمتنع النظام عن إصدار توقع موثوق.",technical:"التحليل الفني",descriptive:"وصفي وليس إشارات",orderbook:"دفتر الأوامر والتنفيذ",snapshotOnly:"لقطة مؤرشفة فقط",dex:"سيولة DEX",estimates:"تقديرات مزودي البيانات",evaluation:"اختبارات النماذج",evidence:"نتائج خارج عينة التدريب",integrity:"سلامة البيانات وسير البرنامج",footer:"STAMP · بحث خاص وليس توصية تداول · البيانات من أوقات مختلفة",settingsTitle:"الإعدادات والأمان",language:"لغة الواجهة",timezone:"توقيت العرض",security:"أمان الحساب",passwordHelp:"تُدار كلمة المرور عبر متغير DASHBOARD_PASSWORD في Vercel. عدّلها وأعد نشر الإنتاج. لا تكتب كلمة المرور هنا.",changePassword:"تغيير كلمة المرور في Vercel ↗",passwordNote:"يجب إعادة النشر بعد تعديل المتغير.",done:"تم",diagnostics:"فحص الاتصال",runDiagnostics:"اختبار اتصال الخادم",portfolioTitle:"حاسبة المركز المالي",portfolioSub:"تُحفظ المدخلات في متصفحك فقط",quantity:"عدد العملات",averageCost:"متوسط الشراء بالدولار",clearPortfolio:"مسح المركز",portfolioCaution:"التقييم تقديري قبل الرسوم والانزلاق السعري، وليس سعر تنفيذ.",invested:"التكلفة",currentValue:"القيمة التقديرية",profitLoss:"الربح / الخسارة",breakEven:"سعر التعادل",enterPortfolio:"أدخل الكمية ومتوسط الشراء",unavailable:"السعر المباشر غير متاح",stale:"بيانات التحليل قديمة",insufficient:"أدلة غير كافية",unverified:"غير معتمد",sourceLive:"MEXC API العامة",sourceArchive:"بيانات البرنامج المؤرشفة",modelNone:"لا يوجد نموذج معتمد"},
-en:{historyTitle:'Audited forecast history and outcomes',subtitle:"PRIVATE RESEARCH TERMINAL",refresh:"↻ Refresh",settings:"⚙ Settings",livePrice:"Live MEXC quote",archivedPrice:"Archived quote — NOT LIVE",archiveLabel:"Archived research price",bestBid:"BEST BID",bestAsk:"BEST ASK",spread:"SPREAD",volume:"24H VOLUME",pipeline:"PIPELINE",modelStatus:"MODEL STATUS",history:"Price history",chartSub:"Archived closed MEXC candles only",export:"↓ Export CSV",forecastTitle:"Forecasts and validation",forecastSub:"Actual model output, not trading signals",forecastDisclaimer:"Insufficient evidence means the model abstains.",technical:"Technical indicators",descriptive:"Descriptive only",orderbook:"Order book and execution",snapshotOnly:"Archived snapshot",dex:"DEX liquidity",estimates:"Third-party estimates",evaluation:"Model evaluation",evidence:"Out-of-sample evidence",integrity:"Pipeline and data integrity",footer:"STAMP · Private research, not trading advice · Different source timestamps",settingsTitle:"Settings and security",language:"Language",timezone:"Display timezone",security:"Account security",passwordHelp:"Change DASHBOARD_PASSWORD in Vercel environment variables and redeploy. Never enter your password here.",changePassword:"Change password in Vercel ↗",passwordNote:"Redeploy after changing the environment variable.",done:"Done",diagnostics:"Connection diagnostics",runDiagnostics:"Test server connection",portfolioTitle:"Position calculator",portfolioSub:"Your inputs stay in this browser",quantity:"Token quantity",averageCost:"Average cost in USD",clearPortfolio:"Clear position",portfolioCaution:"Indicative only, excludes fees and slippage; not an executable quote.",invested:"Cost basis",currentValue:"Indicative value",profitLoss:"Profit / loss",breakEven:"Break-even",enterPortfolio:"Enter quantity and average cost",unavailable:"Live quote unavailable",stale:"Stale research",insufficient:"Insufficient evidence",unverified:"Not validated",sourceLive:"MEXC public API",sourceArchive:"Archived research snapshot",modelNone:"No validated model"}};
+ar:{historyTitle:'سجل التوقعات الفعلية ونتائجها',subtitle:"لوحة التحليل الخاصة · بيانات موثّقة",refresh:"↻ تحديث",settings:"⚙ الإعدادات",livePrice:"سعر MEXC المباشر",archivedPrice:"سعر التحليل المؤرشف — ليس مباشرًا",archiveLabel:"آخر سعر في سجل التحليل",bestBid:"أفضل طلب شراء",bestAsk:"أفضل عرض بيع",spread:"الفارق السعري",volume:"حجم التداول 24 ساعة",pipeline:"حالة نظام التحليل",modelStatus:"اعتماد النموذج",history:"الرسم البياني للسعر",chartSub:"شموع MEXC المغلقة · الفترات الإضافية مجمّعة من شموع مكتملة",export:"↓ تنزيل شموع CSV",forecastTitle:"التوقعات والتحقق منها",forecastSub:"مخرجات البرنامج الفعلية وليست توصيات",forecastDisclaimer:"عند عدم كفاية الأدلة يمتنع النظام عن إصدار توقع موثوق.",technical:"التحليل الفني",descriptive:"وصفي وليس إشارات",orderbook:"دفتر الأوامر والتنفيذ",snapshotOnly:"لقطة مؤرشفة فقط",dex:"سيولة DEX",estimates:"تقديرات مزودي البيانات",evaluation:"اختبارات النماذج",evidence:"نتائج خارج عينة التدريب",integrity:"سلامة البيانات وسير البرنامج",footer:"STAMP · بحث خاص وليس توصية تداول · البيانات من أوقات مختلفة",settingsTitle:"الإعدادات والأمان",language:"لغة الواجهة",timezone:"توقيت العرض",security:"أمان الحساب",passwordHelp:"تُدار كلمة المرور عبر متغير DASHBOARD_PASSWORD في Vercel. عدّلها وأعد نشر الإنتاج. لا تكتب كلمة المرور هنا.",changePassword:"تغيير كلمة المرور في Vercel ↗",passwordNote:"يجب إعادة النشر بعد تعديل المتغير.",done:"تم",diagnostics:"فحص الاتصال",runDiagnostics:"اختبار اتصال الخادم",portfolioTitle:"حاسبة المركز المالي",portfolioSub:"تُحفظ المدخلات في متصفحك فقط",quantity:"عدد العملات",averageCost:"متوسط الشراء بالدولار",clearPortfolio:"مسح المركز",portfolioCaution:"التقييم تقديري قبل الرسوم والانزلاق السعري، وليس سعر تنفيذ.",invested:"التكلفة",currentValue:"القيمة التقديرية",profitLoss:"الربح / الخسارة",breakEven:"سعر التعادل",enterPortfolio:"أدخل الكمية ومتوسط الشراء",unavailable:"السعر المباشر غير متاح",stale:"بيانات التحليل قديمة",insufficient:"أدلة غير كافية",unverified:"غير معتمد",sourceLive:"MEXC API العامة",sourceArchive:"بيانات البرنامج المؤرشفة",modelNone:"لا يوجد نموذج معتمد"},
+en:{historyTitle:'Audited forecast history and outcomes',subtitle:"PRIVATE RESEARCH TERMINAL",refresh:"↻ Refresh",settings:"⚙ Settings",livePrice:"Live MEXC quote",archivedPrice:"Archived quote — NOT LIVE",archiveLabel:"Archived research price",bestBid:"BEST BID",bestAsk:"BEST ASK",spread:"SPREAD",volume:"24H VOLUME",pipeline:"PIPELINE",modelStatus:"MODEL STATUS",history:"Price history",chartSub:"Closed MEXC candles · additional intervals aggregated from completed candles",export:"↓ Export CSV",forecastTitle:"Forecasts and validation",forecastSub:"Actual model output, not trading signals",forecastDisclaimer:"Insufficient evidence means the model abstains.",technical:"Technical indicators",descriptive:"Descriptive only",orderbook:"Order book and execution",snapshotOnly:"Archived snapshot",dex:"DEX liquidity",estimates:"Third-party estimates",evaluation:"Model evaluation",evidence:"Out-of-sample evidence",integrity:"Pipeline and data integrity",footer:"STAMP · Private research, not trading advice · Different source timestamps",settingsTitle:"Settings and security",language:"Language",timezone:"Display timezone",security:"Account security",passwordHelp:"Change DASHBOARD_PASSWORD in Vercel environment variables and redeploy. Never enter your password here.",changePassword:"Change password in Vercel ↗",passwordNote:"Redeploy after changing the environment variable.",done:"Done",diagnostics:"Connection diagnostics",runDiagnostics:"Test server connection",portfolioTitle:"Position calculator",portfolioSub:"Your inputs stay in this browser",quantity:"Token quantity",averageCost:"Average cost in USD",clearPortfolio:"Clear position",portfolioCaution:"Indicative only, excludes fees and slippage; not an executable quote.",invested:"Cost basis",currentValue:"Indicative value",profitLoss:"Profit / loss",breakEven:"Break-even",enterPortfolio:"Enter quantity and average cost",unavailable:"Live quote unavailable",stale:"Stale research",insufficient:"Insufficient evidence",unverified:"Not validated",sourceLive:"MEXC public API",sourceArchive:"Archived research snapshot",modelNone:"No validated model"}};
 const t=k=>words[lang][k]||k;
 const stamp=v=>{if(!v||!Number.isFinite(Date.parse(v)))return "—";try{return new Intl.DateTimeFormat(lang==="ar"?"ar-IQ":"en-GB",{timeZone:zone,year:"numeric",month:"short",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(v))+" "+(zone==="UTC"?"UTC":"UTC+3")}catch(e){return String(v)}};
 const age=v=>v&&Number.isFinite(Date.parse(v))?Math.max(0,Math.floor((Date.now()-Date.parse(v))/1000)):null;
@@ -29,22 +29,45 @@ const v=fresh?n(live.price):n(data?.market?.price),cost=q*entry,value=v===null?n
 set("portfolioPriceStatus",fresh?t("sourceLive"):t("sourceArchive"));
 target.innerHTML=row(t("invested"),money(cost))+row(t("currentValue"),money(value))+row(t("profitLoss"),money(pl)+(pl===null?"":" ("+pct(pl/cost*100)+")"))+row(t("breakEven"),price(entry));
 }
+const FRAME_MS={"15m":900000,"30m":1800000,"1h":3600000,"2h":7200000,"4h":14400000,"6h":21600000,"12h":43200000,"1d":86400000,"1w":604800000};
+const FRAME_SOURCE={"30m":"15m","2h":"1h","6h":"1h","12h":"1h","1w":"1d"};
+// Aggregate only contiguous, completed source candles. Never synthesize missing OHLC data.
+function chartCandles(tf){
+ const duration=FRAME_MS[tf],source=FRAME_SOURCE[tf]||tf,sourceMs=FRAME_MS[source];
+ const raw=(data?.candles?.[source]||[]).filter(c=>n(c.t)!==null&&[c.o,c.h,c.l,c.c].every(x=>n(x)!==null)&&Number(c.t)+sourceMs<=Date.now()).sort((a,b)=>a.t-b.t);
+ if(!FRAME_SOURCE[tf])return raw.filter(c=>Number(c.t)+duration<=Date.now());
+ const grouped=new Map(),count=duration/sourceMs;
+ for(const c of raw){
+  // UTC weeks start on Monday, consistent across all aggregation periods.
+  const origin=tf==="1w"?345600000:0;
+  const start=Math.floor((Number(c.t)-origin)/duration)*duration+origin;
+  if(start+duration>Date.now())continue;
+  if(!grouped.has(start))grouped.set(start,[]);
+  grouped.get(start).push(c);
+ }
+ const out=[];
+ for(const [t,bucket] of [...grouped.entries()].sort((a,b)=>a[0]-b[0])){
+  if(bucket.length!==count||bucket.some((c,i)=>Number(c.t)!==t+i*sourceMs))continue;
+  out.push({t,o:Number(bucket[0].o),h:Math.max(...bucket.map(c=>Number(c.h))),l:Math.min(...bucket.map(c=>Number(c.l))),c:Number(bucket[bucket.length-1].c),v:bucket.reduce((s,c)=>s+(n(c.v)||0),0)});
+ }
+ return out;
+}
 function renderChart(){
-const canvas=byId("chart"),ctx=canvas?.getContext?.("2d");if(!ctx)return;
-const rect=canvas.getBoundingClientRect(),w=Math.max(250,rect.width||750),h=Math.max(180,rect.height||300),ratio=Math.min(2,window.devicePixelRatio||1);
-canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);
-const dur={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000}[frame];
-const candles=(data?.candles?.[frame]||[]).filter(c=>n(c.t)!==null&&[c.o,c.h,c.l,c.c].every(x=>n(x)!==null)&&c.t+dur<=Date.now()).slice(-130);
-if(candles.length<2){set("chartnote",lang==="ar"?"لا توجد شموع مغلقة كافية":"Insufficient closed candles");return}
-const lo=Math.min(...candles.map(c=>c.l)),hi=Math.max(...candles.map(c=>c.h)),span=(hi-lo)||hi*.01||1,low=lo-span*.08,high=hi+span*.08;
-const left=10,right=84,top=10,bottom=35,ww=w-left-right,hh=h-top-bottom;
-const yy=v=>top+(high-v)/(high-low)*hh,xx=i=>left+(i+.5)*ww/candles.length;
-ctx.font="11px system-ui";ctx.lineWidth=1;
-for(let i=0;i<=4;i++){const v=low+(high-low)*i/4,y=yy(v);ctx.strokeStyle="#23384c";ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillStyle="#9ab2c9";ctx.fillText(v.toFixed(7),w-right+5,y+4)}
-const cw=Math.max(1,Math.min(8,ww/candles.length*.65));
-candles.forEach((c,i)=>{const x=xx(i);ctx.strokeStyle=c.c>=c.o?"#4cddb1":"#fa8192";ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(x,yy(c.h));ctx.lineTo(x,yy(c.l));ctx.stroke();ctx.fillRect(x-cw/2,yy(Math.max(c.o,c.c)),cw,Math.max(1,Math.abs(yy(c.o)-yy(c.c))))});
-set("chartnote",frame+" · "+candles.length+" candles · last close "+price(candles[candles.length-1].c)+" · "+stamp(new Date(candles[candles.length-1].t+dur).toISOString()));
-set("chartHover",stamp(new Date(candles[candles.length-1].t).toISOString()));
+ const canvas=byId("chart"),ctx=canvas?.getContext?.("2d");if(!ctx)return;
+ const rect=canvas.getBoundingClientRect(),w=Math.max(250,rect.width||750),h=Math.max(180,rect.height||300),ratio=Math.min(2,window.devicePixelRatio||1);
+ canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);
+ const dur=FRAME_MS[frame],candles=chartCandles(frame).slice(-130);
+ if(candles.length<2){set("chartnote",frame+" · "+(lang==="ar"?"لا توجد شموع مغلقة كافية؛ لن تُعرض شموع مصطنعة":"Insufficient closed candles; no synthetic bars"));set("chartHover","—");return}
+ const lo=Math.min(...candles.map(c=>c.l)),hi=Math.max(...candles.map(c=>c.h)),span=(hi-lo)||hi*.01||1,low=lo-span*.08,high=hi+span*.08;
+ const left=10,right=84,top=10,bottom=35,ww=w-left-right,hh=h-top-bottom;
+ const yy=v=>top+(high-v)/(high-low)*hh,xx=i=>left+(i+.5)*ww/candles.length;
+ ctx.font="11px system-ui";ctx.lineWidth=1;
+ for(let i=0;i<=4;i++){const v=low+(high-low)*i/4,y=yy(v);ctx.strokeStyle="#23384c";ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillStyle="#9ab2c9";ctx.fillText(v.toFixed(7),w-right+5,y+4)}
+ const cw=Math.max(1,Math.min(8,ww/candles.length*.65));
+ candles.forEach((c,i)=>{const x=xx(i);ctx.strokeStyle=c.c>=c.o?"#4cddb1":"#fa8192";ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(x,yy(c.h));ctx.lineTo(x,yy(c.l));ctx.stroke();ctx.fillRect(x-cw/2,yy(Math.max(c.o,c.c)),cw,Math.max(1,Math.abs(yy(c.o)-yy(c.c))))});
+ const source=FRAME_SOURCE[frame]?" · "+(lang==="ar"?"مجمّعة من ":"aggregated from ")+FRAME_SOURCE[frame]:"";
+ set("chartnote",frame+source+" · "+candles.length+" "+(lang==="ar"?"شمعة مغلقة":"closed candles")+" · "+price(candles[candles.length-1].c)+" · "+stamp(new Date(candles[candles.length-1].t+dur).toISOString()));
+ set("chartHover",stamp(new Date(candles[candles.length-1].t).toISOString()));
 }
 function render(result,origin){
 if(!result||!result.market)throw new Error("Invalid research data");
@@ -140,11 +163,10 @@ if(errors.length){byId("warning").hidden=false;byId("warning").textContent="Reco
 finally{loading=false;byId("refresh").disabled=false}
 }
 function exportCsv(){
-const dur={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000}[frame];
-const candles=(data?.candles?.[frame]||[]).filter(c=>n(c.t)!==null&&c.t+dur<=Date.now());
-if(!candles.length){set("chartHover","No candles");return}
-const lines=["utc,open,high,low,close,volume",...candles.map(c=>[new Date(c.t).toISOString(),c.o,c.h,c.l,c.c,c.v??""].join(","))].join("\r\n");
-const url=URL.createObjectURL(new Blob([lines],{type:"text/csv"})),a=document.createElement("a");a.href=url;a.download="STAMP_"+frame+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ const candles=chartCandles(frame);
+ if(!candles.length){set("chartHover","No candles");return}
+ const lines=["utc,open,high,low,close,volume",...candles.map(c=>[new Date(c.t).toISOString(),c.o,c.h,c.l,c.c,c.v??""].join(","))].join("\r\n");
+ const url=URL.createObjectURL(new Blob([lines],{type:"text/csv"})),a=document.createElement("a");a.href=url;a.download="STAMP_"+frame+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 document.querySelectorAll("[data-frame]").forEach(button=>button.addEventListener("click",()=>{frame=button.dataset.frame;document.querySelectorAll("[data-frame]").forEach(b=>b.classList.toggle("selected",b===button));renderChart()}));
 byId("refresh").addEventListener("click",refresh);byId("exportCandles").addEventListener("click",exportCsv);
