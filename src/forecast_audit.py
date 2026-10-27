@@ -64,8 +64,8 @@ def evaluate(rows,now,price,root=ROOT):
             provenance={"price_source":"MEXC_15m_completed_candle","measurement_time_utc":measurement_time.isoformat(),
                         "measurement_offset_seconds":round((measurement_time-due).total_seconds()),
                         "historical_reconstruction":True}
-        elif 0<=elapsed<=1200 and not previous:
-            # A current ticker is a delayed observation, not a timestamp-perfect price.
+        elif 0<=elapsed<=120 and not previous:
+            # Accept only a ticker sampled within 2 minutes of due; otherwise await the completed 15m candle.
             actual_price=price
             status="evaluated"
             provenance={"price_source":"MEXC_current_ticker","measurement_time_utc":now.isoformat(),
