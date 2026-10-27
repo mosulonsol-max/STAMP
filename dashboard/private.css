@@ -43,3 +43,10 @@ dialog::backdrop{background:#000b}
 .portfolio-inputs button{min-height:44px}
 .portfolio-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px}
 @media(max-width:560px){.portfolio-results{grid-template-columns:1fr}.portfolio-inputs{align-items:stretch}.portfolio-inputs label{flex:1 1 100%}}
+
+/* Expanded candle chart immediately below the price hero */
+.mainchart{margin:0 0 16px;min-width:0}
+.mainchart .tabs{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+.mainchart .tabs button{min-width:43px;white-space:nowrap}
+.mainchart canvas{height:clamp(280px,34vw,420px)}
+@media(max-width:680px){.mainchart .panel-title{display:flex;flex-direction:column;align-items:stretch;gap:12px}.mainchart .tabs{justify-content:flex-start}.mainchart canvas{height:310px}}
