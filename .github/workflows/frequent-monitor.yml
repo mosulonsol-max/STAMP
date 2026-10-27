@@ -28,12 +28,14 @@ jobs:
       - name: Acquire snapshot and analyze
         id: monitor
         run: python src/monitor.py
-      - name: Evaluate past predictions and journal new validated forecasts
-        id: audit
-        run: python src/forecast_audit.py
-      - name: Archive candles and evaluate model skill
+      - name: Archive completed candles before evaluating forecast outcomes
         id: archive
         run: python src/research_engine.py
+      - name: Evaluate due predictions using time-aligned historical candles, then journal next forecast
+        id: audit
+        run: python src/forecast_audit.py
+      - name: Rebuild scorecard after new forecast outcomes
+        run: python -c "import sys; sys.path.insert(0,'src'); from research_engine import score; print(score())"
       - name: Autonomous research and model competition
         id: research
         run: python src/autonomous_research.py
