@@ -70,19 +70,24 @@ const warning=byId("warning");warning.hidden=quoteFresh&&researchFresh&&origin==
 warning.textContent=(origin!=="live"?"RECOVERY: archived research · ":"")+(quoteFresh?"":t("unavailable")+" · ")+(!researchFresh?t("stale")+" · "+obs:"");
 const horizons=["1h","4h","24h","7d"];
 byId("forecasts").innerHTML=horizons.map(h=>{const v=result.forecasts?.[h];const message=v===null||v===undefined||v===""?t("insufficient"):typeof v==="string"?v:JSON.stringify(v);return '<article class="forecast-card"><h3>'+h.toUpperCase()+'</h3><span class="forecast-tag no">'+t("unverified")+'</span><p>'+txt(message)+'</p></article>'}).join("");
-set("forecastUpdated",obs);
 const history=result.forecast_history||[];
+const lastForecast=history[0];
+const forecastAge=lastForecast?.created_utc?(Date.now()-Date.parse(lastForecast.created_utc))/60000:null;
+const forecastState=!lastForecast?"NO FORECASTS":forecastAge===null||!Number.isFinite(forecastAge)?"UNKNOWN":forecastAge>150?"FORECASTS STALE":"HOURLY SHADOW FORECAST ACTIVE";
+set("forecastUpdated",(lastForecast?stamp(lastForecast.created_utc)+" · ":"")+forecastState+" · "+(lastForecast?.class||"unverified"));
 byId("forecastHistory").innerHTML=history.length?history.map(e=>{
  const predicted=n(e.predicted_log_return),actual=n(e.actual_log_return);
  const p=predicted===null?"—":pct(Math.expm1(predicted)*100);
  const a=actual===null?"—":pct(Math.expm1(actual)*100);
- const verdict=e.status==="evaluated"?(e.direction_correct===true?"CORRECT":e.direction_correct===false?"WRONG":"UNSCORABLE"):
+ const verdict=e.status==="evaluated_historical"?(e.direction_correct===true?"HISTORICAL / CORRECT":e.direction_correct===false?"HISTORICAL / WRONG":"HISTORICAL / UNSCORABLE"):
+   e.status==="evaluated"?(e.direction_correct===true?"CORRECT":e.direction_correct===false?"WRONG":"UNSCORABLE"):
    e.status==="missing_timely_observation"?"MISSING OBSERVATION":
    e.status==="overdue_unverified"?"OVERDUE / NOT VERIFIED":"PENDING";
  return '<article class="tech-frame">'+row("Created",stamp(e.created_utc))+row("Due",stamp(e.due_utc))+
  row("Model",e.model||"—")+row("Validation",e.class||"unvalidated")+
  row("Predicted 1h",p)+row("Observed 1h",a)+row("Reference",price(e.reference_price))+
- row("Actual",price(e.actual_price))+row("Outcome",verdict)+'</article>';
+ row("Actual",price(e.actual_price))+row("Outcome",verdict)+row("Outcome source",e.price_source||"—")+
+ row("Measured at",stamp(e.measurement_time_utc))+'</article>';
 }).join(""):(lang==="ar"?"لا يوجد سجل توقعات مؤرشف":"No archived forecast history");
 byId("technical").innerHTML=["15m","1h","4h","1d"].map(tf=>{const v=result.technical?.[tf]||{};return '<div class="tech-frame"><strong>'+tf+'</strong>'+row("RSI 14",v.rsi14_simple??v.rsi14)+row("ADX 14",v.adx14)+row("EMA 9",price(v.ema9))+row("EMA 21",price(v.ema21))+row("ATR %",v.atr_pct)+'</div>'}).join("");
 const b=m.book||{},tr=m.trades||{};
