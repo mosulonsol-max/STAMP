@@ -1,26 +1,72 @@
 {
-  "at_utc": "2026-10-27T17:28:25.367039+00:00",
+  "at_utc": "2026-10-27T18:06:29.180909+00:00",
   "status": "no_model_beats_baseline",
   "champion": null,
   "challengers": {
     "ridge": {
-      "mae": 0.04207998699609279,
-      "skill_vs_zero": -0.028032842318779894,
+      "mae": 0.04235804284830997,
+      "skill_vs_zero": -0.026717435046975657,
+      "direction_accuracy": 0.5630252100840336,
+      "direction_samples": 119,
+      "direction_wilson_95": [
+        0.4733184074469613,
+        0.6487902042872481
+      ],
       "eligible": false
     },
     "hist_gradient_boosting": {
-      "mae": 0.048750998928824556,
-      "skill_vs_zero": -0.19100863789080602,
+      "mae": 0.04968176853240104,
+      "skill_vs_zero": -0.20423736617990462,
+      "direction_accuracy": 0.5378151260504201,
+      "direction_samples": 119,
+      "direction_wilson_95": [
+        0.44845888861933086,
+        0.6248062784211947
+      ],
       "eligible": false
     },
     "random_forest": {
-      "mae": 0.04279778960490761,
-      "skill_vs_zero": -0.04556908006125493,
+      "mae": 0.043014638682351794,
+      "skill_vs_zero": -0.04263267440315022,
+      "direction_accuracy": 0.5462184873949579,
+      "direction_samples": 119,
+      "direction_wilson_95": [
+        0.45672085452377353,
+        0.63282546074798
+      ],
       "eligible": false
     }
   },
   "next_action": "retain baseline; collect new evidence and re-test",
-  "samples": 601,
-  "baseline_mae": 0.040932531786804845,
-  "validation_samples": 120
+  "samples": 602,
+  "skipped_gap_windows": 0,
+  "data_quality": "contiguous_windows",
+  "baseline_mae": 0.04125579385565996,
+  "validation_samples": 120,
+  "folds": [
+    {
+      "train_samples": 482,
+      "test_samples": 40,
+      "train_end_index": 481,
+      "test_start_index": 482
+    },
+    {
+      "train_samples": 522,
+      "test_samples": 40,
+      "train_end_index": 521,
+      "test_start_index": 522
+    },
+    {
+      "train_samples": 562,
+      "test_samples": 40,
+      "train_end_index": 561,
+      "test_start_index": 562
+    }
+  ],
+  "promotion_gate": {
+    "min_validation_samples": 100,
+    "min_mae_improvement_vs_zero": 0.1,
+    "wilson_95_lower_direction_accuracy_gt": 0.5
+  },
+  "warning": "Validation is research-only, not proof of execution profitability. Correlated hourly outcomes and model selection can overstate confidence."
 }
