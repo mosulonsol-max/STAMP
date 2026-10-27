@@ -143,9 +143,11 @@ def recent_forecasts(events,limit=12):
    "model":e.get("model_version"),"class":e.get("forecast_class"),"horizon":e.get("horizon"),
    "reference_price":num(e.get("reference_price")),"predicted_log_return":num(e.get("predicted_log_return")),
    "direction":e.get("predicted_direction"),"status":status,
-   "actual_price":num(outcome.get("actual_price")) if status=="evaluated" else None,
-   "actual_log_return":num(outcome.get("actual_log_return")) if status=="evaluated" else None,
-   "direction_correct":outcome.get("direction_correct") if status=="evaluated" else None,
+   "actual_price":num(outcome.get("actual_price")) if status in ("evaluated","evaluated_historical") else None,
+   "actual_log_return":num(outcome.get("actual_log_return")) if status in ("evaluated","evaluated_historical") else None,
+   "direction_correct":outcome.get("direction_correct") if status in ("evaluated","evaluated_historical") else None,
+   "price_source":outcome.get("price_source"),"measurement_time_utc":outcome.get("measurement_time_utc"),
+   "measurement_offset_seconds":outcome.get("measurement_offset_seconds"),
    "evaluated_utc":outcome.get("evaluated_at_utc")})
  return result
 
