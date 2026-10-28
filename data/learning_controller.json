@@ -1,11 +1,11 @@
 {
-  "at_utc": "2026-10-28T12:18:55.255211+00:00",
+  "at_utc": "2026-10-28T13:18:15.383515+00:00",
   "status": "no_model_beats_baseline",
   "champion": null,
   "challengers": {
     "ridge": {
-      "mae": 0.05144552880481347,
-      "skill_vs_zero": -0.02766351234457831,
+      "mae": 0.05155907942029869,
+      "skill_vs_zero": -0.0253698499041477,
       "direction_accuracy": 0.575,
       "direction_samples": 120,
       "direction_wilson_95": [
@@ -15,8 +15,19 @@
       "eligible": false
     },
     "hist_gradient_boosting": {
-      "mae": 0.06159913080495024,
-      "skill_vs_zero": -0.2304894242717037,
+      "mae": 0.06210164047304742,
+      "skill_vs_zero": -0.23503271366750633,
+      "direction_accuracy": 0.525,
+      "direction_samples": 120,
+      "direction_wilson_95": [
+        0.43626995305824834,
+        0.6121790886208165
+      ],
+      "eligible": false
+    },
+    "random_forest": {
+      "mae": 0.052530158470627204,
+      "skill_vs_zero": -0.04468197089768888,
       "direction_accuracy": 0.6,
       "direction_samples": 120,
       "direction_wilson_95": [
@@ -24,43 +35,32 @@
         0.6832359187916286
       ],
       "eligible": false
-    },
-    "random_forest": {
-      "mae": 0.05186377783225427,
-      "skill_vs_zero": -0.036018354340765724,
-      "direction_accuracy": 0.5666666666666667,
-      "direction_samples": 120,
-      "direction_wilson_95": [
-        0.47729920885539046,
-        0.6518982356221157
-      ],
-      "eligible": false
     }
   },
   "next_action": "retain baseline; collect new evidence and re-test",
-  "samples": 620,
+  "samples": 621,
   "skipped_gap_windows": 0,
   "data_quality": "contiguous_windows",
-  "baseline_mae": 0.05006067471194175,
+  "baseline_mae": 0.05028339718114247,
   "validation_samples": 120,
   "folds": [
     {
-      "train_samples": 500,
+      "train_samples": 501,
       "test_samples": 40,
-      "train_end_index": 499,
-      "test_start_index": 500
+      "train_end_index": 500,
+      "test_start_index": 501
     },
     {
-      "train_samples": 540,
+      "train_samples": 541,
       "test_samples": 40,
-      "train_end_index": 539,
-      "test_start_index": 540
+      "train_end_index": 540,
+      "test_start_index": 541
     },
     {
-      "train_samples": 580,
+      "train_samples": 581,
       "test_samples": 40,
-      "train_end_index": 579,
-      "test_start_index": 580
+      "train_end_index": 580,
+      "test_start_index": 581
     }
   ],
   "promotion_gate": {
