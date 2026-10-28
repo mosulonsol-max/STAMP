@@ -1,11 +1,22 @@
 {
-  "at_utc": "2026-10-28T21:58:33.456154+00:00",
+  "at_utc": "2026-10-28T22:29:37.872931+00:00",
   "status": "no_model_beats_baseline",
   "champion": null,
   "challengers": {
     "ridge": {
-      "mae": 0.056501470762821124,
-      "skill_vs_zero": -0.030433256731207114,
+      "mae": 0.056961591219584794,
+      "skill_vs_zero": -0.031442104177588526,
+      "direction_accuracy": 0.5416666666666666,
+      "direction_samples": 120,
+      "direction_wilson_95": [
+        0.4526096906236998,
+        0.6281387121747415
+      ],
+      "eligible": false
+    },
+    "hist_gradient_boosting": {
+      "mae": 0.06622659769803046,
+      "skill_vs_zero": -0.19920985035075534,
       "direction_accuracy": 0.55,
       "direction_samples": 120,
       "direction_wilson_95": [
@@ -14,53 +25,42 @@
       ],
       "eligible": false
     },
-    "hist_gradient_boosting": {
-      "mae": 0.06550725299370583,
-      "skill_vs_zero": -0.19467424706820324,
-      "direction_accuracy": 0.5583333333333333,
-      "direction_samples": 120,
-      "direction_wilson_95": [
-        0.4690452309131966,
-        0.6440025330046214
-      ],
-      "eligible": false
-    },
     "random_forest": {
-      "mae": 0.0569443266353366,
-      "skill_vs_zero": -0.038509744171582705,
-      "direction_accuracy": 0.6416666666666667,
+      "mae": 0.058072725654061026,
+      "skill_vs_zero": -0.051562167795584646,
+      "direction_accuracy": 0.6,
       "direction_samples": 120,
       "direction_wilson_95": [
-        0.5527053600179013,
-        0.7218392094967996
+        0.5105602479246307,
+        0.6832359187916286
       ],
       "eligible": false
     }
   },
   "next_action": "retain baseline; collect new evidence and re-test",
-  "samples": 629,
+  "samples": 630,
   "skipped_gap_windows": 0,
   "data_quality": "contiguous_windows",
-  "baseline_mae": 0.054832732148084935,
+  "baseline_mae": 0.05522519488866768,
   "validation_samples": 120,
   "folds": [
     {
-      "train_samples": 509,
+      "train_samples": 510,
       "test_samples": 40,
-      "train_end_index": 508,
-      "test_start_index": 509
+      "train_end_index": 509,
+      "test_start_index": 510
     },
     {
-      "train_samples": 549,
+      "train_samples": 550,
       "test_samples": 40,
-      "train_end_index": 548,
-      "test_start_index": 549
+      "train_end_index": 549,
+      "test_start_index": 550
     },
     {
-      "train_samples": 589,
+      "train_samples": 590,
       "test_samples": 40,
-      "train_end_index": 588,
-      "test_start_index": 589
+      "train_end_index": 589,
+      "test_start_index": 590
     }
   ],
   "promotion_gate": {
