@@ -94,13 +94,17 @@ warning.textContent=(origin!=="live"?"RECOVERY: archived research · ":"")+(quot
 const horizons=["1h","4h","24h","7d"];
 byId("forecasts").innerHTML=horizons.map(h=>{const v=result.forecasts?.[h];const message=v===null||v===undefined||v===""?t("insufficient"):typeof v==="string"?v:JSON.stringify(v);return '<article class="forecast-card"><h3>'+h.toUpperCase()+'</h3><span class="forecast-tag no">'+t("unverified")+'</span><p>'+txt(message)+'</p></article>'}).join("");
 const audit=result.forecast_review||{},auditSummary=audit.summary||{},auditRows=audit.rows||[];
+const fallbackHistory=result.forecast_history||[];
+const fallbackRows=fallbackHistory.map(e=>({due_utc:e.due_utc,horizon:e.horizon,predicted_price:n(e.reference_price)!==null&&n(e.predicted_log_return)!==null?e.reference_price*Math.exp(e.predicted_log_return):null,actual_price:e.actual_price,status:e.status,direction_correct:e.direction_correct,absolute_error:n(e.actual_price)!==null&&n(e.reference_price)!==null&&n(e.predicted_log_return)!==null?Math.abs(e.actual_price-e.reference_price*Math.exp(e.predicted_log_return)):null,measurement_offset_seconds:e.measurement_offset_seconds}));
+const visibleRows=auditRows.length?auditRows:fallbackRows;
+set("releaseStatus","STAMP RELEASE 2026-10-30 · "+(auditRows.length?"AUDIT API CONNECTED":fallbackRows.length?"ARCHIVED FORECASTS / AUDIT FALLBACK":"NO FORECAST HISTORY")+" · "+(origin==="live"?"LIVE API":"ARCHIVE RECOVERY"));
 const auditText= row(lang==="ar"?"توقعات تم تقييمها":"Evaluated forecasts",auditSummary.evaluated??"—")+
  row(lang==="ar"?"متوسط خطأ النموذج":"Model log MAE",n(auditSummary.model_log_mae)===null?"—":Number(auditSummary.model_log_mae).toFixed(6))+
  row(lang==="ar"?"خطأ توقع عدم التغير":"Zero-return baseline log MAE",n(auditSummary.zero_return_log_mae)===null?"—":Number(auditSummary.zero_return_log_mae).toFixed(6))+
  row(lang==="ar"?"تفوق على خط الأساس":"Beats baseline",auditSummary.beats_baseline===true?"YES":auditSummary.beats_baseline===false?"NO":"NOT EVALUATED")+
  row(lang==="ar"?"دقة الاتجاه":"Directional accuracy",n(auditSummary.direction_accuracy)===null?"—":pct(auditSummary.direction_accuracy*100));
 byId("forecastAudit").innerHTML=auditText+
- auditRows.slice(0,8).map(e=>'<article class="tech-frame">'+
+ visibleRows.slice(0,8).map(e=>'<article class="tech-frame">'+
  row("Due",stamp(e.due_utc))+row("Horizon",e.horizon||"—")+
  row("Predicted price",price(e.predicted_price))+row("Observed price",price(e.actual_price))+
  row("Absolute error",price(e.absolute_error))+row("Outcome",e.status||"—")+
