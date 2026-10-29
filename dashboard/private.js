@@ -65,6 +65,18 @@ function renderChart(){
  for(let i=0;i<=4;i++){const v=low+(high-low)*i/4,y=yy(v);ctx.strokeStyle="#23384c";ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillStyle="#9ab2c9";ctx.fillText(v.toFixed(7),w-right+5,y+4)}
  const cw=Math.max(1,Math.min(8,ww/candles.length*.65));
  candles.forEach((c,i)=>{const x=xx(i);ctx.strokeStyle=c.c>=c.o?"#4cddb1":"#fa8192";ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.moveTo(x,yy(c.h));ctx.lineTo(x,yy(c.l));ctx.stroke();ctx.fillRect(x-cw/2,yy(Math.max(c.o,c.c)),cw,Math.max(1,Math.abs(yy(c.o)-yy(c.c))))});
+ // Recorded forecast overlay: historical journal data only.
+ const forecasts=(data?.forecast_review?.rows||[]).filter(r=>n(r.predicted_price)>0&&n(r.reference_price)>0&&Date.parse(r.created_utc)>0&&Date.parse(r.due_utc)>0);
+ const forecast=forecasts.sort((a,b)=>Date.parse(b.created_utc)-Date.parse(a.created_utc))[0];
+ if(forecast){
+  const start=Date.parse(forecast.created_utc),due=Date.parse(forecast.due_utc),first=candles[0].t,last=candles[candles.length-1].t+dur;
+  if(start>=first&&start<=last&&due>start){
+   const x0=left+(start-first)/(last-first)*ww,x1=Math.min(w-right-4,x0+Math.max(15,Math.min(ww*.25,(due-start)/dur*ww/candles.length)));
+   const y0=yy(n(forecast.reference_price)),y1=yy(n(forecast.predicted_price));
+   ctx.save();ctx.strokeStyle="#f9c76a";ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y1);ctx.stroke();ctx.restore();
+   ctx.fillStyle="#f9c76a";ctx.fillText("Forecast "+price(forecast.predicted_price),Math.max(left,Math.min(x1-55,w-right-145)),Math.max(top+12,Math.min(h-bottom-8,y1-7)));
+  }
+ }
  const source=FRAME_SOURCE[frame]?" · "+(lang==="ar"?"مجمّعة من ":"aggregated from ")+FRAME_SOURCE[frame]:"";
  set("chartnote",frame+source+" · "+candles.length+" "+(lang==="ar"?"شمعة مغلقة":"closed candles")+" · "+price(candles[candles.length-1].c)+" · "+stamp(new Date(candles[candles.length-1].t+dur).toISOString()));
  set("chartHover",stamp(new Date(candles[candles.length-1].t).toISOString()));
