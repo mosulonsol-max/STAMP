@@ -26,7 +26,11 @@ test('login, archived market display, authenticated API and logout', async ({ pa
   await page.screenshot({ path: 'test-results/stamp-dashboard.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: 'test-results/stamp-mobile.png', fullPage: true });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+  const overflow = await page.evaluate(() => ({
+    width: window.innerWidth, scroll: document.documentElement.scrollWidth,
+    offenders: Array.from(document.querySelectorAll('body *')).filter(el => el.getBoundingClientRect().width > window.innerWidth).slice(0, 8).map(el => ({ tag: el.tagName, id: el.id, width: el.getBoundingClientRect().width }))
+  }));
+  expect(overflow.scroll, JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.width + 1);
   await page.locator('#settingsButton').click();
   await expect(page.locator('#settings')).toBeVisible();
   await page.locator('#diagnose').click();
