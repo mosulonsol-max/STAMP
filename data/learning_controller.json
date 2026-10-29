@@ -1,72 +1,588 @@
 {
-  "at_utc": "2026-10-29T23:12:30.808877+00:00",
-  "status": "no_model_beats_baseline",
+  "at_utc": "2026-10-29T23:37:41.133602+00:00",
+  "horizon": "1h",
+  "status": "no_validated_champion",
   "champion": null,
+  "selected_model": "random_forest",
   "challengers": {
     "ridge": {
-      "mae": 0.06823297618219311,
-      "skill_vs_zero": -0.035003266825221147,
-      "direction_accuracy": 0.475,
+      "mae": 0.07595823855666245,
+      "skill_vs_zero": -0.15218519618014192,
+      "direction_accuracy": 0.5,
       "direction_samples": 120,
       "direction_wilson_95": [
-        0.3878209113791835,
-        0.5637300469417518
+        0.41193870541108385,
+        0.5880612945889161
       ],
-      "eligible": false
+      "eligible": false,
+      "empirical_abs_log_error_p90": 0.17906765503430983
     },
     "hist_gradient_boosting": {
-      "mae": 0.07359495357088343,
-      "skill_vs_zero": -0.1163373141503583,
-      "direction_accuracy": 0.5333333333333333,
+      "mae": 0.07199282445176043,
+      "skill_vs_zero": -0.09203515169242271,
+      "direction_accuracy": 0.5416666666666666,
       "direction_samples": 120,
       "direction_wilson_95": [
-        0.4444278926967431,
-        0.6201708295420101
+        0.4526096906236998,
+        0.6281387121747415
       ],
-      "eligible": false
+      "eligible": false,
+      "empirical_abs_log_error_p90": 0.15665264796260353
     },
     "random_forest": {
-      "mae": 0.07074031559788026,
-      "skill_vs_zero": -0.07303626247451689,
-      "direction_accuracy": 0.475,
+      "mae": 0.07165681758679135,
+      "skill_vs_zero": -0.08693837558243578,
+      "direction_accuracy": 0.48333333333333334,
       "direction_samples": 120,
       "direction_wilson_95": [
-        0.3878209113791835,
-        0.5637300469417518
+        0.3958364430105443,
+        0.5718641958700792
       ],
-      "eligible": false
+      "eligible": false,
+      "empirical_abs_log_error_p90": 0.1583590566976144
     }
   },
-  "next_action": "retain baseline; collect new evidence and re-test",
   "samples": 655,
   "skipped_gap_windows": 0,
   "data_quality": "contiguous_windows",
-  "baseline_mae": 0.0659253727686209,
+  "promotion_gate": {
+    "min_validation_samples": 100,
+    "min_mae_improvement_vs_zero": 0.1,
+    "wilson_95_lower_direction_accuracy_gt": 0.5
+  },
   "validation_samples": 120,
   "folds": [
     {
       "train_samples": 535,
       "test_samples": 40,
+      "train_last_target_ms": 1792882800000,
+      "test_first_feature_ms": 1792882800000,
+      "test_last_target_ms": 1793026800000,
       "train_end_index": 534,
       "test_start_index": 535
     },
     {
       "train_samples": 575,
       "test_samples": 40,
+      "train_last_target_ms": 1793026800000,
+      "test_first_feature_ms": 1793026800000,
+      "test_last_target_ms": 1793170800000,
       "train_end_index": 574,
       "test_start_index": 575
     },
     {
       "train_samples": 615,
       "test_samples": 40,
+      "train_last_target_ms": 1793170800000,
+      "test_first_feature_ms": 1793170800000,
+      "test_last_target_ms": 1793314800000,
       "train_end_index": 614,
       "test_start_index": 615
     }
   ],
-  "promotion_gate": {
-    "min_validation_samples": 100,
-    "min_mae_improvement_vs_zero": 0.1,
-    "wilson_95_lower_direction_accuracy_gt": 0.5
+  "forecast": {
+    "created_at_utc": "2026-10-29T23:37:41.133602+00:00",
+    "reference_at_utc": "2026-10-29T23:00:00+00:00",
+    "due_at_utc": "2026-10-30T00:00:00+00:00",
+    "horizon": "1h",
+    "reference_price": 0.0006324,
+    "source_candle": "1793311200000",
+    "predicted_log_return": -0.01382962005925865,
+    "predicted_price": 0.0006237143463527161,
+    "empirical_error_range": [
+      0.0005323671743233986,
+      0.0007307354859747179
+    ],
+    "range_label": "Empirical validation error band, not calibrated coverage",
+    "model_version": "walk_forward_v2_random_forest_1h",
+    "forecast_class": "research_unvalidated",
+    "approval_passed": false,
+    "validation_samples": 120,
+    "direction_accuracy": 0.48333333333333334,
+    "direction_wilson_95": [
+      0.3958364430105443,
+      0.5718641958700792
+    ]
   },
-  "warning": "Validation is research-only, not proof of execution profitability. Correlated hourly outcomes and model selection can overstate confidence."
+  "warning": "Research only. Historical accuracy is not this forecast's probability; selection is not independent confirmation. Serial dependence can invalidate nominal confidence coverage.",
+  "baseline_mae": 0.0659253727686209,
+  "next_action": "retrain using newly matured targets; repeat forward validation",
+  "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 0",
+  "asof_candle_close_ms": 1793314800000,
+  "learning_update": {
+    "previous_at_utc": null,
+    "new_matured_labels": null,
+    "previous_selected_model": null,
+    "selected_model": "random_forest",
+    "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
+  },
+  "horizons": {
+    "1h": {
+      "at_utc": "2026-10-29T23:37:41.133602+00:00",
+      "horizon": "1h",
+      "status": "no_validated_champion",
+      "champion": null,
+      "selected_model": "random_forest",
+      "challengers": {
+        "ridge": {
+          "mae": 0.07595823855666245,
+          "skill_vs_zero": -0.15218519618014192,
+          "direction_accuracy": 0.5,
+          "direction_samples": 120,
+          "direction_wilson_95": [
+            0.41193870541108385,
+            0.5880612945889161
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 0.17906765503430983
+        },
+        "hist_gradient_boosting": {
+          "mae": 0.07199282445176043,
+          "skill_vs_zero": -0.09203515169242271,
+          "direction_accuracy": 0.5416666666666666,
+          "direction_samples": 120,
+          "direction_wilson_95": [
+            0.4526096906236998,
+            0.6281387121747415
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 0.15665264796260353
+        },
+        "random_forest": {
+          "mae": 0.07165681758679135,
+          "skill_vs_zero": -0.08693837558243578,
+          "direction_accuracy": 0.48333333333333334,
+          "direction_samples": 120,
+          "direction_wilson_95": [
+            0.3958364430105443,
+            0.5718641958700792
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 0.1583590566976144
+        }
+      },
+      "samples": 655,
+      "skipped_gap_windows": 0,
+      "data_quality": "contiguous_windows",
+      "promotion_gate": {
+        "min_validation_samples": 100,
+        "min_mae_improvement_vs_zero": 0.1,
+        "wilson_95_lower_direction_accuracy_gt": 0.5
+      },
+      "validation_samples": 120,
+      "folds": [
+        {
+          "train_samples": 535,
+          "test_samples": 40,
+          "train_last_target_ms": 1792882800000,
+          "test_first_feature_ms": 1792882800000,
+          "test_last_target_ms": 1793026800000,
+          "train_end_index": 534,
+          "test_start_index": 535
+        },
+        {
+          "train_samples": 575,
+          "test_samples": 40,
+          "train_last_target_ms": 1793026800000,
+          "test_first_feature_ms": 1793026800000,
+          "test_last_target_ms": 1793170800000,
+          "train_end_index": 574,
+          "test_start_index": 575
+        },
+        {
+          "train_samples": 615,
+          "test_samples": 40,
+          "train_last_target_ms": 1793170800000,
+          "test_first_feature_ms": 1793170800000,
+          "test_last_target_ms": 1793314800000,
+          "train_end_index": 614,
+          "test_start_index": 615
+        }
+      ],
+      "forecast": {
+        "created_at_utc": "2026-10-29T23:37:41.133602+00:00",
+        "reference_at_utc": "2026-10-29T23:00:00+00:00",
+        "due_at_utc": "2026-10-30T00:00:00+00:00",
+        "horizon": "1h",
+        "reference_price": 0.0006324,
+        "source_candle": "1793311200000",
+        "predicted_log_return": -0.01382962005925865,
+        "predicted_price": 0.0006237143463527161,
+        "empirical_error_range": [
+          0.0005323671743233986,
+          0.0007307354859747179
+        ],
+        "range_label": "Empirical validation error band, not calibrated coverage",
+        "model_version": "walk_forward_v2_random_forest_1h",
+        "forecast_class": "research_unvalidated",
+        "approval_passed": false,
+        "validation_samples": 120,
+        "direction_accuracy": 0.48333333333333334,
+        "direction_wilson_95": [
+          0.3958364430105443,
+          0.5718641958700792
+        ]
+      },
+      "warning": "Research only. Historical accuracy is not this forecast's probability; selection is not independent confirmation. Serial dependence can invalidate nominal confidence coverage.",
+      "baseline_mae": 0.0659253727686209,
+      "next_action": "retrain using newly matured targets; repeat forward validation",
+      "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 0",
+      "asof_candle_close_ms": 1793314800000,
+      "learning_update": {
+        "previous_at_utc": null,
+        "new_matured_labels": null,
+        "previous_selected_model": null,
+        "selected_model": "random_forest",
+        "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
+      }
+    },
+    "4h": {
+      "at_utc": "2026-10-29T23:37:41.133602+00:00",
+      "horizon": "4h",
+      "status": "no_validated_champion",
+      "champion": null,
+      "selected_model": "random_forest",
+      "challengers": {
+        "ridge": {
+          "mae": 0.07286658881136342,
+          "skill_vs_zero": -0.25913782994268053,
+          "direction_accuracy": 0.4166666666666667,
+          "direction_samples": 120,
+          "direction_wilson_95": [
+            0.3323835214047597,
+            0.5061196729983577
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 0.21693608455948135
+        },
+        "hist_gradient_boosting": {
+          "mae": 0.07452625584017497,
+          "skill_vs_zero": -0.28781694852328443,
+          "direction_accuracy": 0.5416666666666666,
+          "direction_samples": 120,
+          "direction_wilson_95": [
+            0.4526096906236998,
+            0.6281387121747415
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 0.23432526521024882
+        },
+        "random_forest": {
+          "mae": 0.07099481683866338,
+          "skill_vs_zero": -0.22679352868885916,
+          "direction_accuracy": 0.5833333333333334,
+          "direction_samples": 120,
+          "direction_wilson_95": [
+            0.49388032700164236,
+            0.6676164785952404
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 0.203360783438044
+        }
+      },
+      "samples": 652,
+      "skipped_gap_windows": 0,
+      "data_quality": "contiguous_windows",
+      "promotion_gate": {
+        "min_validation_samples": 100,
+        "min_mae_improvement_vs_zero": 0.1,
+        "wilson_95_lower_direction_accuracy_gt": 0.5
+      },
+      "validation_samples": 120,
+      "folds": [
+        {
+          "train_samples": 172,
+          "test_samples": 40,
+          "train_last_target_ms": 1791586800000,
+          "test_first_feature_ms": 1791586800000,
+          "test_last_target_ms": 1792162800000,
+          "train_end_index": 171,
+          "test_start_index": 175
+        },
+        {
+          "train_samples": 332,
+          "test_samples": 40,
+          "train_last_target_ms": 1792162800000,
+          "test_first_feature_ms": 1792162800000,
+          "test_last_target_ms": 1792738800000,
+          "train_end_index": 331,
+          "test_start_index": 335
+        },
+        {
+          "train_samples": 492,
+          "test_samples": 40,
+          "train_last_target_ms": 1792738800000,
+          "test_first_feature_ms": 1792738800000,
+          "test_last_target_ms": 1793314800000,
+          "train_end_index": 491,
+          "test_start_index": 495
+        }
+      ],
+      "forecast": {
+        "created_at_utc": "2026-10-29T23:37:41.133602+00:00",
+        "reference_at_utc": "2026-10-29T23:00:00+00:00",
+        "due_at_utc": "2026-10-30T03:00:00+00:00",
+        "horizon": "4h",
+        "reference_price": 0.0006324,
+        "source_candle": "1793311200000",
+        "predicted_log_return": -0.0006247183656691684,
+        "predicted_price": 0.0006320050514841912,
+        "empirical_error_range": [
+          0.0005157058802897227,
+          0.0007745313760570966
+        ],
+        "range_label": "Empirical validation error band, not calibrated coverage",
+        "model_version": "walk_forward_v2_random_forest_4h",
+        "forecast_class": "research_unvalidated",
+        "approval_passed": false,
+        "validation_samples": 120,
+        "direction_accuracy": 0.5833333333333334,
+        "direction_wilson_95": [
+          0.49388032700164236,
+          0.6676164785952404
+        ]
+      },
+      "warning": "Research only. Historical accuracy is not this forecast's probability; selection is not independent confirmation. Serial dependence can invalidate nominal confidence coverage.",
+      "baseline_mae": 0.057870224433397024,
+      "next_action": "retrain using newly matured targets; repeat forward validation",
+      "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 0",
+      "asof_candle_close_ms": 1793314800000,
+      "learning_update": {
+        "previous_at_utc": null,
+        "new_matured_labels": null,
+        "previous_selected_model": null,
+        "selected_model": "random_forest",
+        "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
+      }
+    },
+    "24h": {
+      "at_utc": "2026-10-29T23:37:41.133602+00:00",
+      "horizon": "24h",
+      "status": "no_validated_champion",
+      "champion": null,
+      "selected_model": "hist_gradient_boosting",
+      "challengers": {
+        "ridge": {
+          "mae": 0.15258695326751567,
+          "skill_vs_zero": -0.03646240174080684,
+          "direction_accuracy": 0.5454545454545454,
+          "direction_samples": 22,
+          "direction_wilson_95": [
+            0.3465979532073493,
+            0.7307970581918668
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 0.4951428435552688
+        },
+        "hist_gradient_boosting": {
+          "mae": 0.14319964021501225,
+          "skill_vs_zero": 0.02730187707818621,
+          "direction_accuracy": 0.7727272727272727,
+          "direction_samples": 22,
+          "direction_wilson_95": [
+            0.5656004682477829,
+            0.8987696001475147
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 0.5121172044244636
+        },
+        "random_forest": {
+          "mae": 0.14859491334385078,
+          "skill_vs_zero": -0.00934606447524211,
+          "direction_accuracy": 0.5909090909090909,
+          "direction_samples": 22,
+          "direction_wilson_95": [
+            0.38734818476315136,
+            0.7674418380352813
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 0.498163573579169
+        }
+      },
+      "samples": 632,
+      "skipped_gap_windows": 0,
+      "data_quality": "contiguous_windows",
+      "promotion_gate": {
+        "min_validation_samples": 100,
+        "min_mae_improvement_vs_zero": 0.1,
+        "wilson_95_lower_direction_accuracy_gt": 0.5
+      },
+      "validation_samples": 22,
+      "folds": [
+        {
+          "train_samples": 104,
+          "test_samples": 8,
+          "train_last_target_ms": 1791414000000,
+          "test_first_feature_ms": 1791414000000,
+          "test_last_target_ms": 1792105200000,
+          "train_end_index": 103,
+          "test_start_index": 127
+        },
+        {
+          "train_samples": 296,
+          "test_samples": 7,
+          "train_last_target_ms": 1792105200000,
+          "test_first_feature_ms": 1792105200000,
+          "test_last_target_ms": 1792710000000,
+          "train_end_index": 295,
+          "test_start_index": 319
+        },
+        {
+          "train_samples": 464,
+          "test_samples": 7,
+          "train_last_target_ms": 1792710000000,
+          "test_first_feature_ms": 1792710000000,
+          "test_last_target_ms": 1793314800000,
+          "train_end_index": 463,
+          "test_start_index": 487
+        }
+      ],
+      "forecast": {
+        "created_at_utc": "2026-10-29T23:37:41.133602+00:00",
+        "reference_at_utc": "2026-10-29T23:00:00+00:00",
+        "due_at_utc": "2026-10-30T23:00:00+00:00",
+        "horizon": "24h",
+        "reference_price": 0.0006324,
+        "source_candle": "1793311200000",
+        "predicted_log_return": 0.17957495919042524,
+        "predicted_price": 0.0007567985218106578,
+        "empirical_error_range": [
+          0.00045349301186649234,
+          0.0012629610327565786
+        ],
+        "range_label": "Empirical validation error band, not calibrated coverage",
+        "model_version": "walk_forward_v2_hist_gradient_boosting_24h",
+        "forecast_class": "research_unvalidated",
+        "approval_passed": false,
+        "validation_samples": 22,
+        "direction_accuracy": 0.7727272727272727,
+        "direction_wilson_95": [
+          0.5656004682477829,
+          0.8987696001475147
+        ]
+      },
+      "warning": "Research only. Historical accuracy is not this forecast's probability; selection is not independent confirmation. Serial dependence can invalidate nominal confidence coverage.",
+      "baseline_mae": 0.1472189951234467,
+      "next_action": "retrain using newly matured targets; repeat forward validation",
+      "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 78",
+      "asof_candle_close_ms": 1793314800000,
+      "learning_update": {
+        "previous_at_utc": null,
+        "new_matured_labels": null,
+        "previous_selected_model": null,
+        "selected_model": "hist_gradient_boosting",
+        "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
+      }
+    },
+    "7d": {
+      "at_utc": "2026-10-29T23:37:41.133602+00:00",
+      "horizon": "7d",
+      "status": "no_validated_champion",
+      "champion": null,
+      "selected_model": "random_forest",
+      "challengers": {
+        "ridge": {
+          "mae": 0.8044160027928141,
+          "skill_vs_zero": -0.00022221705390323976,
+          "direction_accuracy": 0.5,
+          "direction_samples": 2,
+          "direction_wilson_95": [
+            0.09453120573423074,
+            0.9054687942657693
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 1.3999774717696
+        },
+        "hist_gradient_boosting": {
+          "mae": 0.7843135456082713,
+          "skill_vs_zero": 0.024773462076728592,
+          "direction_accuracy": 0.5,
+          "direction_samples": 2,
+          "direction_wilson_95": [
+            0.09453120573423074,
+            0.9054687942657693
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 1.3726761531979164
+        },
+        "random_forest": {
+          "mae": 0.7751542078475001,
+          "skill_vs_zero": 0.036162311987741225,
+          "direction_accuracy": 0.5,
+          "direction_samples": 2,
+          "direction_wilson_95": [
+            0.09453120573423074,
+            0.9054687942657693
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 1.3929915066286094
+        }
+      },
+      "samples": 488,
+      "skipped_gap_windows": 0,
+      "data_quality": "contiguous_windows",
+      "promotion_gate": {
+        "min_validation_samples": 100,
+        "min_mae_improvement_vs_zero": 0.1,
+        "wilson_95_lower_direction_accuracy_gt": 0.5
+      },
+      "validation_samples": 2,
+      "folds": [
+        {
+          "train_samples": 152,
+          "test_samples": 1,
+          "train_last_target_ms": 1792105200000,
+          "test_first_feature_ms": 1792105200000,
+          "test_last_target_ms": 1792710000000,
+          "train_end_index": 151,
+          "test_start_index": 319
+        },
+        {
+          "train_samples": 320,
+          "test_samples": 1,
+          "train_last_target_ms": 1792710000000,
+          "test_first_feature_ms": 1792710000000,
+          "test_last_target_ms": 1793314800000,
+          "train_end_index": 319,
+          "test_start_index": 487
+        }
+      ],
+      "forecast": {
+        "created_at_utc": "2026-10-29T23:37:41.133602+00:00",
+        "reference_at_utc": "2026-10-29T23:00:00+00:00",
+        "due_at_utc": "2026-11-05T23:00:00+00:00",
+        "horizon": "7d",
+        "reference_price": 0.0006324,
+        "source_candle": "1793311200000",
+        "predicted_log_return": -0.24028658224594235,
+        "predicted_price": 0.0004973209155692692,
+        "empirical_error_range": [
+          0.0001235003532590078,
+          0.0020026508956128572
+        ],
+        "range_label": "Empirical validation error band, not calibrated coverage",
+        "model_version": "walk_forward_v2_random_forest_7d",
+        "forecast_class": "research_unvalidated",
+        "approval_passed": false,
+        "validation_samples": 2,
+        "direction_accuracy": 0.5,
+        "direction_wilson_95": [
+          0.09453120573423074,
+          0.9054687942657693
+        ]
+      },
+      "warning": "Research only. Historical accuracy is not this forecast's probability; selection is not independent confirmation. Serial dependence can invalidate nominal confidence coverage.",
+      "baseline_mae": 0.8042372875521352,
+      "next_action": "retrain using newly matured targets; repeat forward validation",
+      "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 98",
+      "asof_candle_close_ms": 1793314800000,
+      "learning_update": {
+        "previous_at_utc": null,
+        "new_matured_labels": null,
+        "previous_selected_model": null,
+        "selected_model": "random_forest",
+        "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
+      }
+    }
+  }
 }
