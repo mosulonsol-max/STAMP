@@ -8,7 +8,7 @@ const sample={
  observed_utc:now,
  market:{price:0.0001751,change:0.018,bid:0.0001750,ask:0.0001752,volume:77791,book:{},trades:{}},
  live_quote:{status:"fresh",price:0.0001760,bid:0.0001759,ask:0.0001761,change_24h_pct:1.8,volume_24h_usdt:80000,retrieved_at_utc:now,provider_at_utc:now},
- forecasts:{"1h":"insufficient_evidence"},technical:{},candles:{},dex:[],health:{passed:true,at:now,steps:{tests:"success"}},learning:{champion:null},scorecard:{evaluated_total:10,pending_total:1,models:{}}
+ forecasts:{"1h":{status:"no_validated_champion",selected_model:"ridge",validation_samples:120,reason:"Approval failed",challengers:{ridge:{direction_accuracy:.49,direction_wilson_95:[.4,.58],skill_vs_zero:-.02}},forecast:{predicted_price:.00018,predicted_log_return:.01,reference_price:.0001751,reference_at_utc:now,due_at_utc:new Date(Date.now()+3600000).toISOString(),approval_passed:false,empirical_error_range:[.00016,.00019]}},"4h":"insufficient_evidence"},technical:{},candles:{},dex:[],health:{passed:true,at:now,steps:{tests:"success"}},learning:{champion:null},scorecard:{evaluated_total:10,pending_total:1,models:{}}
 };
 function makeNode(id){
  const node={id,value:"",textContent:"",innerHTML:"",hidden:false,disabled:false,dataset:{},className:"",handlers:{},
@@ -47,6 +47,8 @@ async function scenario(mode){
  const expected=mode==="primary"?"$0.0001760":"$0.0001751";
  assert.equal(get("price").textContent,expected,mode+" price");
  assert.match(get("forecasts").innerHTML,/insufficient_evidence/,mode+" forecast");
+ assert.match(get("forecasts").innerHTML,/0.0001800/,mode+" experimental point is visible even without approval");
+ assert.ok(!get("forecasts").innerHTML.includes("[object Object]"),"structured forecast must render as useful fields");
  assert.match(get("learning").innerHTML,/10/,mode+" audited forecasts");
  assert.equal(get("change").textContent,mode==="primary"?"+1.80%":"+1.80%",mode+" percent units");
  assert.match(get("sourceLine").textContent,/Research:/,mode+" source timestamp");
@@ -58,3 +60,4 @@ async function scenario(mode){
 (async()=>{
  for(const mode of ["primary","recovery","embedded","unauthorized"])console.log("PASS",JSON.stringify(await scenario(mode)));
 })().catch(e=>{console.error("FAIL",e);process.exitCode=1});
+

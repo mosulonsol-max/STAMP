@@ -19,6 +19,14 @@ test('login, archived market display, authenticated API and logout', async ({ pa
   expect(api.status()).toBe(200);
   const result = await api.json();
   expect(result.market.price).toBeGreaterThan(0);
+  await expect(page.locator('#marketBrief')).not.toBeEmpty();
+  await expect(page.locator('#marketContext')).toBeVisible();
+  await expect(page.locator('#onchainEvidence')).toBeVisible();
+  await expect(page.locator('#forecastComparison')).toBeVisible();
+  await page.screenshot({ path: 'test-results/stamp-dashboard.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: 'test-results/stamp-mobile.png', fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
   await page.locator('#settingsButton').click();
   await expect(page.locator('#settings')).toBeVisible();
   await page.locator('#diagnose').click();
@@ -31,3 +39,4 @@ test('private API cannot be read without authentication', async ({ request }) =>
   const response = await request.get(HOST + '/api/dashboard');
   expect(response.status()).toBe(401);
 });
+

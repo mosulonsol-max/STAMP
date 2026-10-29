@@ -5,9 +5,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/forecast_audit.py'
-      - 'src/research_engine.py'
-      - 'src/forecast_health.py'
+      - 'src/**'
+      - 'tests/**'
       - '.github/workflows/frequent-monitor.yml'
   workflow_dispatch:
 permissions:
@@ -38,6 +37,12 @@ jobs:
       - name: Archive completed candles before evaluating forecast outcomes
         id: archive
         run: python src/research_engine.py
+      - name: Collect synchronized market correlations and finalized on-chain evidence
+        id: evidence
+        run: python src/evidence_sources.py
+      - name: Retrain all research horizons before issuing forecasts
+        id: research
+        run: python src/autonomous_research.py
       - name: Evaluate due predictions using time-aligned historical candles, then journal next forecast
         id: audit
         run: python src/forecast_audit.py
@@ -46,9 +51,6 @@ jobs:
       - name: Verify forecast issuance and market freshness
         id: forecast_health
         run: python src/forecast_health.py
-      - name: Autonomous research and model competition
-        id: research
-        run: python src/autonomous_research.py
       - name: Verify production HTTP endpoints
         id: production_smoke
         continue-on-error: true
@@ -58,16 +60,16 @@ jobs:
         if: always()
         run: python src/build_dashboard.py
       - name: Commit data and health status
-        # Push-triggered runs validate code but must not race scheduled market snapshots.
-        # Only scheduled/manual runs persist observations, preserving time ordering.
-        if: ${{ always() && github.event_name != 'push' }}
+        # The shared concurrency group serializes push, schedule and manual runs.
+        # Persist the first complete run after a code update as well.
+        if: always()
         run: |
           git config user.name 'stamp-monitor[bot]'
           git config user.email 'stamp-monitor[bot]@users.noreply.github.com'
           mkdir -p data
           python - <<'PY'
           import json,os,datetime,pathlib
-          steps={'tests':'${{ steps.tests.outcome }}','monitor':'${{ steps.monitor.outcome }}','audit':'${{ steps.audit.outcome }}','archive':'${{ steps.archive.outcome }}','forecast_health':'${{ steps.forecast_health.outcome }}','research':'${{ steps.research.outcome }}','dashboard':'${{ steps.dashboard.outcome }}'}
+          steps={'tests':'${{ steps.tests.outcome }}','monitor':'${{ steps.monitor.outcome }}','audit':'${{ steps.audit.outcome }}','archive':'${{ steps.archive.outcome }}','forecast_health':'${{ steps.forecast_health.outcome }}','research':'${{ steps.research.outcome }}','evidence':'${{ steps.evidence.outcome }}','dashboard':'${{ steps.dashboard.outcome }}'}
           production_smoke='${{ steps.production_smoke.outcome }}'
           record={'timestamp_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'event_name':os.environ.get('GITHUB_EVENT_NAME'),'run_id':os.environ.get('GITHUB_RUN_ID'),'run_attempt':os.environ.get('GITHUB_RUN_ATTEMPT'),'steps':steps,'pipeline_passed':all(v=='success' for v in steps.values()),'production_smoke_passed':production_smoke=='success','production_smoke_outcome':production_smoke}
           pathlib.Path('data/workflow_health.json').write_text(json.dumps(record,indent=2))
@@ -79,7 +81,7 @@ jobs:
           # One change per UTC hour triggers an authenticated Vercel snapshot deployment
           # without storing a private GitHub token in the hosted application.
           this_hour="$(date -u +'%Y-%m-%dT%H:00:00Z')"
-          if [ ! -f data/vercel_heartbeat_utc.txt ] || [ "$(cat data/vercel_heartbeat_utc.txt)" != "$this_hour" ] || grep -q 'COMPRESSED_JSON = ""' src/deployment_snapshot.py; then
+          if [ "$GITHUB_EVENT_NAME" = "push" ] || [ ! -f data/vercel_heartbeat_utc.txt ] || [ "$(cat data/vercel_heartbeat_utc.txt)" != "$this_hour" ] || grep -q 'COMPRESSED_JSON = ""' src/deployment_snapshot.py; then
             python src/build_deployment_snapshot.py
           fi
           echo "$this_hour" > data/vercel_heartbeat_utc.txt
@@ -91,7 +93,8 @@ jobs:
           if [ -f dashboard/index.html ]; then git add dashboard/index.html; fi
           if [ -f dashboard/private-offline.html ]; then git add dashboard/private-offline.html; fi
           if [ -d data/candles ]; then git add data/candles/; fi
-          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/forecast_activity.json data/learning_controller.json data/workflow_health.json; do
+          if [ -d data/context_candles ]; then git add data/context_candles/; fi
+          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/forecast_activity.json data/learning_controller.json data/workflow_health.json data/evidence_sources.json data/onchain_history.jsonl data/verified_burns.jsonl data/news_journal.jsonl; do
             if [ -f "$path" ]; then git add "$path"; fi
           done
           if ! git diff --cached --quiet; then
@@ -121,3 +124,4 @@ jobs:
           path: dashboard/private-offline.html
           retention-days: 7
           if-no-files-found: warn
+

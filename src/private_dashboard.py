@@ -90,7 +90,7 @@ def build():
  frames={}
  for tf in ("15m","1h","4h","1d"):
   frames[tf]=[]
-  for c in (items["candles/"+tf+".json"] if isinstance(items["candles/"+tf+".json"],list) else [])[-500:]:
+  for c in (items["candles/"+tf+".json"] if isinstance(items["candles/"+tf+".json"],list) else [])[-5000:]:
    if not isinstance(c,dict):continue
    t=num(c.get("t"));vals=[num(c.get(k)) for k in ("o","h","l","c","v")]
    if t is not None and all(v is not None and v>0 for v in vals[:4]) and vals[1]>=max(vals[0],vals[3]) and vals[2]<=min(vals[0],vals[3]):
@@ -113,16 +113,23 @@ def build():
   valid=isinstance(entry,dict)
   item=entry if valid else {}
   payload=item.get("data")
-  source_health[name]={"status":"ok" if payload is not None and not item.get("error") else "unavailable",
+  source_health[name]={"status":"ok" if bool(payload) and not item.get("error") else "unavailable",
                        "observed_utc":item.get("retrieved_at_utc"),"error":item.get("error")}
- return dict(fetched_utc=dt.datetime.now(dt.timezone.utc).isoformat(),source="private_github_api" if token else "deployment_snapshot",
+ payload=dict(fetched_utc=dt.datetime.now(dt.timezone.utc).isoformat(),source="private_github_api" if token else "deployment_snapshot",
   observed_utc=observed,age_seconds=seconds,market_status="FRESH" if seconds is not None and seconds<=900 else "STALE",
   live_quote=live_quote,source_health=source_health,
-  market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},flags=a.get("flags") or []),
+  market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},book_at_utc=((raw.get("mexc") or {}).get("book") or {}).get("retrieved_at_utc"),trades_at_utc=((raw.get("mexc") or {}).get("trades") or {}).get("retrieved_at_utc"),flags=a.get("flags") or []),
   technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},forecast_history=recent_forecasts(items["forecast_journal.jsonl"]),forecast_review=forecast_review_report(items["forecast_journal.jsonl"]),forecast_activity=activity,candles=frames,dex=pools[:10],learning=learning,scorecard=score,
   health=dict(passed=health.get("pipeline_passed"),production_smoke_passed=health.get("production_smoke_passed"),
               at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
   errors=errors,note="Research only. Experimental model outputs are not executable trading signals.")
+ payload.update(market_context=a.get("market_context") or {},onchain=a.get("onchain") or {},news=a.get("news") or {},model_observed_utc=learning.get("at_utc"))
+ try:
+  from src.evidence_brief import compose
+ except ImportError:
+  from evidence_brief import compose
+ payload["market_brief"]=compose(payload)
+ return payload
 def forecast_review_report(events):
  try:
   from src.forecast_review import review
@@ -175,6 +182,17 @@ def read_embedded():
  except (ImportError,ValueError,TypeError,zlib.error,UnicodeError):
   return None
 
+def public_market_refresh(payload):
+ try:
+  try:
+   from src.public_refresh import refresh
+  except ImportError:
+   from public_refresh import refresh
+  return refresh(payload)
+ except Exception as exc:
+  payload["public_refresh_error"]=type(exc).__name__
+  return payload
+
 def cached():
  with LOCK:
   now=time.monotonic()
@@ -188,6 +206,7 @@ def cached():
     result["fetched_utc"]=dt.datetime.now(dt.timezone.utc).isoformat()
     result["age_seconds"]=age(result.get("observed_utc"))
     result["market_status"]="FRESH" if result["age_seconds"] is not None and result["age_seconds"]<=900 else "STALE"
+    result=public_market_refresh(result)
     CACHE.update(time=now,payload=result)
     return result
   result=build()
@@ -203,6 +222,7 @@ def cached():
     archive["age_seconds"]=age(archive.get("observed_utc"))
     archive["market_status"]="FRESH" if archive["age_seconds"] is not None and archive["age_seconds"]<=900 else "STALE"
     result=archive
+  result=public_market_refresh(result)
   CACHE.update(time=now,payload=result);return result
 def github_connection_state(current,configured):
  """Report observed private GitHub API access, never just token presence."""
@@ -404,3 +424,4 @@ def main():
  port=int(os.getenv("PORT","10000"))
  ThreadingHTTPServer(("0.0.0.0",port),Handler).serve_forever()
 if __name__=="__main__":main()
+

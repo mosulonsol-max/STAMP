@@ -2,7 +2,7 @@
 """STAMP hourly data acquisition and evidence-gated analysis. Public endpoints; no trading."""
 import os, json, time, math, datetime, pathlib, statistics
 import requests
-from model import predict
+from concurrent.futures import ThreadPoolExecutor
 from market_features import technical,orderbook,trades
 from candlestick_features import analyze as candle_patterns
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -14,7 +14,7 @@ def get(url,params=None):
         r=S.get(url,params=params,timeout=18); r.raise_for_status(); return r.json(),None
     except Exception as e: return None,str(e)[:240]
 def record(source,url,data,error=None):
-    return {"source":source,"url":url,"retrieved_at_utc":NOW,"data":data,"error":error}
+    return {"source":source,"url":url,"retrieved_at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),"data":data,"error":error}
 def mexc():
     base="https://api.mexc.com/api/v3"
     out={}
@@ -55,7 +55,7 @@ def candles(item,interval_ms):
     for c in d:
         try:
             t=int(c[0]); close_t=int(c[6]) if len(c)>6 and str(c[6]).isdigit() else t+interval_ms
-            if close_t>nowms:continue
+            if max(close_t,t+interval_ms)>nowms:continue
             out.append({"t":t,"o":float(c[1]),"h":float(c[2]),"l":float(c[3]),"c":float(c[4]),"v":float(c[5])})
         except (TypeError,ValueError,IndexError):continue
     return sorted(out,key=lambda x:x["t"])
@@ -98,6 +98,8 @@ def depth(d):
         "levels_bids":len(bids),"levels_asks":len(asks)}
     except (KeyError,ValueError,TypeError,IndexError,ZeroDivisionError):return {"quality":"invalid"}
 def main():
+    global NOW
+    NOW=datetime.datetime.now(datetime.timezone.utc).isoformat()
     data={"collected_at_utc":NOW,"contract":CONTRACT,"mexc":mexc(),"dex":dex(),"project":project(),"macro":macro()}
     indicators={tf:metrics(candles(data["mexc"][key],ms)) for tf,key,ms in [
         ("15m","klines_15m",900000),("1h","klines_1h",3600000),("4h","klines_4h",14400000),("1d","klines_1d",86400000)]}
@@ -105,7 +107,7 @@ def main():
     candle_analysis={tf:candle_patterns(candles(data['mexc'][key],ms)) for tf,key,ms in [('15m','klines_15m',900000),('1h','klines_1h',3600000),('4h','klines_4h',14400000),('1d','klines_1d',86400000)]}
     executed_trades=trades(data["mexc"]["trades"].get("data"))
     book_features=orderbook(data["mexc"]["book"].get("data"))
-    ml=predict(candles(data["mexc"]["klines_1h"],3600000))
+    ml={"status":"awaiting_archived_research"}
     ob=depth(data["mexc"]["book"].get("data"))
     flags=[]
     if ob.get("quality")=="snapshot_only" and ob.get("bid_depth_usdt_2pct",0)<500:flags.append("thin_visible_bid_depth")
@@ -135,3 +137,4 @@ def main():
     if critical:
         raise SystemExit("Critical market data unavailable: "+", ".join(critical))
 if __name__=="__main__":main()
+

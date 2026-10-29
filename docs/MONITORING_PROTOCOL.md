@@ -13,4 +13,5 @@ Contract: `EKtmPPLaCbEEKiwoHHtV7TsRsmPXs5CMGtQtZFSiinsc` (Solana).
 9. Forecast register: issue time, source observations, horizon, conditions, invalidation, eventual evaluation and reason for any revised recommendation.
 10. Alert thresholds: 5%/1h, 10%/4h, confirmed high-volume breakout, >=20% same-pool liquidity shift, verified large exchange transfer/burn, GitHub commit or verified listing; thresholds prompt investigation, not automatic trading decisions.
 11. If fresh data is missing, report insufficient evidence and do not fabricate certainty.
-12. Portfolio baseline from user-specified monitoring prompt: 9,602,826 tokens at $0.00034885; reconcile conflicting past holdings before definitive portfolio guidance. Never commit private wallet identifiers or secrets.
+12. Portfolio inputs stay in the owner’s browser; do not embed holdings or wallet identity in the repository. Never commit credentials.
+

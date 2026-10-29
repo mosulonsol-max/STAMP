@@ -94,6 +94,25 @@ def run(snapshot):
     rows=read()
     evaluate(rows,now,price)
     model=snapshot["analysis"]["ml_experimental"]
+    reports=snapshot["analysis"].get("prediction_report",{}).get("horizons")
+    if reports:
+        issued=[]
+        for horizon,report in reports.items():
+            f=report.get("forecast")
+            if not isinstance(f,dict):continue
+            # Persist the first issued output, never overwrite it after retraining.
+            existing=next((x for x in rows if x.get("event")=="forecast" and x.get("source_candle")==f["source_candle"] and x.get("horizon")==horizon and x.get("model_version")==f["model_version"]),None)
+            if existing:
+                report["forecast"]={k:v for k,v in existing.items() if k not in ("event","id")}
+                snapshot["analysis"]["forecast_"+horizon]=report
+                continue
+            if utc(f["due_at_utc"])<=now:continue
+            event=dict(f,event="forecast",id=str(uuid.uuid4()),model_status=report["status"],
+                       predicted_direction="up" if f["predicted_log_return"]>0 else "down" if f["predicted_log_return"]<0 else "flat",
+                       validation_mae=report["challengers"].get(report["selected_model"],{}).get("mae"),
+                       baseline_mae=report.get("baseline_mae"),evidence_flags=snapshot["analysis"].get("flags",[]))
+            append(event);issued.append(event["id"])
+        return {"status":"forecast_issued" if issued else "already_issued_or_abstained","ids":issued}
     # Predictions are issued only when out-of-sample gate passed.
     validated=model.get("status")=="experimental_validated"
     # Shadow forecasts accumulate evidence even when ML fails validation; never publish as signals.
@@ -124,4 +143,8 @@ def run(snapshot):
     return {"status":"forecast_issued","id":fid}
 if __name__=="__main__":
     p=ROOT/"data"/"latest.json"
-    print(json.dumps(run(json.loads(p.read_text())),ensure_ascii=False))
+    snapshot=json.loads(p.read_text())
+    result=run(snapshot)
+    p.write_text(json.dumps(snapshot,ensure_ascii=False,indent=2)+"\n")
+    print(json.dumps(result,ensure_ascii=False))
+

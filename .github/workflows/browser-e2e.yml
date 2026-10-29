@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/private_dashboard.py'
+      - 'src/**'
       - 'dashboard/private.*'
       - 'api/index.py'
       - 'browser-tests/**'
@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install Python runtime dependencies
+        run: pip install -r requirements.txt
       - name: Install Chromium test runner
         run: |
           npm install --no-save @playwright/test@1.56.1
@@ -42,13 +44,14 @@ jobs:
           exit 1
       - name: Verify login and data in real Chromium browser
         run: npx playwright test browser-tests/stamp.spec.cjs --workers=1 --reporter=line
-      - name: Upload browser failure evidence
-        if: failure()
+      - name: Upload browser verification evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stamp-browser-failure
+          name: stamp-browser-verification
           path: |
             test-results/
             /tmp/stamp-server.log
           retention-days: 3
           if-no-files-found: ignore
+
