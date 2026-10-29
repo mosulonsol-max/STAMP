@@ -29,23 +29,24 @@ def review(events, limit=100):
         try:
             reference=float(reference)
             predicted=float(predicted)
-            actual=float(actual)
-            valid=all(math.isfinite(x) for x in (reference,predicted,actual)) and reference>0 and actual>0
+            prediction_valid=math.isfinite(reference) and math.isfinite(predicted) and reference>0 and abs(predicted)<100
         except (ValueError,TypeError):
-            valid=False
-        evaluated=o.get("status") in ("evaluated","evaluated_historical") and valid
+            prediction_valid=False
+        predicted_price=reference*math.exp(predicted) if prediction_valid else None
+        try:
+            actual=float(actual)
+            actual_valid=math.isfinite(actual) and actual>0
+        except (ValueError,TypeError):
+            actual_valid=False
+        evaluated=o.get("status") in ("evaluated","evaluated_historical") and prediction_valid and actual_valid
         due=_timestamp(f.get("due_at_utc"))
         measured=_timestamp(o.get("measurement_time_utc"))
-        # A delayed outcome is disclosed, not silently treated as on-time.
-        predicted_price=reference*math.exp(predicted) if valid and abs(predicted)<100 else None
-        if predicted_price is None:
-            evaluated=False
         rows.append({
             "id":fid,"created_utc":f.get("created_at_utc"),"due_utc":f.get("due_at_utc"),
             "horizon":f.get("horizon"),"model":f.get("model_version"),
             "forecast_class":f.get("forecast_class"),
             "status":o.get("status","pending"),
-            "reference_price":reference if valid else None,
+            "reference_price":reference if prediction_valid else None,
             "predicted_price":predicted_price,
             "actual_price":actual if evaluated else None,
             "absolute_error":abs(predicted_price-actual) if evaluated else None,
