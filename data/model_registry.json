@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-10-30T19:28:01.873799+00:00",
+  "generated_at_utc": "2026-10-30T20:06:58.212788+00:00",
   "authority": "internal_model_governor_v1",
   "manual_override_available": false,
   "horizons": {
@@ -9,9 +9,9 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "1h",
-      "model_version": "walk_forward_v2_hist_gradient_boosting_1h",
-      "selected_model": "hist_gradient_boosting",
-      "decided_at_utc": "2026-10-30T19:28:01.873799+00:00",
+      "model_version": "walk_forward_v2_random_forest_1h",
+      "selected_model": "random_forest",
+      "decided_at_utc": "2026-10-30T20:06:58.212788+00:00",
       "reason_codes": [
         "forward_error_not_better_than_baseline",
         "forward_direction_uncertain",
@@ -19,29 +19,29 @@
       ],
       "forward_validation": {
         "samples": 120,
-        "mae": 0.0789123633883423,
-        "skill_vs_zero": -0.05551469986888735,
-        "direction_accuracy": 0.5333333333333333,
+        "mae": 0.07954375620231431,
+        "skill_vs_zero": -0.05727628995358591,
+        "direction_accuracy": 0.5416666666666666,
         "direction_samples": 120,
         "direction_wilson_95": [
-          0.4444278926967431,
-          0.6201708295420101
+          0.4526096906236998,
+          0.6281387121747415
         ],
         "eligible": false,
-        "empirical_abs_log_error_p90": 0.16532815712762922
+        "empirical_abs_log_error_p90": 0.15313140407478842
       },
       "prospective": {
-        "samples": 1,
-        "direction_samples": 1,
-        "direction_correct": 0,
-        "direction_accuracy": 0.0,
+        "samples": 17,
+        "direction_samples": 17,
+        "direction_correct": 8,
+        "direction_accuracy": 0.47058823529411764,
         "direction_wilson_95": [
-          0,
-          0.7934506856227626
+          0.26165106442409436,
+          0.6903676493999558
         ],
-        "mae": 0.13035523054309045,
-        "baseline_mae": 0.0312803044677254,
-        "skill_vs_zero": -3.1673261421604524,
+        "mae": 0.0980239160200659,
+        "baseline_mae": 0.09160965157874472,
+        "skill_vs_zero": -0.07001734348708522,
         "excluded_overlapping_or_old": 0,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
@@ -60,7 +60,7 @@
       "horizon": "4h",
       "model_version": "walk_forward_v2_random_forest_4h",
       "selected_model": "random_forest",
-      "decided_at_utc": "2026-10-30T19:28:01.873799+00:00",
+      "decided_at_utc": "2026-10-30T20:06:58.212788+00:00",
       "reason_codes": [
         "forward_error_not_better_than_baseline",
         "forward_direction_uncertain",
@@ -68,29 +68,29 @@
       ],
       "forward_validation": {
         "samples": 120,
-        "mae": 0.08078153756916161,
-        "skill_vs_zero": -0.22967806474120334,
-        "direction_accuracy": 0.525,
-        "direction_samples": 120,
+        "mae": 0.08325078705447361,
+        "skill_vs_zero": -0.16896463082890834,
+        "direction_accuracy": 0.4661016949152542,
+        "direction_samples": 118,
         "direction_wilson_95": [
-          0.43626995305824834,
-          0.6121790886208165
+          0.3785871696717929,
+          0.5557537346687152
         ],
         "eligible": false,
-        "empirical_abs_log_error_p90": 0.25821033121318543
+        "empirical_abs_log_error_p90": 0.2422734598989084
       },
       "prospective": {
-        "samples": 4,
-        "direction_samples": 4,
+        "samples": 5,
+        "direction_samples": 5,
         "direction_correct": 1,
-        "direction_accuracy": 0.25,
+        "direction_accuracy": 0.2,
         "direction_wilson_95": [
-          0.04558726080970055,
-          0.6993581574175981
+          0.03622410863243014,
+          0.6244653702374747
         ],
-        "mae": 0.17860199368480012,
-        "baseline_mae": 0.16410075324499876,
-        "skill_vs_zero": -0.08836790906225356,
+        "mae": 0.17575666852245125,
+        "baseline_mae": 0.15096969931311083,
+        "skill_vs_zero": -0.1641850604599291,
         "excluded_overlapping_or_old": 3,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
@@ -107,26 +107,27 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "24h",
-      "model_version": "walk_forward_v2_random_forest_24h",
-      "selected_model": "random_forest",
-      "decided_at_utc": "2026-10-30T19:28:01.873799+00:00",
+      "model_version": "walk_forward_v2_ridge_24h",
+      "selected_model": "ridge",
+      "decided_at_utc": "2026-10-30T20:06:58.212788+00:00",
       "reason_codes": [
         "insufficient_forward_validation",
+        "forward_error_not_better_than_baseline",
         "forward_direction_uncertain",
         "insufficient_prospective_outcomes"
       ],
       "forward_validation": {
         "samples": 23,
-        "mae": 0.1854017116639188,
-        "skill_vs_zero": 0.1238465437502555,
-        "direction_accuracy": 0.6521739130434783,
+        "mae": 0.192930813588214,
+        "skill_vs_zero": 0.043293266579869094,
+        "direction_accuracy": 0.6086956521739131,
         "direction_samples": 23,
         "direction_wilson_95": [
-          0.44890335377263,
-          0.8118872406120227
+          0.4078552239138171,
+          0.7784237720752205
         ],
         "eligible": false,
-        "empirical_abs_log_error_p90": 0.6004445829935362
+        "empirical_abs_log_error_p90": 0.5803504067851163
       },
       "prospective": {
         "samples": 0,
@@ -156,9 +157,9 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "7d",
-      "model_version": "walk_forward_v2_ridge_7d",
-      "selected_model": "ridge",
-      "decided_at_utc": "2026-10-30T19:28:01.873799+00:00",
+      "model_version": "walk_forward_v2_random_forest_7d",
+      "selected_model": "random_forest",
+      "decided_at_utc": "2026-10-30T20:06:58.212788+00:00",
       "reason_codes": [
         "insufficient_forward_validation",
         "forward_error_not_better_than_baseline",
@@ -167,8 +168,8 @@
       ],
       "forward_validation": {
         "samples": 2,
-        "mae": 1.1353968157259187,
-        "skill_vs_zero": -0.03625402454923066,
+        "mae": 1.0967342994880516,
+        "skill_vs_zero": -0.07198981201414423,
         "direction_accuracy": 0.5,
         "direction_samples": 2,
         "direction_wilson_95": [
@@ -176,7 +177,7 @@
           0.9054687942657693
         ],
         "eligible": false,
-        "empirical_abs_log_error_p90": 2.037864246882817
+        "empirical_abs_log_error_p90": 1.967013765350578
       },
       "prospective": {
         "samples": 0,
