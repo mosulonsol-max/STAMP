@@ -19,10 +19,26 @@ test('compact market, automatic decision, real interactive chart and forecast ou
  const initial=await page.locator('#chart').getAttribute('data-visible-from');
  const plot=await page.locator('#chart').boundingBox();await page.mouse.move(plot.x+plot.width*.5,plot.y+plot.height*.5);await page.mouse.wheel(0,-350);
  await expect.poll(async()=>page.locator('#chart').getAttribute('data-visible-from')).not.toBe(initial);
+ // Verify real canvas panning, candle inspection, controls, and keyboard navigation.
+ const beforeDrag=await page.locator('#chart').getAttribute('data-visible-from');
+ await page.mouse.move(plot.x+plot.width*.4,plot.y+plot.height*.4);await page.mouse.down();await page.mouse.move(plot.x+plot.width*.65,plot.y+plot.height*.4,{steps:12});await page.mouse.up();
+ await expect.poll(async()=>page.locator('#chart').getAttribute('data-visible-from')).not.toBe(beforeDrag);
+ await page.locator('#resetChart').click();
+ let inspected=false;
+ for(let x=.15;x<.8;x+=.05){await page.mouse.move(plot.x+plot.width*x,plot.y+plot.height*.35);if((await page.locator('#chartOHLC').textContent()).includes('الحجم')){inspected=true;break}}
+ expect(inspected,'crosshair displays candle volume and OHLC').toBe(true);
+ const visibleWidth=async()=>{const r=await page.locator('#chart').evaluate(node=>node.dataset);return Number(r.visibleTo)-Number(r.visibleFrom)};
+ const beforeZoom=await visibleWidth();await page.locator('#zoomIn').click();await expect.poll(visibleWidth).toBeLessThan(beforeZoom);
+ const zoomed=await visibleWidth();await page.locator('#zoomOut').click();await expect.poll(visibleWidth).toBeGreaterThan(zoomed);
+ const earlier=await page.locator('#chart').getAttribute('data-visible-from');await page.locator('#panEarlier').click();await expect.poll(async()=>Number(await page.locator('#chart').getAttribute('data-visible-from'))).toBeLessThan(Number(earlier));
+ await page.locator('#chart').focus();await page.keyboard.press('ArrowRight');await expect.poll(async()=>Number(await page.locator('#chart').getAttribute('data-visible-from'))).toBeGreaterThan(Number(earlier)-1);
+ await page.keyboard.press('Home');
  await page.locator('#forecastHorizon').selectOption('4h');await expect(page.locator('#forecastSummary')).toContainText('4H');
  await page.locator('.audit-details summary').click();await expect(page.locator('#modelReason')).toContainText('تلقائي');await page.locator('.audit-details summary').click();
  await page.screenshot({path:'test-results/stamp-compact-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
+ const mobileWidth=await visibleWidth();await page.locator('#zoomIn').click();await expect.poll(visibleWidth).toBeLessThan(mobileWidth);
+ await page.locator('#panLater').click();await page.locator('#resetChart').click();
  await page.screenshot({path:'test-results/stamp-compact-mobile.png',fullPage:true});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
  await page.locator('#settingsButton').click();await expect(page.locator('#settings')).toBeVisible();await page.locator('#diagnose').click();await expect(page.locator('#diagnosticResult')).toContainText('API:',{timeout:15000});
