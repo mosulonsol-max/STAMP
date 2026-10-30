@@ -10,13 +10,15 @@ class OfflineTests(unittest.TestCase):
    root=pathlib.Path(d);(root/"dashboard").mkdir()
    (root/"dashboard"/"vendor").mkdir()
    (root/"dashboard"/"vendor"/"lightweight-charts-5.0.9.js").write_text((ROOT/"dashboard"/"vendor"/"lightweight-charts-5.0.9.js").read_text())
-   for name in ("private.html","private.css","private.js"):
+   for name in ("private.html","private.css","private.js","market-stream.js"):
     (root/"dashboard"/name).write_text((ROOT/"dashboard"/name).read_text())
    with patch.object(offline,"build",return_value={"price":0.0002,"injected":"</script><script>alert(1)</script>"}):
     result=offline.generate(root)
    text=result.read_text()
    self.assertIn('id="stamp-snapshot"',text)
    self.assertIn('offline_snapshot',text)
+   self.assertNotIn('src="/assets/market-stream.js',text)
+   self.assertIn('StampMarket',text)
    self.assertNotIn('src="/assets/app.js',text)
    self.assertNotIn('href="/assets/style.css',text)
    self.assertNotIn('src="/assets/chart.js',text)

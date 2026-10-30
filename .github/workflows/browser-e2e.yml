@@ -5,6 +5,9 @@ on:
     paths:
       - 'src/**'
       - 'dashboard/private.*'
+      - 'dashboard/market-stream.js'
+      - 'tests/market_stream.cjs'
+      - 'scripts/check_market_stream.cjs'
       - 'api/index.py'
       - 'browser-tests/**'
       - '.github/workflows/browser-e2e.yml'
@@ -29,6 +32,8 @@ jobs:
         run: |
           npm install --no-save @playwright/test@1.56.1
           npx playwright install --with-deps chromium
+      - name: Verify actual MEXC binary market stream
+        run: node scripts/check_market_stream.cjs
       - name: Build the current research snapshot and automatic model decisions
         run: python src/model_governor.py && python src/build_deployment_snapshot.py
       - name: Start real STAMP application with isolated test credentials

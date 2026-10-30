@@ -81,12 +81,10 @@ jobs:
           python src/build_dashboard.py
           python src/build_offline_dashboard.py
           date -u +'%Y-%m-%dT%H:%M:%SZ' > data/last_workflow_attempt_utc.txt
-          # One change per UTC hour triggers an authenticated Vercel snapshot deployment
-          # without storing a private GitHub token in the hosted application.
+          # Every completed research run must reach the hosted snapshot. Market
+          # streaming is independent; this keeps issued forecasts and outcomes current.
           this_hour="$(date -u +'%Y-%m-%dT%H:00:00Z')"
-          if [ "$GITHUB_EVENT_NAME" = "push" ] || [ ! -f data/vercel_heartbeat_utc.txt ] || [ "$(cat data/vercel_heartbeat_utc.txt)" != "$this_hour" ] || grep -q 'COMPRESSED_JSON = ""' src/deployment_snapshot.py; then
-            python src/build_deployment_snapshot.py
-          fi
+          python src/build_deployment_snapshot.py
           echo "$this_hour" > data/vercel_heartbeat_utc.txt
           if [ -f data/latest.json ]; then
             python -c 'import json,datetime,pathlib; d=json.loads(pathlib.Path("data/latest.json").read_text()); print("Latest source timestamp:",d.get("raw",{}).get("collected_at_utc"))'

@@ -1,6 +1,6 @@
 """Bundle a compact authenticated STAMP research snapshot for Vercel Python Functions.
 
-Run by GitHub Actions once per UTC hour. No secrets, token or GitHub API required.
+Run by GitHub Actions after each completed research cycle. No secrets, token or GitHub API required.
 """
 import base64,json,pathlib,sys,zlib
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -20,3 +20,4 @@ def generate(root=ROOT):
  return dest
 
 if __name__=="__main__":generate()
+

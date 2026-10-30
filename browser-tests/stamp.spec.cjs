@@ -49,3 +49,27 @@ test('data stays private while the open-source chart asset is reachable',async({
  expect((await request.get(HOST+'/api/dashboard')).status()).toBe(401);
  const asset=await request.get(HOST+'/assets/chart.js');expect(asset.status()).toBe(200);expect(await asset.text()).toContain('TradingView Lightweight Charts');
 });
+
+test('stream changes price, 24h metrics and forming candle without reload; disconnect falls back automatically',async({page})=>{
+ const {field,message,ticker}=require('../tests/market_stream.cjs');
+ let socket,restPrice=.0001111,quoteRequests=0;
+ await page.routeWebSocket('wss://wbs-api.mexc.com/ws',ws=>{socket=ws;ws.onMessage(()=>{})});
+ await page.route('**/api/quote',async route=>{quoteRequests++;const now=new Date().toISOString();await route.fulfill({json:{quote:{status:'fresh',price:restPrice,provider_at_utc:now,retrieved_at_utc:now,change_24h_pct:1,volume_24h_usdt:1000,high_24h:.002,low_24h:.0001}}})});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(HOST+'/');await page.locator('#user').fill('test-user');await page.locator('#password').fill('long-test-password');await page.locator('form[action="/login"] button').click();
+ await expect(page.locator('#chart canvas').first()).toBeVisible({timeout:25000});
+ await expect.poll(()=>!!socket).toBe(true);await expect.poll(()=>quoteRequests).toBeGreaterThan(0);
+ // The exchange frame, not a navigation or refresh click, drives these changes.
+ socket.send(ticker('0.0012345'));
+ await expect(page.locator('#price')).toHaveText('0.0012345');await expect(page.locator('#change')).toHaveText('+2.50%');await expect(page.locator('#volume')).toHaveText('50,000');await expect(page.locator('#streamStatus')).toContainText('متصل');
+ const start=Math.floor(Date.now()/900000)*900;
+ socket.send(message(308,Buffer.concat([field(1,'Min15'),field(2,start),field(3,'.001'),field(4,'.0012345'),field(5,'.0013'),field(6,'.0009'),field(7,'80'),field(9,start+900)]),'spot@public.kline.v3.api.pb@STAMPUSDT@Min15'));
+ await expect(page.locator('#chart')).toHaveAttribute('data-forming','true');await expect(page.locator('#activeCandle')).toContainText('غير مغلقة');
+ // Out-of-order or different-symbol frames cannot overwrite current STAMP price.
+ socket.send(ticker('0.00001',Date.now()-5000));await expect(page.locator('#price')).toHaveText('0.0012345');
+ const feedCount=quoteRequests;restPrice=.0013456;socket.close();
+ await expect(page.locator('#price')).toHaveText('0.0013456',{timeout:10000});expect(quoteRequests).toBeGreaterThan(feedCount);
+ await page.locator('#assuranceDetails summary').click();await expect(page.locator('#assuranceSummary')).toContainText('غير معتمد');await expect(page.locator('#assuranceMetrics table')).toBeVisible();
+ const assurance=await (await page.request.get(HOST+'/api/assurance')).json();expect(assurance.rollout.ready).toBe(false);expect(Object.keys(assurance.horizons)).toHaveLength(4);
+ expect(errors).toEqual([]);
+});

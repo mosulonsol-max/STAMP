@@ -32,3 +32,16 @@ Five-minute GitHub scheduling is best effort. Exact-contract public news discove
 The primary page contains STAMP, its MEXC reference quote, 24h change/turnover/high/low, and separately timestamped exact-mint DEX liquidity/market cap. Market cap is unavailable when the provider supplies only FDV. A self-hosted Lightweight Charts 5.0.9 chart supports zoom, pan, crosshair, nine closed-candle periods, and recorded forecast/observed outcome overlays. Approximate outcome measurements retain their actual measurement timestamp.
 
 `src/model_governor.py` is the sole approval authority. It automatically compares each exact model version and horizon's forward validation with matured, nonoverlapping prospective outcomes, writes `data/model_registry.json`, and records promotion/demotion transitions in `data/model_decisions.jsonl`. Exact target-candle closes can count as prospective evidence only when the immutable forecast was issued before that target; approximate reconstructions cannot. The page displays this decision and cannot approve a model. Approval is for statistical forecasting research, without order execution.
+
+### Market streaming and output validity
+
+The private compact dashboard uses MEXC's public protobuf WebSocket for trades,
+rolling `24H` ticker statistics and forming candles, with automatic reconnect and
+independent quote-poll fallback. Provider publication rates and outages are shown;
+zero network latency is not promised. Completed candles, liquidity and market
+analytics refresh separately. Model forecasts retain immutable issue/target times.
+
+Open “فحص الإنتاج وصلاحية النتائج والتوسع” for automatic output checks, per-horizon
+forward/prospective evidence and the rollout verdict, or use the authenticated
+`/api/assurance` endpoint. Operational health and research approval are separate.
+STAMP-only evidence cannot approve a rollout to all pairs.

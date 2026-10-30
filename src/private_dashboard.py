@@ -201,10 +201,18 @@ def public_market_refresh(payload):
   payload["public_refresh_error"]=type(exc).__name__
   return payload
 
+def with_assurance(payload):
+ if not isinstance(payload,dict):return payload
+ try:
+  from src.output_assurance import assess
+ except ImportError:
+  from output_assurance import assess
+ result=dict(payload);result["output_assurance"]=assess(payload);return result
+
 def cached():
  with LOCK:
   now=time.monotonic()
-  if CACHE["payload"] is not None and now-CACHE["time"]<90:return CACHE["payload"]
+  if CACHE["payload"] is not None and now-CACHE["time"]<10:return CACHE["payload"]
   if not os.getenv("GITHUB_READ_TOKEN","").strip():
    result=read_embedded()
    if result is not None:
@@ -305,7 +313,7 @@ class Handler(BaseHTTPRequestHandler):
  server_version="STAMPPrivate"
  def send(self,status,body,kind="text/plain; charset=utf-8",extra=None):
   self.send_response(status)
-  headers={"Content-Type":kind,"Content-Length":str(len(body)),"Cache-Control":"no-store, max-age=0","X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Referrer-Policy":"no-referrer","Cross-Origin-Resource-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'","Strict-Transport-Security":"max-age=31536000; includeSubDomains"}
+  headers={"Content-Type":kind,"Content-Length":str(len(body)),"Cache-Control":"no-store, max-age=0","X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Referrer-Policy":"no-referrer","Cross-Origin-Resource-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' wss://wbs-api.mexc.com; img-src 'self'; base-uri 'none'; frame-ancestors 'none'","Strict-Transport-Security":"max-age=31536000; includeSubDomains"}
   headers.update(extra or {})
   for k,v in headers.items():self.send_header(k,v)
   self.end_headers();self.wfile.write(body)
@@ -319,7 +327,7 @@ class Handler(BaseHTTPRequestHandler):
   if path=="/healthz":
    # A 200 response must mean the deployment can actually serve its UI and archived data.
    try:
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","market-stream.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
    except Exception:healthy=False
    return self.send(200 if healthy else 503,b"ok" if healthy else b"deployment_assets_or_research_missing")
   if path=="/assets/style.css" and not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
@@ -340,7 +348,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception as exc:
     return self.send(503,json.dumps({"error":"quote_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/dashboard":
-   try:return self.send(200,json.dumps(cached(),allow_nan=False).encode(),"application/json; charset=utf-8")
+   try:return self.send(200,json.dumps(with_assurance(cached()),allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     # Return a machine-readable, non-secret error code for client recovery.
     code=type(exc).__name__
@@ -349,9 +357,13 @@ class Handler(BaseHTTPRequestHandler):
    try:
     data=cached_research_only()
     if data is None:return self.send(503,b'{"error":"no_embedded_research"}',"application/json; charset=utf-8")
-    return self.send(200,json.dumps(data,allow_nan=False).encode(),"application/json; charset=utf-8")
+    return self.send(200,json.dumps(with_assurance(data),allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"recovery_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/assurance":
+   current=cached_research_only()
+   if current is None:return self.send(503,b'{"error":"no_research"}',"application/json; charset=utf-8")
+   return self.send(200,json.dumps(with_assurance(current)["output_assurance"],allow_nan=False).encode(),"application/json; charset=utf-8")
   if path=="/api/diagnostics":
    # This endpoint is authenticated; never return credentials or token values.
    try:
@@ -363,7 +375,7 @@ class Handler(BaseHTTPRequestHandler):
       "snapshot_age_seconds":snapshot_age,"snapshot_fresh":snapshot_age is not None and snapshot_age<=900,
       "github_live_refresh_configured":bool(os.getenv("GITHUB_READ_TOKEN","").strip()),
       "github_connection_state":github_connection_state(CACHE.get("payload"),bool(os.getenv("GITHUB_READ_TOKEN","").strip())),
-      "snapshot_mode":"hourly_deployment" if not os.getenv("GITHUB_READ_TOKEN","").strip() else "github_api_with_fallback",
+      "snapshot_mode":"per_research_cycle_deployment" if not os.getenv("GITHUB_READ_TOKEN","").strip() else "github_api_with_fallback",
       "research_available":bool(current),"live_quote_status":"not_checked",
       "auth":"authenticated_session"}
     return self.send(200,json.dumps(payload,allow_nan=False).encode(),"application/json; charset=utf-8")
@@ -386,7 +398,7 @@ class Handler(BaseHTTPRequestHandler):
       "utc":dt.datetime.now(dt.timezone.utc).isoformat()}).encode(),"application/json; charset=utf-8")
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
-  paths={"/":"private.html","/index.html":"private.html","/assets/app.js":"private.js","/assets/style.css":"private.css"}
+  paths={"/":"private.html","/index.html":"private.html","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:
