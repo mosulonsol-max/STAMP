@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-10-30T21:50:53.683631+00:00",
+  "generated_at_utc": "2026-10-30T22:56:04.635257+00:00",
   "authority": "internal_model_governor_v1",
   "manual_override_available": false,
   "horizons": {
@@ -9,9 +9,9 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "1h",
-      "model_version": "walk_forward_v2_random_forest_1h",
-      "selected_model": "random_forest",
-      "decided_at_utc": "2026-10-30T21:50:53.683631+00:00",
+      "model_version": "walk_forward_v2_hist_gradient_boosting_1h",
+      "selected_model": "hist_gradient_boosting",
+      "decided_at_utc": "2026-10-30T22:56:04.635257+00:00",
       "reason_codes": [
         "forward_error_not_better_than_baseline",
         "forward_direction_uncertain",
@@ -19,29 +19,29 @@
       ],
       "forward_validation": {
         "samples": 120,
-        "mae": 0.07987622535919486,
-        "skill_vs_zero": -0.061920460405330724,
-        "direction_accuracy": 0.5416666666666666,
+        "mae": 0.08166726173873645,
+        "skill_vs_zero": -0.05839021890994034,
+        "direction_accuracy": 0.525,
         "direction_samples": 120,
         "direction_wilson_95": [
-          0.4526096906236998,
-          0.6281387121747415
+          0.43626995305824834,
+          0.6121790886208165
         ],
         "eligible": false,
-        "empirical_abs_log_error_p90": 0.1594736052522534
+        "empirical_abs_log_error_p90": 0.18411197130822718
       },
       "prospective": {
-        "samples": 18,
-        "direction_samples": 18,
-        "direction_correct": 9,
+        "samples": 2,
+        "direction_samples": 2,
+        "direction_correct": 1,
         "direction_accuracy": 0.5,
         "direction_wilson_95": [
-          0.29031021505169974,
-          0.7096897849483003
+          0.09453120573423074,
+          0.9054687942657693
         ],
-        "mae": 0.09262976805140019,
-        "baseline_mae": 0.0874465376028999,
-        "skill_vs_zero": -0.05927313522735056,
+        "mae": 0.0867739742649777,
+        "baseline_mae": 0.04640294686987899,
+        "skill_vs_zero": -0.8700099911392543,
         "excluded_overlapping_or_old": 0,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
@@ -60,7 +60,7 @@
       "horizon": "4h",
       "model_version": "walk_forward_v2_ridge_4h",
       "selected_model": "ridge",
-      "decided_at_utc": "2026-10-30T21:50:53.683631+00:00",
+      "decided_at_utc": "2026-10-30T22:56:04.635257+00:00",
       "reason_codes": [
         "forward_error_not_better_than_baseline",
         "forward_direction_uncertain",
@@ -68,29 +68,29 @@
       ],
       "forward_validation": {
         "samples": 120,
-        "mae": 0.08489491377328989,
-        "skill_vs_zero": -0.2378207325711601,
-        "direction_accuracy": 0.453781512605042,
+        "mae": 0.08399262878615435,
+        "skill_vs_zero": -0.30254707327503194,
+        "direction_accuracy": 0.5126050420168067,
         "direction_samples": 119,
         "direction_wilson_95": [
-          0.36717453925202004,
-          0.5432791454762266
+          0.42381908116572403,
+          0.6006026411811176
         ],
         "eligible": false,
-        "empirical_abs_log_error_p90": 0.24291543686354525
+        "empirical_abs_log_error_p90": 0.2756227609874573
       },
       "prospective": {
-        "samples": 4,
-        "direction_samples": 4,
-        "direction_correct": 2,
-        "direction_accuracy": 0.5,
+        "samples": 5,
+        "direction_samples": 5,
+        "direction_correct": 3,
+        "direction_accuracy": 0.6,
         "direction_wilson_95": [
-          0.15003898915214947,
-          0.8499610108478506
+          0.2307242812760128,
+          0.882379225767352
         ],
-        "mae": 0.18924301687720024,
-        "baseline_mae": 0.1825625367119258,
-        "skill_vs_zero": -0.03659283161591853,
+        "mae": 0.15483278443308193,
+        "baseline_mae": 0.15241561287215527,
+        "skill_vs_zero": -0.0158590810703505,
         "excluded_overlapping_or_old": 5,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
@@ -107,9 +107,9 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "24h",
-      "model_version": "walk_forward_v2_random_forest_24h",
-      "selected_model": "random_forest",
-      "decided_at_utc": "2026-10-30T21:50:53.683631+00:00",
+      "model_version": "walk_forward_v2_ridge_24h",
+      "selected_model": "ridge",
+      "decided_at_utc": "2026-10-30T22:56:04.635257+00:00",
       "reason_codes": [
         "insufficient_forward_validation",
         "forward_error_not_better_than_baseline",
@@ -118,16 +118,16 @@
       ],
       "forward_validation": {
         "samples": 23,
-        "mae": 0.1560880209352739,
-        "skill_vs_zero": 0.037677087204579296,
-        "direction_accuracy": 0.6521739130434783,
+        "mae": 0.17293987850874756,
+        "skill_vs_zero": 0.02425258965815269,
+        "direction_accuracy": 0.6086956521739131,
         "direction_samples": 23,
         "direction_wilson_95": [
-          0.44890335377263,
-          0.8118872406120227
+          0.4078552239138171,
+          0.7784237720752205
         ],
         "eligible": false,
-        "empirical_abs_log_error_p90": 0.5411766073471852
+        "empirical_abs_log_error_p90": 0.5251704101674843
       },
       "prospective": {
         "samples": 0,
@@ -157,9 +157,9 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "7d",
-      "model_version": "walk_forward_v2_hist_gradient_boosting_7d",
-      "selected_model": "hist_gradient_boosting",
-      "decided_at_utc": "2026-10-30T21:50:53.683631+00:00",
+      "model_version": "walk_forward_v2_ridge_7d",
+      "selected_model": "ridge",
+      "decided_at_utc": "2026-10-30T22:56:04.635257+00:00",
       "reason_codes": [
         "insufficient_forward_validation",
         "forward_error_not_better_than_baseline",
@@ -168,8 +168,8 @@
       ],
       "forward_validation": {
         "samples": 2,
-        "mae": 1.0662392496428899,
-        "skill_vs_zero": -0.04610276012346781,
+        "mae": 1.2182454354601209,
+        "skill_vs_zero": -0.0693473686486521,
         "direction_accuracy": 0.5,
         "direction_samples": 2,
         "direction_wilson_95": [
@@ -177,7 +177,7 @@
           0.9054687942657693
         ],
         "eligible": false,
-        "empirical_abs_log_error_p90": 1.9166119527072476
+        "empirical_abs_log_error_p90": 2.1504331476117784
       },
       "prospective": {
         "samples": 0,
