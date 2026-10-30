@@ -5,39 +5,27 @@
     "scikit-learn": "1.9.1",
     "scipy": "1.17.1"
   },
-  "at_utc": "2026-10-30T18:44:29.373926+00:00",
+  "at_utc": "2026-10-30T19:27:59.934217+00:00",
   "horizon": "1h",
   "status": "no_validated_champion",
   "champion": null,
-  "selected_model": "random_forest",
+  "selected_model": "hist_gradient_boosting",
   "challengers": {
     "ridge": {
-      "mae": 0.08121699984592538,
-      "skill_vs_zero": -0.11097954637540597,
-      "direction_accuracy": 0.49166666666666664,
+      "mae": 0.08271234703774918,
+      "skill_vs_zero": -0.10634245903093165,
+      "direction_accuracy": 0.48333333333333334,
       "direction_samples": 120,
       "direction_wilson_95": [
-        0.4038757172769723,
-        0.5799746021633394
+        0.3958364430105443,
+        0.5718641958700792
       ],
       "eligible": false,
-      "empirical_abs_log_error_p90": 0.17831418332894258
+      "empirical_abs_log_error_p90": 0.18548842352915046
     },
     "hist_gradient_boosting": {
-      "mae": 0.07778090665181628,
-      "skill_vs_zero": -0.06397671118896842,
-      "direction_accuracy": 0.525,
-      "direction_samples": 120,
-      "direction_wilson_95": [
-        0.43626995305824834,
-        0.6121790886208165
-      ],
-      "eligible": false,
-      "empirical_abs_log_error_p90": 0.16475344398341543
-    },
-    "random_forest": {
-      "mae": 0.07679392426360564,
-      "skill_vs_zero": -0.0504756307745855,
+      "mae": 0.0789123633883423,
+      "skill_vs_zero": -0.05551469986888735,
       "direction_accuracy": 0.5333333333333333,
       "direction_samples": 120,
       "direction_wilson_95": [
@@ -45,10 +33,22 @@
         0.6201708295420101
       ],
       "eligible": false,
-      "empirical_abs_log_error_p90": 0.14701626531310188
+      "empirical_abs_log_error_p90": 0.16532815712762922
+    },
+    "random_forest": {
+      "mae": 0.07903304895095374,
+      "skill_vs_zero": -0.05712896384386723,
+      "direction_accuracy": 0.5666666666666667,
+      "direction_samples": 120,
+      "direction_wilson_95": [
+        0.47729920885539046,
+        0.6518982356221157
+      ],
+      "eligible": false,
+      "empirical_abs_log_error_p90": 0.1526728046415572
     }
   },
-  "samples": 674,
+  "samples": 675,
   "skipped_gap_windows": 0,
   "data_quality": "contiguous_windows",
   "promotion_gate": {
@@ -59,48 +59,48 @@
   "validation_samples": 120,
   "folds": [
     {
-      "train_samples": 554,
+      "train_samples": 555,
       "test_samples": 40,
-      "train_last_target_ms": 1792951200000,
-      "test_first_feature_ms": 1792951200000,
-      "test_last_target_ms": 1793095200000,
-      "train_end_index": 553,
-      "test_start_index": 554
+      "train_last_target_ms": 1792954800000,
+      "test_first_feature_ms": 1792954800000,
+      "test_last_target_ms": 1793098800000,
+      "train_end_index": 554,
+      "test_start_index": 555
     },
     {
-      "train_samples": 594,
+      "train_samples": 595,
       "test_samples": 40,
-      "train_last_target_ms": 1793095200000,
-      "test_first_feature_ms": 1793095200000,
-      "test_last_target_ms": 1793239200000,
-      "train_end_index": 593,
-      "test_start_index": 594
+      "train_last_target_ms": 1793098800000,
+      "test_first_feature_ms": 1793098800000,
+      "test_last_target_ms": 1793242800000,
+      "train_end_index": 594,
+      "test_start_index": 595
     },
     {
-      "train_samples": 634,
+      "train_samples": 635,
       "test_samples": 40,
-      "train_last_target_ms": 1793239200000,
-      "test_first_feature_ms": 1793239200000,
-      "test_last_target_ms": 1793383200000,
-      "train_end_index": 633,
-      "test_start_index": 634
+      "train_last_target_ms": 1793242800000,
+      "test_first_feature_ms": 1793242800000,
+      "test_last_target_ms": 1793386800000,
+      "train_end_index": 634,
+      "test_start_index": 635
     }
   ],
   "forecast": {
-    "created_at_utc": "2026-10-30T18:44:29.373926+00:00",
-    "reference_at_utc": "2026-10-30T18:00:00+00:00",
-    "due_at_utc": "2026-10-30T19:00:00+00:00",
+    "created_at_utc": "2026-10-30T19:27:59.934217+00:00",
+    "reference_at_utc": "2026-10-30T19:00:00+00:00",
+    "due_at_utc": "2026-10-30T20:00:00+00:00",
     "horizon": "1h",
-    "reference_price": 0.0015067,
-    "source_candle": "1793379600000",
-    "predicted_log_return": 0.05629004011447443,
-    "predicted_price": 0.0015939446709433423,
+    "reference_price": 0.0012284,
+    "source_candle": "1793383200000",
+    "predicted_log_return": -0.018332871285167633,
+    "predicted_price": 0.0012060850742337415,
     "empirical_error_range": [
-      0.0013760204531746978,
-      0.0018463821581772093
+      0.001022296412132915,
+      0.0014229153003231737
     ],
     "range_label": "Empirical validation error band, not calibrated coverage",
-    "model_version": "walk_forward_v2_random_forest_1h",
+    "model_version": "walk_forward_v2_hist_gradient_boosting_1h",
     "forecast_class": "research_unvalidated",
     "approval_passed": false,
     "validation_samples": 120,
@@ -111,15 +111,15 @@
     ]
   },
   "warning": "Research only. Historical accuracy is not this forecast's probability; selection is not independent confirmation. Serial dependence can invalidate nominal confidence coverage.",
-  "baseline_mae": 0.07310395597371486,
+  "baseline_mae": 0.07476197479594035,
   "next_action": "retrain using newly matured targets; repeat forward validation",
   "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 0",
-  "asof_candle_close_ms": 1793383200000,
+  "asof_candle_close_ms": 1793386800000,
   "learning_update": {
-    "previous_at_utc": "2026-10-30T18:04:17.315483+00:00",
-    "new_matured_labels": 0,
+    "previous_at_utc": "2026-10-30T18:44:29.373926+00:00",
+    "new_matured_labels": 1,
     "previous_selected_model": "random_forest",
-    "selected_model": "random_forest",
+    "selected_model": "hist_gradient_boosting",
     "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
   },
   "model_decision": {
@@ -128,9 +128,9 @@
     "engine": "internal_model_governor_v1",
     "scope": "research_forecasting",
     "horizon": "1h",
-    "model_version": "walk_forward_v2_random_forest_1h",
-    "selected_model": "random_forest",
-    "decided_at_utc": "2026-10-30T18:44:29.373926+00:00",
+    "model_version": "walk_forward_v2_hist_gradient_boosting_1h",
+    "selected_model": "hist_gradient_boosting",
+    "decided_at_utc": "2026-10-30T19:27:59.934217+00:00",
     "reason_codes": [
       "forward_error_not_better_than_baseline",
       "forward_direction_uncertain",
@@ -138,8 +138,8 @@
     ],
     "forward_validation": {
       "samples": 120,
-      "mae": 0.07679392426360564,
-      "skill_vs_zero": -0.0504756307745855,
+      "mae": 0.0789123633883423,
+      "skill_vs_zero": -0.05551469986888735,
       "direction_accuracy": 0.5333333333333333,
       "direction_samples": 120,
       "direction_wilson_95": [
@@ -147,20 +147,20 @@
         0.6201708295420101
       ],
       "eligible": false,
-      "empirical_abs_log_error_p90": 0.14701626531310188
+      "empirical_abs_log_error_p90": 0.16532815712762922
     },
     "prospective": {
-      "samples": 16,
-      "direction_samples": 16,
-      "direction_correct": 8,
-      "direction_accuracy": 0.5,
+      "samples": 1,
+      "direction_samples": 1,
+      "direction_correct": 0,
+      "direction_accuracy": 0.0,
       "direction_wilson_95": [
-        0.27999563610326017,
-        0.7200043638967398
+        0,
+        0.7934506856227626
       ],
-      "mae": 0.0878692008116294,
-      "baseline_mae": 0.0845721723498803,
-      "skill_vs_zero": -0.038984790979579964,
+      "mae": 0.13035523054309045,
+      "baseline_mae": 0.0312803044677254,
+      "skill_vs_zero": -3.1673261421604524,
       "excluded_overlapping_or_old": 0,
       "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
     },
@@ -179,39 +179,27 @@
         "scikit-learn": "1.9.1",
         "scipy": "1.17.1"
       },
-      "at_utc": "2026-10-30T18:44:29.373926+00:00",
+      "at_utc": "2026-10-30T19:27:59.934217+00:00",
       "horizon": "1h",
       "status": "no_validated_champion",
       "champion": null,
-      "selected_model": "random_forest",
+      "selected_model": "hist_gradient_boosting",
       "challengers": {
         "ridge": {
-          "mae": 0.08121699984592538,
-          "skill_vs_zero": -0.11097954637540597,
-          "direction_accuracy": 0.49166666666666664,
+          "mae": 0.08271234703774918,
+          "skill_vs_zero": -0.10634245903093165,
+          "direction_accuracy": 0.48333333333333334,
           "direction_samples": 120,
           "direction_wilson_95": [
-            0.4038757172769723,
-            0.5799746021633394
+            0.3958364430105443,
+            0.5718641958700792
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.17831418332894258
+          "empirical_abs_log_error_p90": 0.18548842352915046
         },
         "hist_gradient_boosting": {
-          "mae": 0.07778090665181628,
-          "skill_vs_zero": -0.06397671118896842,
-          "direction_accuracy": 0.525,
-          "direction_samples": 120,
-          "direction_wilson_95": [
-            0.43626995305824834,
-            0.6121790886208165
-          ],
-          "eligible": false,
-          "empirical_abs_log_error_p90": 0.16475344398341543
-        },
-        "random_forest": {
-          "mae": 0.07679392426360564,
-          "skill_vs_zero": -0.0504756307745855,
+          "mae": 0.0789123633883423,
+          "skill_vs_zero": -0.05551469986888735,
           "direction_accuracy": 0.5333333333333333,
           "direction_samples": 120,
           "direction_wilson_95": [
@@ -219,10 +207,22 @@
             0.6201708295420101
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.14701626531310188
+          "empirical_abs_log_error_p90": 0.16532815712762922
+        },
+        "random_forest": {
+          "mae": 0.07903304895095374,
+          "skill_vs_zero": -0.05712896384386723,
+          "direction_accuracy": 0.5666666666666667,
+          "direction_samples": 120,
+          "direction_wilson_95": [
+            0.47729920885539046,
+            0.6518982356221157
+          ],
+          "eligible": false,
+          "empirical_abs_log_error_p90": 0.1526728046415572
         }
       },
-      "samples": 674,
+      "samples": 675,
       "skipped_gap_windows": 0,
       "data_quality": "contiguous_windows",
       "promotion_gate": {
@@ -233,48 +233,48 @@
       "validation_samples": 120,
       "folds": [
         {
-          "train_samples": 554,
+          "train_samples": 555,
           "test_samples": 40,
-          "train_last_target_ms": 1792951200000,
-          "test_first_feature_ms": 1792951200000,
-          "test_last_target_ms": 1793095200000,
-          "train_end_index": 553,
-          "test_start_index": 554
+          "train_last_target_ms": 1792954800000,
+          "test_first_feature_ms": 1792954800000,
+          "test_last_target_ms": 1793098800000,
+          "train_end_index": 554,
+          "test_start_index": 555
         },
         {
-          "train_samples": 594,
+          "train_samples": 595,
           "test_samples": 40,
-          "train_last_target_ms": 1793095200000,
-          "test_first_feature_ms": 1793095200000,
-          "test_last_target_ms": 1793239200000,
-          "train_end_index": 593,
-          "test_start_index": 594
+          "train_last_target_ms": 1793098800000,
+          "test_first_feature_ms": 1793098800000,
+          "test_last_target_ms": 1793242800000,
+          "train_end_index": 594,
+          "test_start_index": 595
         },
         {
-          "train_samples": 634,
+          "train_samples": 635,
           "test_samples": 40,
-          "train_last_target_ms": 1793239200000,
-          "test_first_feature_ms": 1793239200000,
-          "test_last_target_ms": 1793383200000,
-          "train_end_index": 633,
-          "test_start_index": 634
+          "train_last_target_ms": 1793242800000,
+          "test_first_feature_ms": 1793242800000,
+          "test_last_target_ms": 1793386800000,
+          "train_end_index": 634,
+          "test_start_index": 635
         }
       ],
       "forecast": {
-        "created_at_utc": "2026-10-30T18:44:29.373926+00:00",
-        "reference_at_utc": "2026-10-30T18:00:00+00:00",
-        "due_at_utc": "2026-10-30T19:00:00+00:00",
+        "created_at_utc": "2026-10-30T19:27:59.934217+00:00",
+        "reference_at_utc": "2026-10-30T19:00:00+00:00",
+        "due_at_utc": "2026-10-30T20:00:00+00:00",
         "horizon": "1h",
-        "reference_price": 0.0015067,
-        "source_candle": "1793379600000",
-        "predicted_log_return": 0.05629004011447443,
-        "predicted_price": 0.0015939446709433423,
+        "reference_price": 0.0012284,
+        "source_candle": "1793383200000",
+        "predicted_log_return": -0.018332871285167633,
+        "predicted_price": 0.0012060850742337415,
         "empirical_error_range": [
-          0.0013760204531746978,
-          0.0018463821581772093
+          0.001022296412132915,
+          0.0014229153003231737
         ],
         "range_label": "Empirical validation error band, not calibrated coverage",
-        "model_version": "walk_forward_v2_random_forest_1h",
+        "model_version": "walk_forward_v2_hist_gradient_boosting_1h",
         "forecast_class": "research_unvalidated",
         "approval_passed": false,
         "validation_samples": 120,
@@ -285,15 +285,15 @@
         ]
       },
       "warning": "Research only. Historical accuracy is not this forecast's probability; selection is not independent confirmation. Serial dependence can invalidate nominal confidence coverage.",
-      "baseline_mae": 0.07310395597371486,
+      "baseline_mae": 0.07476197479594035,
       "next_action": "retrain using newly matured targets; repeat forward validation",
       "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 0",
-      "asof_candle_close_ms": 1793383200000,
+      "asof_candle_close_ms": 1793386800000,
       "learning_update": {
-        "previous_at_utc": "2026-10-30T18:04:17.315483+00:00",
-        "new_matured_labels": 0,
+        "previous_at_utc": "2026-10-30T18:44:29.373926+00:00",
+        "new_matured_labels": 1,
         "previous_selected_model": "random_forest",
-        "selected_model": "random_forest",
+        "selected_model": "hist_gradient_boosting",
         "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
       },
       "model_decision": {
@@ -302,9 +302,9 @@
         "engine": "internal_model_governor_v1",
         "scope": "research_forecasting",
         "horizon": "1h",
-        "model_version": "walk_forward_v2_random_forest_1h",
-        "selected_model": "random_forest",
-        "decided_at_utc": "2026-10-30T18:44:29.373926+00:00",
+        "model_version": "walk_forward_v2_hist_gradient_boosting_1h",
+        "selected_model": "hist_gradient_boosting",
+        "decided_at_utc": "2026-10-30T19:27:59.934217+00:00",
         "reason_codes": [
           "forward_error_not_better_than_baseline",
           "forward_direction_uncertain",
@@ -312,8 +312,8 @@
         ],
         "forward_validation": {
           "samples": 120,
-          "mae": 0.07679392426360564,
-          "skill_vs_zero": -0.0504756307745855,
+          "mae": 0.0789123633883423,
+          "skill_vs_zero": -0.05551469986888735,
           "direction_accuracy": 0.5333333333333333,
           "direction_samples": 120,
           "direction_wilson_95": [
@@ -321,20 +321,20 @@
             0.6201708295420101
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.14701626531310188
+          "empirical_abs_log_error_p90": 0.16532815712762922
         },
         "prospective": {
-          "samples": 16,
-          "direction_samples": 16,
-          "direction_correct": 8,
-          "direction_accuracy": 0.5,
+          "samples": 1,
+          "direction_samples": 1,
+          "direction_correct": 0,
+          "direction_accuracy": 0.0,
           "direction_wilson_95": [
-            0.27999563610326017,
-            0.7200043638967398
+            0,
+            0.7934506856227626
           ],
-          "mae": 0.0878692008116294,
-          "baseline_mae": 0.0845721723498803,
-          "skill_vs_zero": -0.038984790979579964,
+          "mae": 0.13035523054309045,
+          "baseline_mae": 0.0312803044677254,
+          "skill_vs_zero": -3.1673261421604524,
           "excluded_overlapping_or_old": 0,
           "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
         },
@@ -353,50 +353,50 @@
         "scikit-learn": "1.9.1",
         "scipy": "1.17.1"
       },
-      "at_utc": "2026-10-30T18:44:29.373926+00:00",
+      "at_utc": "2026-10-30T19:27:59.934217+00:00",
       "horizon": "4h",
       "status": "no_validated_champion",
       "champion": null,
-      "selected_model": "ridge",
+      "selected_model": "random_forest",
       "challengers": {
         "ridge": {
-          "mae": 0.08308830485198185,
-          "skill_vs_zero": -0.2888127694110709,
-          "direction_accuracy": 0.5126050420168067,
-          "direction_samples": 119,
+          "mae": 0.0812246759464791,
+          "skill_vs_zero": -0.23642363506122588,
+          "direction_accuracy": 0.44166666666666665,
+          "direction_samples": 120,
           "direction_wilson_95": [
-            0.42381908116572403,
-            0.6006026411811176
+            0.3559974669953786,
+            0.5309547690868035
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.27504878048042797
+          "empirical_abs_log_error_p90": 0.23503868100656425
         },
         "hist_gradient_boosting": {
-          "mae": 0.08538255092640396,
-          "skill_vs_zero": -0.32439965064729237,
-          "direction_accuracy": 0.46218487394957986,
-          "direction_samples": 119,
+          "mae": 0.08351082976358529,
+          "skill_vs_zero": -0.27122407692101347,
+          "direction_accuracy": 0.5,
+          "direction_samples": 120,
           "direction_wilson_95": [
-            0.3751937215788054,
-            0.5515411113806692
+            0.41193870541108385,
+            0.5880612945889161
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.26917244729037887
+          "empirical_abs_log_error_p90": 0.2707097122789164
         },
         "random_forest": {
-          "mae": 0.0884227742128293,
-          "skill_vs_zero": -0.3715576544167294,
-          "direction_accuracy": 0.46218487394957986,
-          "direction_samples": 119,
+          "mae": 0.08078153756916161,
+          "skill_vs_zero": -0.22967806474120334,
+          "direction_accuracy": 0.525,
+          "direction_samples": 120,
           "direction_wilson_95": [
-            0.3751937215788054,
-            0.5515411113806692
+            0.43626995305824834,
+            0.6121790886208165
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.2681224801091521
+          "empirical_abs_log_error_p90": 0.25821033121318543
         }
       },
-      "samples": 671,
+      "samples": 672,
       "skipped_gap_windows": 0,
       "data_quality": "contiguous_windows",
       "promotion_gate": {
@@ -407,67 +407,67 @@
       "validation_samples": 120,
       "folds": [
         {
-          "train_samples": 191,
+          "train_samples": 192,
           "test_samples": 40,
-          "train_last_target_ms": 1791655200000,
-          "test_first_feature_ms": 1791655200000,
-          "test_last_target_ms": 1792231200000,
-          "train_end_index": 190,
-          "test_start_index": 194
+          "train_last_target_ms": 1791658800000,
+          "test_first_feature_ms": 1791658800000,
+          "test_last_target_ms": 1792234800000,
+          "train_end_index": 191,
+          "test_start_index": 195
         },
         {
-          "train_samples": 351,
+          "train_samples": 352,
           "test_samples": 40,
-          "train_last_target_ms": 1792231200000,
-          "test_first_feature_ms": 1792231200000,
-          "test_last_target_ms": 1792807200000,
-          "train_end_index": 350,
-          "test_start_index": 354
+          "train_last_target_ms": 1792234800000,
+          "test_first_feature_ms": 1792234800000,
+          "test_last_target_ms": 1792810800000,
+          "train_end_index": 351,
+          "test_start_index": 355
         },
         {
-          "train_samples": 511,
+          "train_samples": 512,
           "test_samples": 40,
-          "train_last_target_ms": 1792807200000,
-          "test_first_feature_ms": 1792807200000,
-          "test_last_target_ms": 1793383200000,
-          "train_end_index": 510,
-          "test_start_index": 514
+          "train_last_target_ms": 1792810800000,
+          "test_first_feature_ms": 1792810800000,
+          "test_last_target_ms": 1793386800000,
+          "train_end_index": 511,
+          "test_start_index": 515
         }
       ],
       "forecast": {
-        "created_at_utc": "2026-10-30T18:44:29.373926+00:00",
-        "reference_at_utc": "2026-10-30T18:00:00+00:00",
-        "due_at_utc": "2026-10-30T22:00:00+00:00",
+        "created_at_utc": "2026-10-30T19:27:59.934217+00:00",
+        "reference_at_utc": "2026-10-30T19:00:00+00:00",
+        "due_at_utc": "2026-10-30T23:00:00+00:00",
         "horizon": "4h",
-        "reference_price": 0.0015067,
-        "source_candle": "1793379600000",
-        "predicted_log_return": -0.014636062856464568,
-        "predicted_price": 0.001484808438021873,
+        "reference_price": 0.0012284,
+        "source_candle": "1793383200000",
+        "predicted_log_return": -0.12893498318670837,
+        "predicted_price": 0.0010798018222674525,
         "empirical_error_range": [
-          0.0011277640836350148,
-          0.0019548912131648094
+          0.0008340742891963817,
+          0.001397923410989575
         ],
         "range_label": "Empirical validation error band, not calibrated coverage",
-        "model_version": "walk_forward_v2_ridge_4h",
+        "model_version": "walk_forward_v2_random_forest_4h",
         "forecast_class": "research_unvalidated",
         "approval_passed": false,
         "validation_samples": 120,
-        "direction_accuracy": 0.5126050420168067,
+        "direction_accuracy": 0.525,
         "direction_wilson_95": [
-          0.42381908116572403,
-          0.6006026411811176
+          0.43626995305824834,
+          0.6121790886208165
         ]
       },
       "warning": "Research only. Historical accuracy is not this forecast's probability; selection is not independent confirmation. Serial dependence can invalidate nominal confidence coverage.",
-      "baseline_mae": 0.06446887152580699,
+      "baseline_mae": 0.0656932410892137,
       "next_action": "retrain using newly matured targets; repeat forward validation",
       "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 0",
-      "asof_candle_close_ms": 1793383200000,
+      "asof_candle_close_ms": 1793386800000,
       "learning_update": {
-        "previous_at_utc": "2026-10-30T18:04:17.315483+00:00",
-        "new_matured_labels": 0,
+        "previous_at_utc": "2026-10-30T18:44:29.373926+00:00",
+        "new_matured_labels": 1,
         "previous_selected_model": "ridge",
-        "selected_model": "ridge",
+        "selected_model": "random_forest",
         "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
       },
       "model_decision": {
@@ -476,9 +476,9 @@
         "engine": "internal_model_governor_v1",
         "scope": "research_forecasting",
         "horizon": "4h",
-        "model_version": "walk_forward_v2_ridge_4h",
-        "selected_model": "ridge",
-        "decided_at_utc": "2026-10-30T18:44:29.373926+00:00",
+        "model_version": "walk_forward_v2_random_forest_4h",
+        "selected_model": "random_forest",
+        "decided_at_utc": "2026-10-30T19:27:59.934217+00:00",
         "reason_codes": [
           "forward_error_not_better_than_baseline",
           "forward_direction_uncertain",
@@ -486,30 +486,30 @@
         ],
         "forward_validation": {
           "samples": 120,
-          "mae": 0.08308830485198185,
-          "skill_vs_zero": -0.2888127694110709,
-          "direction_accuracy": 0.5126050420168067,
-          "direction_samples": 119,
+          "mae": 0.08078153756916161,
+          "skill_vs_zero": -0.22967806474120334,
+          "direction_accuracy": 0.525,
+          "direction_samples": 120,
           "direction_wilson_95": [
-            0.42381908116572403,
-            0.6006026411811176
+            0.43626995305824834,
+            0.6121790886208165
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.27504878048042797
+          "empirical_abs_log_error_p90": 0.25821033121318543
         },
         "prospective": {
           "samples": 4,
           "direction_samples": 4,
-          "direction_correct": 2,
-          "direction_accuracy": 0.5,
+          "direction_correct": 1,
+          "direction_accuracy": 0.25,
           "direction_wilson_95": [
-            0.15003898915214947,
-            0.8499610108478506
+            0.04558726080970055,
+            0.6993581574175981
           ],
-          "mae": 0.18924301687720024,
-          "baseline_mae": 0.1825625367119258,
-          "skill_vs_zero": -0.03659283161591853,
-          "excluded_overlapping_or_old": 5,
+          "mae": 0.17860199368480012,
+          "baseline_mae": 0.16410075324499876,
+          "skill_vs_zero": -0.08836790906225356,
+          "excluded_overlapping_or_old": 2,
           "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
         },
         "policy": {
@@ -527,50 +527,50 @@
         "scikit-learn": "1.9.1",
         "scipy": "1.17.1"
       },
-      "at_utc": "2026-10-30T18:44:29.373926+00:00",
+      "at_utc": "2026-10-30T19:27:59.934217+00:00",
       "horizon": "24h",
       "status": "no_validated_champion",
       "champion": null,
-      "selected_model": "ridge",
+      "selected_model": "random_forest",
       "challengers": {
         "ridge": {
-          "mae": 0.20380058229202502,
-          "skill_vs_zero": 0.038701310059481075,
-          "direction_accuracy": 0.6363636363636364,
-          "direction_samples": 22,
+          "mae": 0.19137486911157006,
+          "skill_vs_zero": 0.09561917467412617,
+          "direction_accuracy": 0.6521739130434783,
+          "direction_samples": 23,
           "direction_wilson_95": [
-            0.4295170809013101,
-            0.8026679532963388
+            0.44890335377263,
+            0.8118872406120227
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.6879591748923763
+          "empirical_abs_log_error_p90": 0.6178603830298256
         },
         "hist_gradient_boosting": {
-          "mae": 0.22593525985707122,
-          "skill_vs_zero": -0.06570485162187034,
-          "direction_accuracy": 0.5,
-          "direction_samples": 22,
+          "mae": 0.19896815137265203,
+          "skill_vs_zero": 0.059735576633852094,
+          "direction_accuracy": 0.5217391304347826,
+          "direction_samples": 23,
           "direction_wilson_95": [
-            0.3072210627372502,
-            0.6927789372627497
+            0.32962737336427406,
+            0.7076284258335335
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.6728930558028979
+          "empirical_abs_log_error_p90": 0.6546363814627102
         },
         "random_forest": {
-          "mae": 0.21755724487882605,
-          "skill_vs_zero": -0.026186933015784453,
-          "direction_accuracy": 0.5909090909090909,
-          "direction_samples": 22,
+          "mae": 0.1854017116639188,
+          "skill_vs_zero": 0.1238465437502555,
+          "direction_accuracy": 0.6521739130434783,
+          "direction_samples": 23,
           "direction_wilson_95": [
-            0.38734818476315136,
-            0.7674418380352813
+            0.44890335377263,
+            0.8118872406120227
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.6341036426657576
+          "empirical_abs_log_error_p90": 0.6004445829935362
         }
       },
-      "samples": 651,
+      "samples": 652,
       "skipped_gap_windows": 0,
       "data_quality": "contiguous_windows",
       "promotion_gate": {
@@ -578,70 +578,70 @@
         "min_mae_improvement_vs_zero": 0.1,
         "wilson_95_lower_direction_accuracy_gt": 0.5
       },
-      "validation_samples": 22,
+      "validation_samples": 23,
       "folds": [
         {
-          "train_samples": 123,
+          "train_samples": 100,
           "test_samples": 8,
-          "train_last_target_ms": 1791482400000,
-          "test_first_feature_ms": 1791482400000,
-          "test_last_target_ms": 1792173600000,
-          "train_end_index": 122,
-          "test_start_index": 146
+          "train_last_target_ms": 1791399600000,
+          "test_first_feature_ms": 1791399600000,
+          "test_last_target_ms": 1792090800000,
+          "train_end_index": 99,
+          "test_start_index": 123
         },
         {
-          "train_samples": 315,
-          "test_samples": 7,
-          "train_last_target_ms": 1792173600000,
-          "test_first_feature_ms": 1792173600000,
-          "test_last_target_ms": 1792778400000,
-          "train_end_index": 314,
-          "test_start_index": 338
+          "train_samples": 292,
+          "test_samples": 8,
+          "train_last_target_ms": 1792090800000,
+          "test_first_feature_ms": 1792090800000,
+          "test_last_target_ms": 1792782000000,
+          "train_end_index": 291,
+          "test_start_index": 315
         },
         {
-          "train_samples": 483,
+          "train_samples": 484,
           "test_samples": 7,
-          "train_last_target_ms": 1792778400000,
-          "test_first_feature_ms": 1792778400000,
-          "test_last_target_ms": 1793383200000,
-          "train_end_index": 482,
-          "test_start_index": 506
+          "train_last_target_ms": 1792782000000,
+          "test_first_feature_ms": 1792782000000,
+          "test_last_target_ms": 1793386800000,
+          "train_end_index": 483,
+          "test_start_index": 507
         }
       ],
       "forecast": {
-        "created_at_utc": "2026-10-30T18:44:29.373926+00:00",
-        "reference_at_utc": "2026-10-30T18:00:00+00:00",
-        "due_at_utc": "2026-10-31T18:00:00+00:00",
+        "created_at_utc": "2026-10-30T19:27:59.934217+00:00",
+        "reference_at_utc": "2026-10-30T19:00:00+00:00",
+        "due_at_utc": "2026-10-31T19:00:00+00:00",
         "horizon": "24h",
-        "reference_price": 0.0015067,
-        "source_candle": "1793379600000",
-        "predicted_log_return": -0.014661489908631836,
-        "predicted_price": 0.001484770684200247,
+        "reference_price": 0.0012284,
+        "source_candle": "1793383200000",
+        "predicted_log_return": 0.1264498970869728,
+        "predicted_price": 0.0013939792216552981,
         "empirical_error_range": [
-          0.0007462468495625943,
-          0.0029541752651319644
+          0.0007646919726879422,
+          0.0025411252371020884
         ],
         "range_label": "Empirical validation error band, not calibrated coverage",
-        "model_version": "walk_forward_v2_ridge_24h",
+        "model_version": "walk_forward_v2_random_forest_24h",
         "forecast_class": "research_unvalidated",
         "approval_passed": false,
-        "validation_samples": 22,
-        "direction_accuracy": 0.6363636363636364,
+        "validation_samples": 23,
+        "direction_accuracy": 0.6521739130434783,
         "direction_wilson_95": [
-          0.4295170809013101,
-          0.8026679532963388
+          0.44890335377263,
+          0.8118872406120227
         ]
       },
       "warning": "Research only. Historical accuracy is not this forecast's probability; selection is not independent confirmation. Serial dependence can invalidate nominal confidence coverage.",
-      "baseline_mae": 0.21200547179007945,
+      "baseline_mae": 0.21160872030055736,
       "next_action": "retrain using newly matured targets; repeat forward validation",
-      "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 78",
-      "asof_candle_close_ms": 1793383200000,
+      "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 77",
+      "asof_candle_close_ms": 1793386800000,
       "learning_update": {
-        "previous_at_utc": "2026-10-30T18:04:17.315483+00:00",
-        "new_matured_labels": 0,
+        "previous_at_utc": "2026-10-30T18:44:29.373926+00:00",
+        "new_matured_labels": 1,
         "previous_selected_model": "ridge",
-        "selected_model": "ridge",
+        "selected_model": "random_forest",
         "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
       },
       "model_decision": {
@@ -650,27 +650,26 @@
         "engine": "internal_model_governor_v1",
         "scope": "research_forecasting",
         "horizon": "24h",
-        "model_version": "walk_forward_v2_ridge_24h",
-        "selected_model": "ridge",
-        "decided_at_utc": "2026-10-30T18:44:29.373926+00:00",
+        "model_version": "walk_forward_v2_random_forest_24h",
+        "selected_model": "random_forest",
+        "decided_at_utc": "2026-10-30T19:27:59.934217+00:00",
         "reason_codes": [
           "insufficient_forward_validation",
-          "forward_error_not_better_than_baseline",
           "forward_direction_uncertain",
           "insufficient_prospective_outcomes"
         ],
         "forward_validation": {
-          "samples": 22,
-          "mae": 0.20380058229202502,
-          "skill_vs_zero": 0.038701310059481075,
-          "direction_accuracy": 0.6363636363636364,
-          "direction_samples": 22,
+          "samples": 23,
+          "mae": 0.1854017116639188,
+          "skill_vs_zero": 0.1238465437502555,
+          "direction_accuracy": 0.6521739130434783,
+          "direction_samples": 23,
           "direction_wilson_95": [
-            0.4295170809013101,
-            0.8026679532963388
+            0.44890335377263,
+            0.8118872406120227
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 0.6879591748923763
+          "empirical_abs_log_error_p90": 0.6004445829935362
         },
         "prospective": {
           "samples": 0,
@@ -702,15 +701,15 @@
         "scikit-learn": "1.9.1",
         "scipy": "1.17.1"
       },
-      "at_utc": "2026-10-30T18:44:29.373926+00:00",
+      "at_utc": "2026-10-30T19:27:59.934217+00:00",
       "horizon": "7d",
       "status": "no_validated_champion",
       "champion": null,
       "selected_model": "ridge",
       "challengers": {
         "ridge": {
-          "mae": 1.2313792646472275,
-          "skill_vs_zero": -0.028626761351852936,
+          "mae": 1.1353968157259187,
+          "skill_vs_zero": -0.03625402454923066,
           "direction_accuracy": 0.5,
           "direction_samples": 2,
           "direction_wilson_95": [
@@ -718,11 +717,11 @@
             0.9054687942657693
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 2.208734591258993
+          "empirical_abs_log_error_p90": 2.037864246882817
         },
         "hist_gradient_boosting": {
-          "mae": 1.271219979486127,
-          "skill_vs_zero": -0.06190751136222472,
+          "mae": 1.162312567667214,
+          "skill_vs_zero": -0.06081949442427481,
           "direction_accuracy": 0.5,
           "direction_samples": 2,
           "direction_wilson_95": [
@@ -730,11 +729,11 @@
             0.9054687942657693
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 2.2351922341834456
+          "empirical_abs_log_error_p90": 2.067797510423811
         },
         "random_forest": {
-          "mae": 1.2420672086771742,
-          "skill_vs_zero": -0.03755488412334018,
+          "mae": 1.1512769143489539,
+          "skill_vs_zero": -0.050747473782517316,
           "direction_accuracy": 0.5,
           "direction_samples": 2,
           "direction_wilson_95": [
@@ -742,10 +741,10 @@
             0.9054687942657693
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 2.204519776049035
+          "empirical_abs_log_error_p90": 2.0528973522442637
         }
       },
-      "samples": 507,
+      "samples": 508,
       "skipped_gap_windows": 0,
       "data_quality": "contiguous_windows",
       "promotion_gate": {
@@ -756,36 +755,36 @@
       "validation_samples": 2,
       "folds": [
         {
-          "train_samples": 171,
+          "train_samples": 172,
           "test_samples": 1,
-          "train_last_target_ms": 1792173600000,
-          "test_first_feature_ms": 1792173600000,
-          "test_last_target_ms": 1792778400000,
-          "train_end_index": 170,
-          "test_start_index": 338
+          "train_last_target_ms": 1792177200000,
+          "test_first_feature_ms": 1792177200000,
+          "test_last_target_ms": 1792782000000,
+          "train_end_index": 171,
+          "test_start_index": 339
         },
         {
-          "train_samples": 339,
+          "train_samples": 340,
           "test_samples": 1,
-          "train_last_target_ms": 1792778400000,
-          "test_first_feature_ms": 1792778400000,
-          "test_last_target_ms": 1793383200000,
-          "train_end_index": 338,
-          "test_start_index": 506
+          "train_last_target_ms": 1792782000000,
+          "test_first_feature_ms": 1792782000000,
+          "test_last_target_ms": 1793386800000,
+          "train_end_index": 339,
+          "test_start_index": 507
         }
       ],
       "forecast": {
-        "created_at_utc": "2026-10-30T18:44:29.373926+00:00",
-        "reference_at_utc": "2026-10-30T18:00:00+00:00",
-        "due_at_utc": "2026-11-06T18:00:00+00:00",
+        "created_at_utc": "2026-10-30T19:27:59.934217+00:00",
+        "reference_at_utc": "2026-10-30T19:00:00+00:00",
+        "due_at_utc": "2026-11-06T19:00:00+00:00",
         "horizon": "7d",
-        "reference_price": 0.0015067,
-        "source_candle": "1793379600000",
-        "predicted_log_return": -0.2289380784382256,
-        "predicted_price": 0.001198395705668399,
+        "reference_price": 0.0012284,
+        "source_candle": "1793383200000",
+        "predicted_log_return": -0.9876531707360732,
+        "predicted_price": 0.00045751726322581636,
         "empirical_error_range": [
-          0.00013163124807849546,
-          0.010910420499151096
+          5.96175724838672e-05,
+          0.003511079660385107
         ],
         "range_label": "Empirical validation error band, not calibrated coverage",
         "model_version": "walk_forward_v2_ridge_7d",
@@ -799,13 +798,13 @@
         ]
       },
       "warning": "Research only. Historical accuracy is not this forecast's probability; selection is not independent confirmation. Serial dependence can invalidate nominal confidence coverage.",
-      "baseline_mae": 1.1971098856390932,
+      "baseline_mae": 1.0956742158080544,
       "next_action": "retrain using newly matured targets; repeat forward validation",
       "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 98",
-      "asof_candle_close_ms": 1793383200000,
+      "asof_candle_close_ms": 1793386800000,
       "learning_update": {
-        "previous_at_utc": "2026-10-30T18:04:17.315483+00:00",
-        "new_matured_labels": 0,
+        "previous_at_utc": "2026-10-30T18:44:29.373926+00:00",
+        "new_matured_labels": 1,
         "previous_selected_model": "ridge",
         "selected_model": "ridge",
         "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
@@ -818,7 +817,7 @@
         "horizon": "7d",
         "model_version": "walk_forward_v2_ridge_7d",
         "selected_model": "ridge",
-        "decided_at_utc": "2026-10-30T18:44:29.373926+00:00",
+        "decided_at_utc": "2026-10-30T19:27:59.934217+00:00",
         "reason_codes": [
           "insufficient_forward_validation",
           "forward_error_not_better_than_baseline",
@@ -827,8 +826,8 @@
         ],
         "forward_validation": {
           "samples": 2,
-          "mae": 1.2313792646472275,
-          "skill_vs_zero": -0.028626761351852936,
+          "mae": 1.1353968157259187,
+          "skill_vs_zero": -0.03625402454923066,
           "direction_accuracy": 0.5,
           "direction_samples": 2,
           "direction_wilson_95": [
@@ -836,7 +835,7 @@
             0.9054687942657693
           ],
           "eligible": false,
-          "empirical_abs_log_error_p90": 2.208734591258993
+          "empirical_abs_log_error_p90": 2.037864246882817
         },
         "prospective": {
           "samples": 0,
