@@ -117,9 +117,9 @@ const reasonText={
 function renderForecasts(){
  const r=data?.forecasts?.[horizon],f=r&&typeof r==="object"?r.forecast:null;
  const decision=data?.model_decisions?.[horizon];
- const decisionAge=age(decision?.decided_at_utc);
+ const decisionAge=age(decision?.decided_at_utc),decisionFresh=decisionAge!==null&&decisionAge<=9000&&Date.parse(f?.due_at_utc)>Date.now()&&(!data?.output_assurance||data.output_assurance.horizons?.[horizon]?.predictive_validity==="approved_research");
  const state=decision?.automatic===true?decision.status:null;
- set("modelStatus",state==="approved"&&(decisionAge===null||decisionAge>9000)?t("oldDecision"):state==="approved"?t("approved"):state==="experimental"?t("experimental"):t("awaiting"));el("modelStatus").className="model-status"+(state==="approved"?" approved":"");
+ set("modelStatus",state==="approved"&&!decisionFresh?t("oldDecision"):state==="approved"?t("approved"):state==="experimental"?t("experimental"):t("awaiting"));el("modelStatus").className="model-status"+(state==="approved"&&decisionFresh?" approved":"");
  if(f){const expired=Date.parse(f.due_at_utc)<=Date.now();set("forecastSummary",horizon.toUpperCase()+" · "+t("target")+" "+price(f.predicted_price)+" USDT · "+pct(Math.expm1(f.predicted_log_return)*100)+" · "+t("due")+" "+stamp(f.due_at_utc)+(expired?" · "+t("forecastExpired"):""))}
  else set("forecastSummary",t("noForecast"));
  const rows=(data?.forecast_review?.rows||[]).filter(r=>r.horizon===horizon),correct=rows.filter(r=>r.direction_correct===true).length,wrong=rows.filter(r=>r.direction_correct===false).length,pending=rows.filter(r=>r.actual_price===null&&Date.parse(r.due_utc)>Date.now()).length,unverified=rows.length-correct-wrong-pending;

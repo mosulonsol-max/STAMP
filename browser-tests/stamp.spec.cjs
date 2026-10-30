@@ -34,7 +34,7 @@ test('compact market, automatic decision, real interactive chart and forecast ou
  await page.locator('#chart').focus();await page.keyboard.press('ArrowRight');await expect.poll(async()=>Number(await page.locator('#chart').getAttribute('data-visible-from'))).toBeGreaterThan(Number(earlier)-1);
  await page.keyboard.press('Home');
  await page.locator('#forecastHorizon').selectOption('4h');await expect(page.locator('#forecastSummary')).toContainText('4H');
- await page.locator('.audit-details summary').click();await expect(page.locator('#modelReason')).toContainText('تلقائي');await page.locator('.audit-details summary').click();
+ await page.locator('summary[data-i18n="auditDetails"]').click();await expect(page.locator('#modelReason')).toContainText('تلقائي');await page.locator('summary[data-i18n="auditDetails"]').click();
  await page.screenshot({path:'test-results/stamp-compact-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
  const mobileWidth=await visibleWidth();await page.locator('#zoomIn').click();await expect.poll(visibleWidth).toBeLessThan(mobileWidth);
