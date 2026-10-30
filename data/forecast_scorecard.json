@@ -1,10 +1,10 @@
 {
-  "generated_at_utc": "2026-10-30T02:48:18.167463+00:00",
-  "forecasts_total": 198,
-  "pending_total": 13,
+  "generated_at_utc": "2026-10-30T03:26:48.430037+00:00",
+  "forecasts_total": 202,
+  "pending_total": 15,
   "missing_total": 0,
   "evaluated_total": 77,
-  "evaluated_historical_total": 108,
+  "evaluated_historical_total": 110,
   "models": {
     "ema_gap_shadow_v1|1h": {
       "evaluated": 77,
@@ -35,13 +35,30 @@
         null,
         null
       ],
-      "historical_reconstructions": 3,
-      "historical_direction_accuracy": 0.6666666666666666,
+      "historical_reconstructions": 4,
+      "historical_direction_accuracy": 0.75,
+      "promotion_eligible": false,
+      "note": "Only timely ticker observations count toward the live gate. Historical 15m candle reconstructions are approximate, separate and never counted as live outcomes."
+    },
+    "walk_forward_v2_random_forest_4h|4h": {
+      "evaluated": 0,
+      "mae": null,
+      "zero_baseline_mae": null,
+      "skill_vs_zero": null,
+      "direction_accuracy": null,
+      "direction_correct": 0,
+      "direction_scored": 0,
+      "direction_accuracy_wilson_95": [
+        null,
+        null
+      ],
+      "historical_reconstructions": 1,
+      "historical_direction_accuracy": 0.0,
       "promotion_eligible": false,
       "note": "Only timely ticker observations count toward the live gate. Historical 15m candle reconstructions are approximate, separate and never counted as live outcomes."
     }
   },
-  "evaluation_coverage": 0.9343434343434344,
-  "live_evaluation_coverage": 0.3888888888888889,
+  "evaluation_coverage": 0.9257425742574258,
+  "live_evaluation_coverage": 0.3811881188118812,
   "reliability_warning": "Historical 15m candle outcomes are approximate and reported separately; missing/pending outcomes are excluded from accuracy. No evidence of profitable execution."
 }
