@@ -9,9 +9,11 @@ from urllib.request import Request,urlopen
 try:
     from src.market_features import technical,orderbook,trades
     from src.evidence_brief import compose
+    from src.market_overview import summarize,CONTRACT
 except ImportError:
     from market_features import technical,orderbook,trades
     from evidence_brief import compose
+    from market_overview import summarize,CONTRACT
 
 def closed(raw,ms,now_ms):
     rows=[]
@@ -31,6 +33,14 @@ def fetch(path):
         return json.loads(raw),None
     except Exception as exc:return None,type(exc).__name__
 
+def dex_overview():
+    try:
+        req=Request("https://api.dexscreener.com/token-pairs/v1/solana/"+CONTRACT,headers={"Accept":"application/json","User-Agent":"STAMP-public-research/2"})
+        with urlopen(req,timeout=4) as response:raw=response.read(1000001)
+        if len(raw)>1000000:raise ValueError("oversized_response")
+        return summarize(json.loads(raw),dt.datetime.now(dt.timezone.utc).isoformat())
+    except Exception as exc:return {"status":"unavailable","error":type(exc).__name__,"liquidity_usd":None,"source":"DexScreener"}
+
 def refresh(payload):
     q=payload.get("live_quote") or {}
     if q.get("status")!="fresh":return payload
@@ -40,7 +50,10 @@ def refresh(payload):
     except (KeyError,ValueError,TypeError):return payload
     paths={"book":"depth?symbol=STAMPUSDT&limit=100","trades":"trades?symbol=STAMPUSDT&limit=1000",
            **{tf:"klines?symbol=STAMPUSDT&interval="+interval+"&limit=500" for tf,interval in (("15m","15m"),("1h","60m"),("4h","4h"),("1d","1d"))}}
-    with ThreadPoolExecutor(max_workers=6) as pool:fetched=dict(zip(paths,pool.map(fetch,paths.values())))
+    with ThreadPoolExecutor(max_workers=7) as pool:
+        dex_task=pool.submit(dex_overview)
+        fetched=dict(zip(paths,pool.map(fetch,paths.values())))
+        current_liquidity=dex_task.result()
     now=dt.datetime.now(dt.timezone.utc);now_ms=int(now.timestamp()*1000)
     hour=closed(fetched["1h"][0],3600000,now_ms)
     # A current ticker alone must not relabel stale analytics as fresh.
@@ -49,7 +62,9 @@ def refresh(payload):
     result["model_observed_utc"]=(payload.get("learning") or {}).get("at_utc") or payload.get("observed_utc")
     result["observed_utc"]=now.isoformat();result["market_status"]="FRESH";result["age_seconds"]=0
     result["source"]="public_market_with_private_archive";result["public_refresh"]={"at_utc":now.isoformat(),"persisted":False,"scope":"market and indicators only; forecasts retain their original issue times"}
-    result["market"].update(price=q["price"],bid=q.get("bid"),ask=q.get("ask"),change=q.get("change_24h_pct",0)/100 if q.get("change_24h_pct") is not None else None,volume=q.get("volume_24h_usdt"))
+    result["market"].update(price=q["price"],bid=q.get("bid"),ask=q.get("ask"),change=q.get("change_24h_pct",0)/100 if q.get("change_24h_pct") is not None else None,volume=q.get("volume_24h_usdt"),base_volume_24h=q.get("base_volume_24h"),high_24h=q.get("high_24h"),low_24h=q.get("low_24h"))
+    if current_liquidity.get("status")=="measured":result["liquidity"]=current_liquidity
+    else:result["liquidity_refresh_error"]=current_liquidity.get("error")
     result.setdefault("source_health",{})
     for name,(raw,error) in fetched.items():
         result["source_health"]["live_mexc_"+name]={"status":"unavailable" if error else "ok","observed_utc":now.isoformat(),"error":error}

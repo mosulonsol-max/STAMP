@@ -23,3 +23,11 @@ The owner requested full operation of the existing dashboard: useful explanation
 Source acquisition, forecast generation, persistence, API rendering and deployment health are separate checks. A green build or a successful workflow does not establish that every provider returned usable data or that a forecast is accurate.
 
 Local acceptance includes 61 deterministic/unit/HTTP/runtime checks. The GitHub Chromium workflow additionally verifies login, the actual API, rendering, a mobile viewport, and saves screenshots. Production remains subject to its separate authenticated verification; do not infer it solely from READY.
+
+## Current compact interface acceptance
+- The main page has one market summary followed by one interactive candle chart.
+- Statistics retain their venue, quote unit and observation times; DEX liquidity is not order-book depth or traded volume.
+- Model status is read only from the internal model governor, with a recorded automatic reason and state history.
+- The engine automatically demotes a model if its validation or recent prospective performance fails the same evidence policy.
+- Predictions use their target timestamp; measured outcomes use their measurement timestamp. Historical approximation is labeled in the expandable audit.
+- Existing news/burn coverage limitations above are unchanged; redesign does not claim they are complete.

@@ -1,63 +1,29 @@
-// Zero-dependency integration test of the actual browser client using a simulated DOM.
-// This exercises API success, API outage recovery, CSP-safe embedded fallback and price units.
 "use strict";
-const fs=require("node:fs"),vm=require("node:vm"),assert=require("node:assert/strict");
-const js=fs.readFileSync(require("node:path").join(__dirname,"../dashboard/private.js"),"utf8");
-const now=new Date().toISOString();
-const sample={
- observed_utc:now,
- market:{price:0.0001751,change:0.018,bid:0.0001750,ask:0.0001752,volume:77791,book:{},trades:{}},
- live_quote:{status:"fresh",price:0.0001760,bid:0.0001759,ask:0.0001761,change_24h_pct:1.8,volume_24h_usdt:80000,retrieved_at_utc:now,provider_at_utc:now},
- forecasts:{"1h":{status:"no_validated_champion",selected_model:"ridge",validation_samples:120,reason:"Approval failed",challengers:{ridge:{direction_accuracy:.49,direction_wilson_95:[.4,.58],skill_vs_zero:-.02}},forecast:{predicted_price:.00018,predicted_log_return:.01,reference_price:.0001751,reference_at_utc:now,due_at_utc:new Date(Date.now()+3600000).toISOString(),approval_passed:false,empirical_error_range:[.00016,.00019]}},"4h":"insufficient_evidence"},technical:{},candles:{},dex:[],health:{passed:true,at:now,steps:{tests:"success"}},learning:{champion:null},scorecard:{evaluated_total:10,pending_total:1,models:{}}
-};
-function makeNode(id){
- const node={id,value:"",textContent:"",innerHTML:"",hidden:false,disabled:false,dataset:{},className:"",handlers:{},
- addEventListener(type,fn){this.handlers[type]=fn},showModal(){this.open=true},
- getBoundingClientRect(){return {width:700,height:300}},
- getContext(){return {setTransform(){},clearRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},fillText(){},fillRect(){}}},
- classList:{toggle(){}}};
- if(id==="stamp-snapshot")node.content={textContent:JSON.stringify({...sample,live_quote:{status:"unavailable"}})};
- return node;
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync(require('node:path').join(__dirname,'../dashboard/private.js'),'utf8');
+const now=new Date().toISOString(),step=900000,last=Math.floor(Date.now()/step)*step;
+const measured=new Date(Date.now()-3600000+600000).toISOString(),due=new Date(Date.now()-3600000).toISOString();
+const sample={observed_utc:now,market:{price:.0001751,change:.018,volume:77791,high_24h:.00018,low_24h:.00016},live_quote:{status:'fresh',price:.0001760,change_24h_pct:1.8,volume_24h_usdt:80000,high_24h:.00019,low_24h:.00015,retrieved_at_utc:now},liquidity:{liquidity_usd:123456,market_cap_usd:900000,observed_utc:now},candles:{'15m':Array.from({length:8},(_,i)=>({t:last-(8-i)*step,o:.00017,h:.00018,l:.00016,c:.000175,v:100}))},forecasts:{'1h':{forecast:{reference_price:.0001751,predicted_price:.00018,reference_at_utc:now,due_at_utc:new Date(Date.now()+3600000).toISOString(),predicted_log_return:.01}}},model_decisions:{'1h':{automatic:true,status:'experimental',selected_model:'ridge',decided_at_utc:now,reason_codes:['insufficient_prospective_outcomes'],forward_validation:{samples:120},prospective:{samples:0}}},forecast_review:{rows:[{horizon:'1h',due_utc:due,predicted_price:.00018,actual_price:.00017,measurement_time_utc:measured,measurement_offset_seconds:600,direction_correct:false},{horizon:'1h',due_utc:new Date(Date.now()+3600000).toISOString(),predicted_price:.00019,actual_price:null}]},scorecard:{models:{unrelated:{promotion_eligible:true}}}};
+async function run(mode){
+ const nodes=new Map(),urls=[],series=[];let range;
+ function get(id){if(!nodes.has(id))nodes.set(id,{id,value:'',textContent:'',innerHTML:'',hidden:false,disabled:false,dataset:{},style:{},handlers:{},setAttribute(k,v){this[k]=v},addEventListener(k,f){this.handlers[k]=f},showModal(){this.open=true}});return nodes.get(id)}
+ get('stamp-snapshot').content={textContent:JSON.stringify({...sample,live_quote:{status:'unavailable'}})};
+ const chart={addSeries(type){const s={type,points:[],setData(values){for(let i=1;i<values.length;i++)assert.ok(values[i].time>values[i-1].time,'chart times must be unique and ascending');this.points=values},priceScale(){return {applyOptions(){}}},createPriceLine(){return {applyOptions(){}}},removePriceLine(){}};series.push(s);return s},timeScale(){return {setVisibleRange(r){assert.ok(r.to>r.from);range=r},fitContent(){}}},subscribeCrosshairMove(){},applyOptions(){}};
+ const window={location:{href:'/'},LightweightCharts:{createChart:()=>chart,CandlestickSeries:'candles',HistogramSeries:'volume',LineSeries:'line',LineStyle:{Dashed:2},CrosshairMode:{Normal:0}}};
+ const document={getElementById:get,documentElement:{},querySelectorAll:()=>[]};
+ const fetch=async url=>{urls.push(url);if(mode==='unauthorized'&&url==='/api/dashboard')return {status:401,ok:false};if(url==='/api/dashboard'&&mode!=='primary')throw Error('primary failed');if(url==='/api/dashboard-lite'&&mode==='embedded')throw Error('lite failed');if(url==='/api/quote')return {ok:true,json:async()=>({quote:{status:'unavailable'}})};return {ok:true,json:async()=>url==='/api/dashboard'?sample:{...sample,live_quote:{status:'unavailable'}}}};
+ vm.runInNewContext(source,{document,window,fetch,localStorage:{getItem:()=>null,setItem(){}},Intl,Date,Number,Math,String,Object,JSON,Map,Blob:class{},URL:{},AbortController:class{signal={};abort(){}},setTimeout:()=>1,clearTimeout(){},setInterval(){},console},{timeout:3000});
+ for(let i=0;i<16;i++)await new Promise(resolve=>setImmediate(resolve));
+ if(mode==='unauthorized'){assert.equal(window.location.href,'/login');assert.equal(get('price').textContent,'');return {mode}}
+ assert.equal(get('price').textContent,mode==='primary'?'0.0001760':'0.0001751');
+ assert.equal(get('high24').textContent,mode==='primary'?'0.0001900':'0.0001800');
+ assert.equal(get('low24').textContent,mode==='primary'?'0.0001500':'0.0001600');
+ assert.equal(get('change').textContent,'+1.80%');assert.equal(get('liquidity').textContent,'$123,456');
+ assert.match(get('forecastSummary').textContent,/0.0001800/);
+ assert.equal(get('modelStatus').textContent,'تجريبي آليًا','UI must read the authoritative model decision, not unrelated scores');
+ assert.equal(series[0].points.length,8);assert.equal(series[2].points.length,2);assert.equal(series[3].points[0].time,Date.parse(measured)/1000,'never backdate an approximate outcome to target time');assert.ok(range);
+ assert.equal(get('refresh').disabled,false);
+ if(mode!=='primary')assert.ok(urls.includes('/api/dashboard-lite'));
+ return {mode,bars:series[0].points.length,predictions:series[2].points.length,measurements:series[3].points.length};
 }
-async function scenario(mode){
- const nodes=new Map(),urls=[];
- const get=id=>{if(!nodes.has(id))nodes.set(id,makeNode(id));return nodes.get(id)};
- const document={documentElement:{},getElementById:get,querySelectorAll:()=>[]};
- const window={devicePixelRatio:1,location:{href:"/"},addEventListener(){}};
- const localStorage={getItem(){return null},setItem(){},removeItem(){}};
- const fetch=async url=>{
-  urls.push(url);
-  if(url==="/api/dashboard"&&mode==="unauthorized")return {ok:false,status:401,json:async()=>({error:"login_required"})};
-  if(url==="/api/dashboard"&&mode!=="primary")throw Error("primary offline");
-  if(url==="/api/dashboard-lite"&&mode==="embedded")throw Error("lite offline");
-  if(url==="/api/quote")return {ok:true,json:async()=>({quote:{status:"unavailable"}})};
-  if(url==="/api/dashboard-lite")return {ok:true,json:async()=>({...sample,live_quote:{status:"unavailable"}})};
-  return {ok:true,json:async()=>sample};
- };
- const context={document,window,localStorage,fetch,Date,JSON,Intl,Number,Math,String,Object,Blob:class{},
- AbortController:class{signal={};abort(){}},URL:{createObjectURL(){},revokeObjectURL(){}},
- setTimeout(){return 1},clearTimeout(){},setInterval(){return 1},console};
- vm.runInNewContext(js,context,{filename:"dashboard/private.js",timeout:3000});
- for(let i=0;i<12;i++)await new Promise(resolve=>setImmediate(resolve));
- if(mode==="unauthorized"){
-  assert.equal(window.location.href,"/login","expired session must redirect");
-  assert.equal(get("price").textContent,"","must not render private research");
-  return {mode,redirect:window.location.href,requests:urls};
- }
- const expected=mode==="primary"?"$0.0001760":"$0.0001751";
- assert.equal(get("price").textContent,expected,mode+" price");
- assert.match(get("forecasts").innerHTML,/insufficient_evidence/,mode+" forecast");
- assert.match(get("forecasts").innerHTML,/0.0001800/,mode+" experimental point is visible even without approval");
- assert.ok(!get("forecasts").innerHTML.includes("[object Object]"),"structured forecast must render as useful fields");
- assert.match(get("learning").innerHTML,/10/,mode+" audited forecasts");
- assert.equal(get("change").textContent,mode==="primary"?"+1.80%":"+1.80%",mode+" percent units");
- assert.match(get("sourceLine").textContent,/Research:/,mode+" source timestamp");
- assert.equal(get("refresh").disabled,false,mode+" refresh reset");
- if(mode==="embedded")assert.match(get("status").textContent,/ARCHIVED/,mode+" fallback marked archived");
- if(mode!=="primary")assert.ok(urls.includes("/api/dashboard-lite"),"recovery API requested");
- return {mode,price:get("price").textContent,status:get("status").textContent,requests:urls};
-}
-(async()=>{
- for(const mode of ["primary","recovery","embedded","unauthorized"])console.log("PASS",JSON.stringify(await scenario(mode)));
-})().catch(e=>{console.error("FAIL",e);process.exitCode=1});
-
+(async()=>{for(const mode of ['primary','recovery','embedded','unauthorized'])console.log('PASS',JSON.stringify(await run(mode)))})().catch(error=>{console.error(error);process.exitCode=1});

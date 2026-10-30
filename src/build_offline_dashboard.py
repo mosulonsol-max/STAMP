@@ -9,6 +9,9 @@ def generate(root=ROOT):
  template=(root/"dashboard"/"private.html").read_text(encoding="utf-8")
  css=(root/"dashboard"/"private.css").read_text(encoding="utf-8")
  js=(root/"dashboard"/"private.js").read_text(encoding="utf-8")
+ vendor_path=root/"dashboard"/"vendor"/"lightweight-charts-5.0.9.js"
+ vendor=vendor_path.read_text(encoding="utf-8") if vendor_path.exists() else ""
+ template=re.sub(r'<script\s+src="/assets/chart\.js(?:\?[^\"]*)?"\s+defer></script>',lambda m:"<script>"+vendor+"</script>",template,count=1)
  data=build()
  data["source"]="offline_snapshot"
  payload=json.dumps(data,allow_nan=False,separators=(",",":")).replace("&","\\u0026").replace("<","\\u003c").replace(">","\\u003e")
@@ -20,3 +23,4 @@ def generate(root=ROOT):
  dest.write_text(template,encoding="utf-8")
  return dest
 if __name__=="__main__":print(generate())
+

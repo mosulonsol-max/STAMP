@@ -49,23 +49,23 @@ async function scenario(kind){
 }
 (async()=>{
  const live=await scenario('live');
- assert.equal(live.ids.status.textContent,'LIVE');
- assert.equal(live.ids.price.textContent,'$0.0001777');
+ assert.equal(live.ids.status.textContent,'سعر مباشر');
+ assert.equal(live.ids.price.textContent,'0.0001777');
  assert.equal(live.ids.change.textContent,'+1.80%');
- assert.equal(live.ids.pipeline.textContent,'PASS');
  assert(!live.calls.includes('/api/quote'));
  const recovery=await scenario('recovery');
- assert.equal(recovery.ids.status.textContent,'LIVE PRICE / ARCHIVED RESEARCH');
- assert.equal(recovery.ids.price.textContent,'$0.0001777');
+ assert.equal(recovery.ids.status.textContent,'سعر مباشر');
+ assert.equal(recovery.ids.price.textContent,'0.0001777');
  assert(recovery.calls.includes('/api/quote'));
- assert.equal(recovery.ids.warning.hidden,false);
+ assert.equal(recovery.ids.warning.hidden,true);
  const offline=await scenario('offline');
- assert.equal(offline.ids.status.textContent,'ARCHIVED / NOT LIVE');
- assert.equal(offline.ids.price.textContent,'$0.0001751');
- assert(offline.ids.warning.textContent.includes('Recovery'));
+ assert.equal(offline.ids.status.textContent,'سعر مؤرشف');
+ assert.equal(offline.ids.price.textContent,'0.0001751');
+ assert(offline.ids.warning.textContent.includes('مؤرشفة'));
  console.log('PASS browser live quote, percent units, recovery, offline fallback, authenticated API wiring');
 })().catch(e=>{console.error(e);process.exitCode=1});
 """
   result=subprocess.run([NODE,"-e",js],cwd=ROOT,capture_output=True,text=True,timeout=20)
   self.assertEqual(result.returncode,0,result.stderr+"\n"+result.stdout)
 if __name__=="__main__":unittest.main()
+

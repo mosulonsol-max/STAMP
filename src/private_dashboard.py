@@ -62,7 +62,8 @@ def fetch_mexc_quote():
   return dict(status="fresh",source="MEXC public 24h ticker",retrieved_at_utc=stamp.isoformat(),
    provider_at_utc=provider_utc,price=price,bid=bid,ask=ask,
    change_24h_pct=(num(ticker.get("priceChangePercent"))*100 if num(ticker.get("priceChangePercent")) is not None else None),
-   volume_24h_usdt=num(ticker.get("quoteVolume")))
+   volume_24h_usdt=num(ticker.get("quoteVolume")),base_volume_24h=num(ticker.get("volume")),
+   high_24h=num(ticker.get("highPrice")),low_24h=num(ticker.get("lowPrice")))
  except (OSError,HTTPError,URLError,ValueError,TypeError,json.JSONDecodeError) as exc:
   return dict(status="unavailable",source="MEXC public 24h ticker",error=type(exc).__name__)
 
@@ -118,11 +119,18 @@ def build():
  payload=dict(fetched_utc=dt.datetime.now(dt.timezone.utc).isoformat(),source="private_github_api" if token else "deployment_snapshot",
   observed_utc=observed,age_seconds=seconds,market_status="FRESH" if seconds is not None and seconds<=900 else "STALE",
   live_quote=live_quote,source_health=source_health,
-  market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},book_at_utc=((raw.get("mexc") or {}).get("book") or {}).get("retrieved_at_utc"),trades_at_utc=((raw.get("mexc") or {}).get("trades") or {}).get("retrieved_at_utc"),flags=a.get("flags") or []),
+  market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),base_volume_24h=num(ticker.get("volume")),high_24h=num(ticker.get("highPrice")),low_24h=num(ticker.get("lowPrice")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},book_at_utc=((raw.get("mexc") or {}).get("book") or {}).get("retrieved_at_utc"),trades_at_utc=((raw.get("mexc") or {}).get("trades") or {}).get("retrieved_at_utc"),flags=a.get("flags") or []),
   technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},forecast_history=recent_forecasts(items["forecast_journal.jsonl"]),forecast_review=forecast_review_report(items["forecast_journal.jsonl"]),forecast_activity=activity,candles=frames,dex=pools[:10],learning=learning,scorecard=score,
   health=dict(passed=health.get("pipeline_passed"),production_smoke_passed=health.get("production_smoke_passed"),
               at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
   errors=errors,note="Research only. Experimental model outputs are not executable trading signals.")
+ try:
+  from src.market_overview import summarize
+ except ImportError:
+  from market_overview import summarize
+ payload["asset"]={"name":"STAMP","symbol":"STAMP","quote_asset":"USDT","venue":"MEXC","contract":raw.get("contract") or "EKtmPPLaCbEEKiwoHHtV7TsRsmPXs5CMGtQtZFSiinsc"}
+ payload["liquidity"]=summarize((raw.get("dex") or {}).get("data"),(raw.get("dex") or {}).get("retrieved_at_utc"))
+ payload["model_decisions"]=a.get("model_decisions") or {h:r.get("model_decision") for h,r in (learning.get("horizons") or {}).items() if r.get("model_decision")}
  payload.update(market_context=a.get("market_context") or {},onchain=a.get("onchain") or {},news=a.get("news") or {},model_observed_utc=learning.get("at_utc"))
  try:
   from src.evidence_brief import compose
@@ -303,10 +311,15 @@ class Handler(BaseHTTPRequestHandler):
   self.end_headers();self.wfile.write(body)
  def do_GET(self):
   path=urlsplit(self.path).path
+  public_assets={"/assets/chart.js":("vendor/lightweight-charts-5.0.9.js","text/javascript; charset=utf-8"),"/assets/chart-license.txt":("vendor/LICENSE-lightweight-charts.txt","text/plain; charset=utf-8")}
+  if path in public_assets:
+   name,kind=public_assets[path]
+   try:return self.send(200,(ROOT/"dashboard"/name).read_bytes(),kind)
+   except OSError:return self.send(503,b"Chart asset unavailable")
   if path=="/healthz":
    # A 200 response must mean the deployment can actually serve its UI and archived data.
    try:
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css")) and read_embedded() is not None
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
    except Exception:healthy=False
    return self.send(200 if healthy else 503,b"ok" if healthy else b"deployment_assets_or_research_missing")
   if path=="/assets/style.css" and not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):

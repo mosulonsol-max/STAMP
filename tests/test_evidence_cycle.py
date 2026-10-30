@@ -66,7 +66,7 @@ class EvidenceCycleTests(unittest.TestCase):
   q={"status":"fresh","retrieved_at_utc":now.isoformat(),"price":1.01,"change_24h_pct":2}
   payload={"observed_utc":"2020-01-01T00:00:00Z","learning":{"at_utc":"2020-01-01T00:00:00Z"},"live_quote":q,"market":{},"candles":{},"forecasts":{"1h":{"forecast":{"predicted_price":5}}}}
   bars=[[hour-3600000,1,1.1,.9,1.01,10]]
-  with patch.object(live,"fetch",return_value=(bars,None)):
+  with patch.object(live,"fetch",return_value=(bars,None)),patch.object(live,"dex_overview",return_value={"status":"unavailable"}):
    result=live.refresh(payload)
   self.assertEqual(result["model_observed_utc"],payload["learning"]["at_utc"])
   self.assertEqual(result["forecasts"],payload["forecasts"])

@@ -1,46 +1,35 @@
 const { test, expect } = require('@playwright/test');
-// Chromium permits Secure session cookies on localhost (not plain 127.0.0.1).
-const HOST = 'http://localhost:10000';
-
-test('login, archived market display, authenticated API and logout', async ({ page }) => {
-  await page.goto(HOST + '/');
-  await expect(page.locator('form[action="/login"]')).toBeVisible();
-  await page.locator('#user').fill('test-user');
-  await page.locator('#password').fill('long-test-password');
-  await page.locator('form[action="/login"] button[type="submit"]').click();
-  const cookies = await page.context().cookies(HOST);
-  expect(cookies.some(c => c.name === 'stamp_session')).toBeTruthy();
-  await expect(page.locator('#price')).not.toHaveText('—', { timeout: 20000 });
-  await expect(page.locator('#status')).not.toHaveText('ERROR');
-  await expect(page.locator('#sourceLine')).not.toHaveText('—');
-  await expect(page.locator('#forecasts')).toContainText('1H');
-  await expect(page.locator('#forecastHistory')).toBeVisible();
-  const api = await page.request.get(HOST + '/api/dashboard');
-  expect(api.status()).toBe(200);
-  const result = await api.json();
-  expect(result.market.price).toBeGreaterThan(0);
-  await expect(page.locator('#marketBrief')).not.toBeEmpty();
-  await expect(page.locator('#marketContext')).toBeVisible();
-  await expect(page.locator('#onchainEvidence')).toBeVisible();
-  await expect(page.locator('#forecastComparison')).toBeVisible();
-  await page.screenshot({ path: 'test-results/stamp-dashboard.png', fullPage: true });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: 'test-results/stamp-mobile.png', fullPage: true });
-  const overflow = await page.evaluate(() => ({
-    width: window.innerWidth, scroll: document.documentElement.scrollWidth,
-    offenders: Array.from(document.querySelectorAll('body *')).filter(el => el.getBoundingClientRect().width > window.innerWidth).slice(0, 8).map(el => ({ tag: el.tagName, id: el.id, width: el.getBoundingClientRect().width }))
-  }));
-  expect(overflow.scroll, JSON.stringify(overflow)).toBeLessThanOrEqual(overflow.width + 1);
-  await page.locator('#settingsButton').click();
-  await expect(page.locator('#settings')).toBeVisible();
-  await page.locator('#diagnose').click();
-  await expect(page.locator('#diagnosticResult')).toContainText('API:', { timeout: 15000 });
-  await page.locator('#logoutButton').click();
-  await expect(page.locator('form[action="/login"]')).toBeVisible();
+const HOST='http://localhost:10000';
+test('compact market, automatic decision, real interactive chart and forecast outcomes',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ await page.goto(HOST+'/');
+ await page.locator('#user').fill('test-user');await page.locator('#password').fill('long-test-password');await page.locator('form[action="/login"] button[type="submit"]').click();
+ await expect(page.locator('#price')).not.toHaveText('—',{timeout:25000});
+ await expect(page.locator('#chart canvas').first()).toBeVisible({timeout:25000});
+ await expect.poll(async()=>Number(await page.locator('#chart').getAttribute('data-bar-count'))).toBeGreaterThan(10);
+ for(const id of ['liquidity','volume','high24','low24'])await expect(page.locator('#'+id)).not.toHaveText('—');
+ await expect(page.locator('#modelStatus')).toContainText(/آلي/);
+ const response=await page.request.get(HOST+'/api/dashboard');expect(response.status()).toBe(200);const data=await response.json();
+ expect(data.model_decisions['1h'].automatic).toBe(true);
+ expect(['approved','experimental']).toContain(data.model_decisions['1h'].status);
+ expect(data.market.high_24h).toBeGreaterThanOrEqual(data.market.low_24h);
+ await expect.poll(async()=>Number(await page.locator('#chart').getAttribute('data-forecast-points'))).toBeGreaterThan(0);
+ await expect.poll(async()=>Number(await page.locator('#chart').getAttribute('data-actual-points'))).toBeGreaterThan(0);
+ await page.locator('[data-frame="1h"]').click();await expect(page.locator('#chart')).toHaveAttribute('data-frame','1h');
+ const initial=await page.locator('#chart').getAttribute('data-visible-from');
+ const plot=await page.locator('#chart').boundingBox();await page.mouse.move(plot.x+plot.width*.5,plot.y+plot.height*.5);await page.mouse.wheel(0,-350);
+ await expect.poll(async()=>page.locator('#chart').getAttribute('data-visible-from')).not.toBe(initial);
+ await page.locator('#forecastHorizon').selectOption('4h');await expect(page.locator('#forecastSummary')).toContainText('4H');
+ await page.locator('.audit-details summary').click();await expect(page.locator('#modelReason')).toContainText('تلقائي');await page.locator('.audit-details summary').click();
+ await page.screenshot({path:'test-results/stamp-compact-desktop.png',fullPage:true});
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:'test-results/stamp-compact-mobile.png',fullPage:true});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
+ await page.locator('#settingsButton').click();await expect(page.locator('#settings')).toBeVisible();await page.locator('#diagnose').click();await expect(page.locator('#diagnosticResult')).toContainText('API:',{timeout:15000});
+ expect(errors).toEqual([]);
+ await page.locator('#logoutButton').click();await expect(page.locator('form[action="/login"]')).toBeVisible();
 });
-
-test('private API cannot be read without authentication', async ({ request }) => {
-  const response = await request.get(HOST + '/api/dashboard');
-  expect(response.status()).toBe(401);
+test('data stays private while the open-source chart asset is reachable',async({request})=>{
+ expect((await request.get(HOST+'/api/dashboard')).status()).toBe(401);
+ const asset=await request.get(HOST+'/assets/chart.js');expect(asset.status()).toBe(200);expect(await asset.text()).toContain('TradingView Lightweight Charts');
 });
-

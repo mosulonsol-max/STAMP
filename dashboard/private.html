@@ -1,79 +1,29 @@
 <!doctype html>
-<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow,noarchive"><meta name="theme-color" content="#080f1c">
-<title>STAMP — Private Intelligence</title><link rel="stylesheet" href="/assets/style.css?v=20261030-evidence4"></head>
-<body><div class="shell">
-<header class="top">
- <div class="identity"><span class="logo">S</span><div><h1>STAMP <span>INTELLIGENCE</span></h1><p data-i18n="subtitle">لوحة التحليل الخاصة · بيانات موثّقة</p></div></div>
- <div class="right"><span class="pill" id="status" role="status">جاري الاتصال</span><span class="clock" id="clock">—</span>
- <button id="refresh" type="button" data-i18n="refresh">↻ تحديث</button>
- <button id="settingsButton" type="button" aria-haspopup="dialog" aria-controls="settings" data-i18n="settings">⚙ الإعدادات</button></div>
-</header>
-<div class="source-line" id="releaseStatus" role="status">STAMP RELEASE 2026-10-30 · Forecast audit enabled · Verify data freshness below</div>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="theme-color" content="#0b1220"><title>STAMP · Market</title><link rel="stylesheet" href="/assets/style.css?v=compact-20261030"></head>
+<body><main class="terminal">
+<header class="toolbar"><div class="brand"><span class="brand-mark">S</span><span>STAMP <small>INTELLIGENCE</small></span></div><div class="toolbar-actions"><span id="status" role="status">جاري الاتصال</span><button id="refresh" type="button" data-i18n="refresh">تحديث</button><button id="settingsButton" type="button" data-i18n="settings" aria-haspopup="dialog" aria-controls="settings">الإعدادات</button></div></header>
 <div id="warning" class="warning" role="alert" hidden></div>
-<section class="panel" id="releaseEvidence" aria-label="Market explanation"><h2>ماذا يحدث؟ · Market evidence</h2><div id="marketBrief" aria-live="polite">بانتظار بيانات التحليل</div></section>
-<section class="hero">
- <div><p class="eyebrow">STAMP / USDT · MEXC</p><p class="eyebrow" id="priceLabel" data-i18n="livePrice">السعر المباشر (MEXC)</p>
- <div class="hero-price" id="price">—</div><div class="sub" id="observed">—</div></div>
- <div class="hero-right"><div class="delta" id="change">—</div><div class="sub" id="source">—</div>
- <div class="live-ticker"><span data-i18n="archiveLabel">آخر سعر في سجل التحليل</span><strong id="liveprice">—</strong><div class="sub" id="livetime">—</div></div></div>
-</section>
-<div class="source-line" id="sourceLine" aria-live="polite">—</div>
-<section class="panel mainchart">
- <div class="panel-title"><div><h2 data-i18n="history">الرسم البياني للسعر</h2><p data-i18n="chartSub">شموع MEXC المغلقة · الفترات الإضافية مجمّعة من شموع أصلية مكتملة · ليست بثًا مباشرًا</p></div>
- <div class="tabs" id="frames" role="group" aria-label="Timeframe"><button data-frame="15m">15m</button><button data-frame="30m">30m</button><button data-frame="1h" class="selected">1h</button><button data-frame="2h">2h</button><button data-frame="4h">4h</button><button data-frame="6h">6h</button><button data-frame="12h">12h</button><button data-frame="1d">1D</button><button data-frame="1w">1W</button></div></div>
- <canvas id="chart" role="img" aria-label="STAMP candlestick chart" tabindex="0"></canvas>
- <div class="chart-footer" id="chartnote">—</div>
- <div class="chart-controls"><button id="exportCandles" type="button" data-i18n="export">↓ تنزيل شموع الفريم CSV</button><span id="chartHover" class="small" aria-live="polite">—</span></div>
-</section>
-<section class="kpis" aria-label="Market snapshot">
- <article><label data-i18n="bestBid">أفضل طلب شراء</label><strong id="bid">—</strong></article>
- <article><label data-i18n="bestAsk">أفضل عرض بيع</label><strong id="ask">—</strong></article>
- <article><label data-i18n="spread">الفارق السعري</label><strong id="spread">—</strong></article>
- <article><label data-i18n="volume">حجم التداول 24 ساعة</label><strong id="volume">—</strong></article>
- <article><label data-i18n="pipeline">حالة نظام التحليل</label><strong id="pipeline">—</strong></article>
- <article><label data-i18n="modelStatus">اعتماد النموذج</label><strong id="model">—</strong></article>
-</section>
-
-<section class="panel portfolio-panel" aria-labelledby="portfolioTitle">
- <div class="panel-title"><div><h2 id="portfolioTitle" data-i18n="portfolioTitle">حاسبة المركز المالي (اختيارية)</h2><p data-i18n="portfolioSub">حسابات تقريبية محلية على جهازك، لا يتم إرسال الكمية أو سعر الشراء إلى الخادم</p></div><span class="small" id="portfolioPriceStatus">—</span></div>
- <div class="portfolio-inputs">
-  <label><span data-i18n="quantity">عدد عملات STAMP</span><input id="holdingQty" type="number" min="0" step="any" inputmode="decimal" placeholder="0" autocomplete="off"></label>
-  <label><span data-i18n="averageCost">متوسط تكلفة الشراء بالدولار</span><input id="holdingCost" type="number" min="0" step="any" inputmode="decimal" placeholder="0.0000000" autocomplete="off"></label>
-  <button id="portfolioClear" type="button" data-i18n="clearPortfolio">مسح بيانات المركز</button>
+<section class="market-overview" aria-label="STAMP market summary">
+ <div class="coin-row"><div><h1 id="coinName">STAMP <span>/ USDT</span></h1><p class="muted" id="venueLine">MEXC · Solana</p></div><div class="quote-block"><div class="hero-price" id="price">—</div><div class="price-caption"><span id="change">—</span><span class="muted" data-i18n="change24">خلال 24 ساعة</span></div></div></div>
+ <div class="market-metrics">
+  <div><span data-i18n="liquidity">السيولة المرصودة · DEX</span><strong id="liquidity">—</strong></div>
+  <div><span data-i18n="marketCap">القيمة السوقية · DEX</span><strong id="marketCap">—</strong></div>
+  <div><span data-i18n="volume24">حجم التداول 24 ساعة · USDT</span><strong id="volume">—</strong></div>
+  <div><span data-i18n="high24">أعلى سعر 24 ساعة · USDT</span><strong id="high24">—</strong></div>
+  <div><span data-i18n="low24">أدنى سعر 24 ساعة · USDT</span><strong id="low24">—</strong></div>
  </div>
- <div id="portfolioResults" class="portfolio-results">—</div>
- <p class="hint" data-i18n="portfolioCaution">القيمة والخسارة أو الربح تقديرية قبل الرسوم والانزلاق السعري. لا تمثل سعر بيع قابلًا للتنفيذ.</p>
+ <div class="source-row"><div id="observed">—</div><div id="liquidityTime">—</div></div>
 </section>
-<section class="panel forecast-panel" aria-labelledby="forecastsTitle">
- <div class="panel-title"><div><h2 id="forecastsTitle" data-i18n="forecastTitle">التوقعات والتحقق منها</h2><p data-i18n="forecastSub">كل أفق زمني يعرض نتيجة البرنامج الفعلية، وليس توصية تداول</p></div><span class="small" id="forecastUpdated">—</span></div>
- <div class="forecast-grid" id="forecasts">—</div>
- <h3>تدقيق التوقعات مقابل الواقع · Forecast audit</h3><div id="forecastAudit" class="tech-list" aria-live="polite">بانتظار البيانات</div>
- <h3>التوقع مقابل السعر الذي تحقق · Predicted vs observed</h3><canvas id="forecastComparison" role="img" aria-label="Recorded forecasts compared with observed outcomes"></canvas><p class="hint">ذهبي: التوقع المسجل · أخضر: السعر المشاهد · Gold: recorded prediction; green: observed outcome.</p>
- <h3 id="historyTitle" data-i18n="historyTitle">سجل التوقعات ونتائجها الفعلية</h3><div id="forecastHistory" class="tech-list" aria-live="polite">—</div>
- <div class="hint" id="forecastDisclaimer" data-i18n="forecastDisclaimer">عدم كفاية الأدلة يعني الامتناع عن إصدار توقع؛ لا توجد نسبة نجاح مؤكدة.</div>
+<section class="chart-panel" aria-label="Interactive price and forecasts">
+ <div class="chart-toolbar"><div class="frames" id="frames" role="group" aria-label="Candle timeframe"><button type="button" data-frame="15m" aria-pressed="true">15m</button><button type="button" data-frame="30m" aria-pressed="false">30m</button><button type="button" data-frame="1h" aria-pressed="false">1h</button><button type="button" data-frame="2h" aria-pressed="false">2h</button><button type="button" data-frame="4h" aria-pressed="false">4h</button><button type="button" data-frame="6h" aria-pressed="false">6h</button><button type="button" data-frame="12h" aria-pressed="false">12h</button><button type="button" data-frame="1d" aria-pressed="false">1D</button><button type="button" data-frame="1w" aria-pressed="false">1W</button></div><div class="chart-options"><label for="forecastHorizon" data-i18n="forecastHorizon">أفق التوقع</label><select id="forecastHorizon"><option value="1h">1h</option><option value="4h">4h</option><option value="24h">24h</option><option value="7d">7d</option></select><button type="button" id="resetChart" data-i18n="last24">آخر 24 ساعة</button></div></div>
+ <div class="chart-context"><span id="chartOHLC" aria-live="polite">—</span><span id="modelStatus" class="model-status" role="status">بانتظار قرار المحرك</span></div>
+ <div class="chart-wrap"><div id="chart" role="img" aria-label="Interactive STAMP candlesticks, recorded predictions and measured outcomes"></div><div id="chartEmpty" class="chart-empty" hidden></div></div>
+ <div class="chart-legend"><span><i class="legend-key candles"></i><span data-i18n="candles">شموع مغلقة</span></span><span><i class="legend-key predicted"></i><span data-i18n="predicted">توقع مسجّل</span></span><span><i class="legend-key measured"></i><span data-i18n="measured">نتيجة مقاسة</span></span><span><i class="legend-key future"></i><span data-i18n="nextForecast">التوقع القادم</span></span><span id="chartZone" class="muted">—</span></div>
+ <div id="forecastSummary" class="forecast-summary" aria-live="polite">—</div>
+ <div class="chart-bottom"><span id="outcomeSummary">—</span><button type="button" id="exportCandles" data-i18n="export">تنزيل الشموع CSV</button></div>
+ <details class="audit-details"><summary data-i18n="auditDetails">سبب قرار المحرك وسجل التوقعات</summary><div id="modelReason" class="model-reason"></div><p id="modelDecisionTime" class="muted small"></p><div id="forecastHistory" class="history-table"></div></details>
 </section>
-<div class="twocol">
- <section class="panel"><div class="panel-title"><h2 data-i18n="technical">التحليل الفني</h2><span class="small" data-i18n="descriptive">وصفي وليس إشارات</span></div><div id="technical" class="tech-list">—</div></section>
- <section class="panel"><div class="panel-title"><h2 data-i18n="orderbook">دفتر الأوامر والتنفيذ</h2><span class="small" data-i18n="snapshotOnly">لقطة مؤرشفة فقط</span></div><div id="orderbook">—</div></section>
-</div>
-<div class="twocol">
- <section class="panel"><div class="panel-title"><h2 data-i18n="dex">سيولة DEX</h2><span class="small" data-i18n="estimates">تقديرات مزودي البيانات</span></div><div id="dex">—</div></section>
- <section class="panel"><div class="panel-title"><h2 data-i18n="evaluation">اختبارات النماذج</h2><span class="small" data-i18n="evidence">نتائج خارج عينة التدريب</span></div><div id="learning">—</div></section>
-</div>
-<div class="twocol"><section class="panel"><h2>ارتباط السوق · Market correlation</h2><div id="marketContext">—</div></section><section class="panel"><h2>الحاملون والحرق · On-chain evidence</h2><div id="onchainEvidence">—</div></section></div>
-<section class="panel"><h2>الأخبار والأدلة · News evidence</h2><div id="newsEvidence">—</div></section>
-<section class="panel"><div class="panel-title"><h2 data-i18n="integrity">سلامة البيانات وسير البرنامج</h2><span class="small" id="run">—</span></div><div id="health">—</div></section>
-<footer><span data-i18n="footer">STAMP · بحث خاص للمتابعة، وليس توصية شراء أو بيع · الأسعار والسيولة والمؤشرات لها أوقات جمع مختلفة</span></footer>
-</div>
-<dialog id="settings" aria-labelledby="settingsTitle"><form method="dialog" class="settings-content">
- <div class="panel-title"><h2 id="settingsTitle" data-i18n="settingsTitle">إعدادات اللوحة والأمان</h2><button type="submit" aria-label="Close">✕</button></div>
- <label for="langSelect" data-i18n="language">لغة الواجهة</label><select id="langSelect"><option value="ar">العربية</option><option value="en">English</option></select>
- <label for="zoneSelect" data-i18n="timezone">توقيت عرض البيانات</label><select id="zoneSelect"><option value="Asia/Baghdad">العراق (UTC+3)</option><option value="Asia/Makassar">إندونيسيا (UTC+8)</option><option value="UTC">UTC</option></select>
- <div class="settings-security"><h3 data-i18n="diagnostics">فحص الاتصال</h3><button id="diagnose" type="button" data-i18n="runDiagnostics">اختبار الاتصال بالخادم</button><p class="hint" id="diagnosticResult" role="status">—</p><h3 data-i18n="security">أمان الحساب</h3><p data-i18n="passwordHelp">كلمة المرور محفوظة بشكل آمن في إعدادات Vercel. لتغييرها فعليًا، افتح متغير DASHBOARD_PASSWORD، حدّث قيمته ثم أعد نشر الإنتاج. لا تكتب كلمة مرورك هنا.</p>
- <a href="https://vercel.com/ana-9143/stamp/settings/environment-variables" target="_blank" rel="noopener noreferrer" class="settings-link" id="changePassword" data-i18n="changePassword">تغيير كلمة المرور في Vercel ↗</a>
- <p class="hint" data-i18n="passwordNote">تغيير متغير البيئة لا يفعّل كلمة المرور الجديدة حتى تعيد نشر التطبيق. قد تحتاج إلى تسجيل الدخول بحساب Vercel أولًا.</p></div>
- <button type="button" id="logoutButton">تسجيل الخروج / Logout</button>
- <button type="submit" data-i18n="done">تم</button>
-</form></dialog>
-<script src="/assets/app.js?v=20261030-evidence4" defer></script></body></html>
+<footer><span id="sourceLine">—</span><span><a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView Lightweight Charts™</a> · © 2025 TradingView, Inc. · <a href="/assets/chart-license.txt" target="_blank" rel="noopener noreferrer">Apache 2.0</a></span></footer>
+</main>
+<dialog id="settings" aria-labelledby="settingsTitle"><form method="dialog"><header class="dialog-header"><h2 id="settingsTitle" data-i18n="settings">الإعدادات</h2><button type="submit" aria-label="Close">×</button></header><label for="langSelect" data-i18n="language">اللغة</label><select id="langSelect"><option value="ar">العربية</option><option value="en">English</option></select><label for="zoneSelect" data-i18n="timezone">توقيت الرسم والبيانات</label><select id="zoneSelect"><option value="Asia/Makassar">Indonesia · UTC+8</option><option value="Asia/Baghdad">Iraq · UTC+3</option><option value="UTC">UTC</option></select><button type="button" id="diagnose" data-i18n="diagnostics">فحص الاتصال</button><p id="diagnosticResult" class="muted small" role="status">—</p><a id="changePassword" href="https://vercel.com/ana-9143/stamp/settings/environment-variables" target="_blank" rel="noopener noreferrer" data-i18n="password">تغيير كلمة المرور في Vercel</a><p class="muted small" data-i18n="passwordHelp">حدّث DASHBOARD_PASSWORD ثم أعد نشر التطبيق.</p><button type="button" id="logoutButton" data-i18n="logout">تسجيل الخروج</button></form></dialog>
+<script src="/assets/chart.js?v=5.0.9" defer></script><script src="/assets/app.js?v=compact-20261030" defer></script></body></html>

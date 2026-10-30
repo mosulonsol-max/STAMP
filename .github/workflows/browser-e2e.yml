@@ -29,6 +29,8 @@ jobs:
         run: |
           npm install --no-save @playwright/test@1.56.1
           npx playwright install --with-deps chromium
+      - name: Build the current research snapshot and automatic model decisions
+        run: python src/model_governor.py && python src/build_deployment_snapshot.py
       - name: Start real STAMP application with isolated test credentials
         env:
           DASHBOARD_USER: test-user

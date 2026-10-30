@@ -35,7 +35,7 @@ def dex():
         d=[{"chainId":p.get("chainId"),"dexId":p.get("dexId"),"pairAddress":p.get("pairAddress"),
         "baseToken":p.get("baseToken"),"quoteToken":p.get("quoteToken"),"priceUsd":p.get("priceUsd"),
         "liquidity":p.get("liquidity"),"volume":p.get("volume"),"txns":p.get("txns"),
-        "priceChange":p.get("priceChange"),"fdv":p.get("fdv"),"pairCreatedAt":p.get("pairCreatedAt")}
+        "priceChange":p.get("priceChange"),"fdv":p.get("fdv"),"marketCap":p.get("marketCap"),"pairCreatedAt":p.get("pairCreatedAt")}
         for p in d if p.get("baseToken",{}).get("address")==CONTRACT or p.get("quoteToken",{}).get("address")==CONTRACT]
     return record("DexScreener",url,d,e)
 def project():

@@ -28,7 +28,7 @@ def assess(root=ROOT,now=None):
   "last_forecast_class":last.get("forecast_class"),"last_forecast_age_seconds":forecast_age,
   "last_market_observation_utc":(snapshot.get("raw") or {}).get("collected_at_utc"),
   "market_age_seconds":market_age,"reasons":reasons,
-  "model_validated":last.get("forecast_class")=="validated_experimental",
+  "model_validated":last.get("forecast_class") in ("validated_experimental","approved_internal_model"),
   "note":"Shadow forecasts are recorded but not validated trading signals."}
  (data/"forecast_activity.json").write_text(json.dumps(report,indent=2)+"\n")
  return report
@@ -36,3 +36,4 @@ if __name__=="__main__":
  report=assess()
  print(json.dumps(report))
  sys.exit(0 if report["status"]=="healthy" else 1)
+

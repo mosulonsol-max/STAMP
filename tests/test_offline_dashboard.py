@@ -8,6 +8,8 @@ class OfflineTests(unittest.TestCase):
  def test_single_file_contains_safe_embedded_snapshot(self):
   with tempfile.TemporaryDirectory() as d:
    root=pathlib.Path(d);(root/"dashboard").mkdir()
+   (root/"dashboard"/"vendor").mkdir()
+   (root/"dashboard"/"vendor"/"lightweight-charts-5.0.9.js").write_text((ROOT/"dashboard"/"vendor"/"lightweight-charts-5.0.9.js").read_text())
    for name in ("private.html","private.css","private.js"):
     (root/"dashboard"/name).write_text((ROOT/"dashboard"/name).read_text())
    with patch.object(offline,"build",return_value={"price":0.0002,"injected":"</script><script>alert(1)</script>"}):
@@ -17,8 +19,11 @@ class OfflineTests(unittest.TestCase):
    self.assertIn('offline_snapshot',text)
    self.assertNotIn('src="/assets/app.js',text)
    self.assertNotIn('href="/assets/style.css',text)
+   self.assertNotIn('src="/assets/chart.js',text)
+   self.assertIn('TradingView Lightweight Charts',text)
    self.assertIn('<style>',text)
    self.assertIn('<script>',text)
    self.assertNotIn('</script><script>alert(1)',text)
    self.assertIn('\\u003c/script\\u003e',text)
 if __name__=="__main__":unittest.main()
+

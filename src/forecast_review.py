@@ -42,7 +42,7 @@ def review(events, limit=100):
         due=_timestamp(f.get("due_at_utc"))
         measured=_timestamp(o.get("measurement_time_utc"))
         rows.append({
-            "id":fid,"created_utc":f.get("created_at_utc"),"due_utc":f.get("due_at_utc"),
+            "id":fid,"created_utc":f.get("created_at_utc"),"reference_utc":f.get("reference_at_utc"),"due_utc":f.get("due_at_utc"),
             "horizon":f.get("horizon"),"model":f.get("model_version"),
             "forecast_class":f.get("forecast_class"),
             "status":o.get("status","pending"),
@@ -70,3 +70,4 @@ def review(events, limit=100):
         "beats_baseline":model_mae<baseline_mae if model_mae is not None and baseline_mae is not None else None,
         "warning":"Historical evaluation only; no causality or calibrated probability. Do not promote models from in-sample feedback."
     }}
+

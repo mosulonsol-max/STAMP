@@ -1,6 +1,7 @@
 """Retrain and publish every horizon through one causal model path."""
 import datetime as dt,json,pathlib
 from prediction_engine import HORIZONS,evaluate
+from model_governor import govern,read_events
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 def run(root=ROOT,now=None):
     now=now or dt.datetime.now(dt.timezone.utc)
@@ -14,12 +15,18 @@ def run(root=ROOT,now=None):
         current["learning_update"]={"previous_at_utc":prior.get("at_utc"),"new_matured_labels":max(0,current["samples"]-prior.get("samples",0)) if prior else None,
             "previous_selected_model":prior.get("selected_model"),"selected_model":current.get("selected_model"),
             "method":"Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."}
+    decisions=govern(reports,read_events(data/"forecast_journal.jsonl"),root,now)
+    for h,current in reports.items():
+        current["model_decision"]=decisions[h]
+        if current.get("forecast"):
+            current["forecast"]["approval_passed"]=decisions[h]["status"]=="approved"
+            current["forecast"]["forecast_class"]="approved_internal_model" if decisions[h]["status"]=="approved" else "research_unvalidated"
     report=dict(reports["1h"],horizons=reports)
     (data/"learning_controller.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n")
     path=data/"latest.json"
     if path.exists():
         snapshot=json.loads(path.read_text());a=snapshot.setdefault("analysis",{})
-        a["prediction_report"]=report;a["ml_experimental"]=dict(reports["1h"])
+        a["model_decisions"]=decisions;a["prediction_report"]=report;a["ml_experimental"]=dict(reports["1h"])
         for h,result in reports.items():a["forecast_"+h]=result
         a["reason"]=reports["1h"].get("reason")
         path.write_text(json.dumps(snapshot,ensure_ascii=False,indent=2)+"\n")
