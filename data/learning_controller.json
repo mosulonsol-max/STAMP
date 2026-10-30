@@ -1,5 +1,11 @@
 {
-  "at_utc": "2026-10-30T01:15:06.175468+00:00",
+  "runtime": {
+    "python": "3.11.17",
+    "numpy": "2.4.6",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.17.1"
+  },
+  "at_utc": "2026-10-30T01:29:40.390110+00:00",
   "horizon": "1h",
   "status": "no_validated_champion",
   "champion": null,
@@ -81,7 +87,7 @@
     }
   ],
   "forecast": {
-    "created_at_utc": "2026-10-30T01:15:06.175468+00:00",
+    "created_at_utc": "2026-10-30T01:29:40.390110+00:00",
     "reference_at_utc": "2026-10-30T01:00:00+00:00",
     "due_at_utc": "2026-10-30T02:00:00+00:00",
     "horizon": "1h",
@@ -110,8 +116,8 @@
   "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 0",
   "asof_candle_close_ms": 1793322000000,
   "learning_update": {
-    "previous_at_utc": "2026-10-30T00:48:02.637086+00:00",
-    "new_matured_labels": 1,
+    "previous_at_utc": "2026-10-30T01:15:06.175468+00:00",
+    "new_matured_labels": 0,
     "previous_selected_model": "random_forest",
     "selected_model": "random_forest",
     "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
@@ -124,7 +130,7 @@
     "horizon": "1h",
     "model_version": "walk_forward_v2_random_forest_1h",
     "selected_model": "random_forest",
-    "decided_at_utc": "2026-10-30T01:15:06.175468+00:00",
+    "decided_at_utc": "2026-10-30T01:29:40.390110+00:00",
     "reason_codes": [
       "forward_error_not_better_than_baseline",
       "forward_direction_uncertain",
@@ -144,17 +150,17 @@
       "empirical_abs_log_error_p90": 0.15738939959945497
     },
     "prospective": {
-      "samples": 1,
-      "direction_samples": 1,
+      "samples": 2,
+      "direction_samples": 2,
       "direction_correct": 1,
-      "direction_accuracy": 1.0,
+      "direction_accuracy": 0.5,
       "direction_wilson_95": [
-        0.20654931437723745,
-        1
+        0.09453120573423074,
+        0.9054687942657693
       ],
-      "mae": 0.003395686222620516,
-      "baseline_mae": 0.017225306281879165,
-      "skill_vs_zero": 0.8028664241405832,
+      "mae": 0.022593579915777966,
+      "baseline_mae": 0.01817317386432877,
+      "skill_vs_zero": -0.24323797727626406,
       "excluded_overlapping_or_old": 0,
       "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
     },
@@ -167,7 +173,13 @@
   },
   "horizons": {
     "1h": {
-      "at_utc": "2026-10-30T01:15:06.175468+00:00",
+      "runtime": {
+        "python": "3.11.17",
+        "numpy": "2.4.6",
+        "scikit-learn": "1.9.1",
+        "scipy": "1.17.1"
+      },
+      "at_utc": "2026-10-30T01:29:40.390110+00:00",
       "horizon": "1h",
       "status": "no_validated_champion",
       "champion": null,
@@ -249,7 +261,7 @@
         }
       ],
       "forecast": {
-        "created_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "created_at_utc": "2026-10-30T01:29:40.390110+00:00",
         "reference_at_utc": "2026-10-30T01:00:00+00:00",
         "due_at_utc": "2026-10-30T02:00:00+00:00",
         "horizon": "1h",
@@ -278,8 +290,8 @@
       "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 0",
       "asof_candle_close_ms": 1793322000000,
       "learning_update": {
-        "previous_at_utc": "2026-10-30T00:48:02.637086+00:00",
-        "new_matured_labels": 1,
+        "previous_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "new_matured_labels": 0,
         "previous_selected_model": "random_forest",
         "selected_model": "random_forest",
         "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
@@ -292,7 +304,7 @@
         "horizon": "1h",
         "model_version": "walk_forward_v2_random_forest_1h",
         "selected_model": "random_forest",
-        "decided_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "decided_at_utc": "2026-10-30T01:29:40.390110+00:00",
         "reason_codes": [
           "forward_error_not_better_than_baseline",
           "forward_direction_uncertain",
@@ -312,17 +324,17 @@
           "empirical_abs_log_error_p90": 0.15738939959945497
         },
         "prospective": {
-          "samples": 1,
-          "direction_samples": 1,
+          "samples": 2,
+          "direction_samples": 2,
           "direction_correct": 1,
-          "direction_accuracy": 1.0,
+          "direction_accuracy": 0.5,
           "direction_wilson_95": [
-            0.20654931437723745,
-            1
+            0.09453120573423074,
+            0.9054687942657693
           ],
-          "mae": 0.003395686222620516,
-          "baseline_mae": 0.017225306281879165,
-          "skill_vs_zero": 0.8028664241405832,
+          "mae": 0.022593579915777966,
+          "baseline_mae": 0.01817317386432877,
+          "skill_vs_zero": -0.24323797727626406,
           "excluded_overlapping_or_old": 0,
           "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
         },
@@ -335,7 +347,13 @@
       }
     },
     "4h": {
-      "at_utc": "2026-10-30T01:15:06.175468+00:00",
+      "runtime": {
+        "python": "3.11.17",
+        "numpy": "2.4.6",
+        "scikit-learn": "1.9.1",
+        "scipy": "1.17.1"
+      },
+      "at_utc": "2026-10-30T01:29:40.390110+00:00",
       "horizon": "4h",
       "status": "no_validated_champion",
       "champion": null,
@@ -417,7 +435,7 @@
         }
       ],
       "forecast": {
-        "created_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "created_at_utc": "2026-10-30T01:29:40.390110+00:00",
         "reference_at_utc": "2026-10-30T01:00:00+00:00",
         "due_at_utc": "2026-10-30T05:00:00+00:00",
         "horizon": "4h",
@@ -446,9 +464,9 @@
       "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 0",
       "asof_candle_close_ms": 1793322000000,
       "learning_update": {
-        "previous_at_utc": "2026-10-30T00:48:02.637086+00:00",
-        "new_matured_labels": 1,
-        "previous_selected_model": "random_forest",
+        "previous_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "new_matured_labels": 0,
+        "previous_selected_model": "ridge",
         "selected_model": "ridge",
         "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
       },
@@ -460,7 +478,7 @@
         "horizon": "4h",
         "model_version": "walk_forward_v2_ridge_4h",
         "selected_model": "ridge",
-        "decided_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "decided_at_utc": "2026-10-30T01:29:40.390110+00:00",
         "reason_codes": [
           "forward_error_not_better_than_baseline",
           "forward_direction_uncertain",
@@ -503,7 +521,13 @@
       }
     },
     "24h": {
-      "at_utc": "2026-10-30T01:15:06.175468+00:00",
+      "runtime": {
+        "python": "3.11.17",
+        "numpy": "2.4.6",
+        "scikit-learn": "1.9.1",
+        "scipy": "1.17.1"
+      },
+      "at_utc": "2026-10-30T01:29:40.390110+00:00",
       "horizon": "24h",
       "status": "no_validated_champion",
       "champion": null,
@@ -585,7 +609,7 @@
         }
       ],
       "forecast": {
-        "created_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "created_at_utc": "2026-10-30T01:29:40.390110+00:00",
         "reference_at_utc": "2026-10-30T01:00:00+00:00",
         "due_at_utc": "2026-10-31T01:00:00+00:00",
         "horizon": "24h",
@@ -614,9 +638,9 @@
       "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 78",
       "asof_candle_close_ms": 1793322000000,
       "learning_update": {
-        "previous_at_utc": "2026-10-30T00:48:02.637086+00:00",
-        "new_matured_labels": 1,
-        "previous_selected_model": "hist_gradient_boosting",
+        "previous_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "new_matured_labels": 0,
+        "previous_selected_model": "ridge",
         "selected_model": "ridge",
         "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
       },
@@ -628,7 +652,7 @@
         "horizon": "24h",
         "model_version": "walk_forward_v2_ridge_24h",
         "selected_model": "ridge",
-        "decided_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "decided_at_utc": "2026-10-30T01:29:40.390110+00:00",
         "reason_codes": [
           "insufficient_forward_validation",
           "forward_error_not_better_than_baseline",
@@ -672,7 +696,13 @@
       }
     },
     "7d": {
-      "at_utc": "2026-10-30T01:15:06.175468+00:00",
+      "runtime": {
+        "python": "3.11.17",
+        "numpy": "2.4.6",
+        "scikit-learn": "1.9.1",
+        "scipy": "1.17.1"
+      },
+      "at_utc": "2026-10-30T01:29:40.390110+00:00",
       "horizon": "7d",
       "status": "no_validated_champion",
       "champion": null,
@@ -745,7 +775,7 @@
         }
       ],
       "forecast": {
-        "created_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "created_at_utc": "2026-10-30T01:29:40.390110+00:00",
         "reference_at_utc": "2026-10-30T01:00:00+00:00",
         "due_at_utc": "2026-11-06T01:00:00+00:00",
         "horizon": "7d",
@@ -774,9 +804,9 @@
       "reason": "Approval requires >=100 nonoverlapping horizon outcomes, >=10% lower MAE and directional Wilson lower bound >50%; missing outcomes: 98",
       "asof_candle_close_ms": 1793322000000,
       "learning_update": {
-        "previous_at_utc": "2026-10-30T00:48:02.637086+00:00",
-        "new_matured_labels": 1,
-        "previous_selected_model": "ridge",
+        "previous_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "new_matured_labels": 0,
+        "previous_selected_model": "random_forest",
         "selected_model": "random_forest",
         "method": "Refit on all matured exchange labels; re-evaluate causal forward windows. A changed window score does not prove general improvement."
       },
@@ -788,7 +818,7 @@
         "horizon": "7d",
         "model_version": "walk_forward_v2_random_forest_7d",
         "selected_model": "random_forest",
-        "decided_at_utc": "2026-10-30T01:15:06.175468+00:00",
+        "decided_at_utc": "2026-10-30T01:29:40.390110+00:00",
         "reason_codes": [
           "insufficient_forward_validation",
           "forward_error_not_better_than_baseline",
