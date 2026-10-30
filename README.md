@@ -45,3 +45,12 @@ Open “فحص الإنتاج وصلاحية النتائج والتوسع” fo
 forward/prospective evidence and the rollout verdict, or use the authenticated
 `/api/assurance` endpoint. Operational health and research approval are separate.
 STAMP-only evidence cannot approve a rollout to all pairs.
+
+### Why the current models miss
+
+See [the model error diagnosis](docs/MODEL_DIAGNOSIS.md). Run
+`python src/model_diagnosis.py --output data/model_diagnosis.json` to replay
+causal validation, compare simpler baselines and loss/feature controls, inspect
+later-period errors, and reconcile stored scores with the current runtime.
+The monitoring workflow records this autopsy after every research cycle.
+Diagnostic experiments do not promote or replace a production model.

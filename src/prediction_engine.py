@@ -5,6 +5,8 @@ Every forecast uses a completed candle reference and a fixed target timestamp.
 """
 import datetime as dt
 import math
+import platform
+import importlib.metadata
 from research_engine import wilson_interval
 HOUR=3600000
 HORIZONS={"1h":1,"4h":4,"24h":24,"7d":168}
@@ -46,11 +48,12 @@ def factories():
         "hist_gradient_boosting":lambda:HistGradientBoostingRegressor(max_iter=60,max_leaf_nodes=7,l2_regularization=10,random_state=42),
         "random_forest":lambda:RandomForestRegressor(n_estimators=40,max_depth=5,min_samples_leaf=8,random_state=42,n_jobs=1)}
 
-def evaluate(candles,horizon="1h",now=None):
+def evaluate(candles,horizon="1h",now=None,include_diagnostics=False):
     import numpy as np
     now=now or dt.datetime.now(dt.timezone.utc);hours=HORIZONS[horizon]
     cs=clean(candles,int(now.timestamp()*1000));rows,skipped=dataset(cs,hours)
-    report=dict(at_utc=now.isoformat(),horizon=horizon,status="insufficient_data",champion=None,selected_model=None,
+    runtime={"python":platform.python_version(),**{name:importlib.metadata.version(name) for name in ("numpy","scikit-learn","scipy")}}
+    report=dict(runtime=runtime,at_utc=now.isoformat(),horizon=horizon,status="insufficient_data",champion=None,selected_model=None,
         challengers={},samples=len(rows),skipped_gap_windows=skipped,data_quality="gaps_present" if skipped else "contiguous_windows",
         promotion_gate=dict(min_validation_samples=100,min_mae_improvement_vs_zero=.10,wilson_95_lower_direction_accuracy_gt=.5),
         validation_samples=0,folds=[],forecast=None,
@@ -69,6 +72,7 @@ def evaluate(candles,horizon="1h",now=None):
     if not selected:
         report["reason"]="No forward test target with 100 prior matured labels";return report
     blocks=[list(map(int,x)) for x in np.array_split(selected,min(3,len(selected))) if len(x)]
+    if include_diagnostics:report["validation_trace"]=[]
     makers=factories();results={k:[] for k in makers};base=[]
     for block in blocks:
         cutoff=rows[block[0]]["feature_ms"]
@@ -82,6 +86,10 @@ def evaluate(candles,horizon="1h",now=None):
                 p=m.predict(np.array([r["x"] for r in test]))
                 if not np.isfinite(p).all():raise ValueError("nonfinite_prediction")
                 results[name].extend(zip(actual.tolist(),p.tolist()))
+                if include_diagnostics:
+                    report["validation_trace"].extend(dict(model=name,feature_ms=row["feature_ms"],target_ms=row["target_ms"],
+                        actual_log_return=float(a),predicted_log_return=float(pred),fold=len(report["folds"])-1)
+                        for row,a,pred in zip(test,actual,p))
             except Exception as exc:report.setdefault("errors",{})[name]=type(exc).__name__
     baseline=float(np.mean(base));report.update(baseline_mae=baseline,validation_samples=len(base))
     for name,pairs in results.items():

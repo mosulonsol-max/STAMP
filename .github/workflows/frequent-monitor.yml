@@ -51,6 +51,9 @@ jobs:
       - name: Reassess automatic model approval after newly matured outcomes
         id: governance
         run: python src/model_governor.py
+      - name: Diagnose model error against baselines and later time windows
+        id: diagnosis
+        run: python src/model_diagnosis.py --source-commit "$GITHUB_SHA" --output data/model_diagnosis.json
       - name: Verify forecast issuance and market freshness
         id: forecast_health
         run: python src/forecast_health.py
@@ -72,7 +75,7 @@ jobs:
           mkdir -p data
           python - <<'PY'
           import json,os,datetime,pathlib
-          steps={'tests':'${{ steps.tests.outcome }}','monitor':'${{ steps.monitor.outcome }}','audit':'${{ steps.audit.outcome }}','archive':'${{ steps.archive.outcome }}','forecast_health':'${{ steps.forecast_health.outcome }}','research':'${{ steps.research.outcome }}','governance':'${{ steps.governance.outcome }}','evidence':'${{ steps.evidence.outcome }}','dashboard':'${{ steps.dashboard.outcome }}'}
+          steps={'tests':'${{ steps.tests.outcome }}','monitor':'${{ steps.monitor.outcome }}','audit':'${{ steps.audit.outcome }}','archive':'${{ steps.archive.outcome }}','forecast_health':'${{ steps.forecast_health.outcome }}','research':'${{ steps.research.outcome }}','governance':'${{ steps.governance.outcome }}','evidence':'${{ steps.evidence.outcome }}','diagnosis':'${{ steps.diagnosis.outcome }}','dashboard':'${{ steps.dashboard.outcome }}'}
           production_smoke='${{ steps.production_smoke.outcome }}'
           record={'timestamp_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'event_name':os.environ.get('GITHUB_EVENT_NAME'),'run_id':os.environ.get('GITHUB_RUN_ID'),'run_attempt':os.environ.get('GITHUB_RUN_ATTEMPT'),'steps':steps,'pipeline_passed':all(v=='success' for v in steps.values()),'production_smoke_passed':production_smoke=='success','production_smoke_outcome':production_smoke}
           pathlib.Path('data/workflow_health.json').write_text(json.dumps(record,indent=2))
@@ -95,7 +98,7 @@ jobs:
           if [ -f dashboard/private-offline.html ]; then git add dashboard/private-offline.html; fi
           if [ -d data/candles ]; then git add data/candles/; fi
           if [ -d data/context_candles ]; then git add data/context_candles/; fi
-          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/forecast_activity.json data/learning_controller.json data/workflow_health.json data/evidence_sources.json data/onchain_history.jsonl data/verified_burns.jsonl data/news_journal.jsonl data/model_registry.json data/model_decisions.jsonl; do
+          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/forecast_activity.json data/learning_controller.json data/workflow_health.json data/evidence_sources.json data/onchain_history.jsonl data/verified_burns.jsonl data/news_journal.jsonl data/model_registry.json data/model_decisions.jsonl data/model_diagnosis.json; do
             if [ -f "$path" ]; then git add "$path"; fi
           done
           if ! git diff --cached --quiet; then
