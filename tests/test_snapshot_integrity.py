@@ -44,6 +44,7 @@ class SnapshotIntegrityTests(unittest.TestCase):
         self.assertTrue(check(self.path, None))
 
     def test_stale_snapshot_rejected_when_requested(self):
+        self.payload["raw"]["collected_at_utc"] = "2020-01-01T00:00:00+00:00"
         self.assertTrue(any("stale" in x for x in self.validate(max_age_minutes=60)))
 
 if __name__ == "__main__":
