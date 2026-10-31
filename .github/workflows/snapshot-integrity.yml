@@ -4,6 +4,13 @@ on:
     paths:
       - 'data/latest.json'
       - 'scripts/check_latest_snapshot.py'
+      - 'tests/test_snapshot_integrity.py'
+      - '.github/workflows/snapshot-integrity.yml'
+  pull_request:
+    paths:
+      - 'data/latest.json'
+      - 'scripts/check_latest_snapshot.py'
+      - 'tests/test_snapshot_integrity.py'
       - '.github/workflows/snapshot-integrity.yml'
   workflow_dispatch:
 jobs:
@@ -14,5 +21,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Check latest snapshot structure and market identity
+      - name: Snapshot regression tests
+        run: python -m unittest discover -s tests -p test_snapshot_integrity.py
+      - name: Validate latest snapshot identity and structure
         run: python scripts/check_latest_snapshot.py
