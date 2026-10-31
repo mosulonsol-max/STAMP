@@ -67,6 +67,9 @@ def diagnose(root=ROOT,now=None,source_commit=None):
     raw=(root/'data/candles/1h.json').read_bytes();source=json.loads(raw)
     saved=json.loads((root/'data/learning_controller.json').read_text())
     now=now or dt.datetime.fromisoformat(saved['at_utc'].replace('Z','+00:00'))
+    if saved.get('engine')=='context_walk_forward_v3':
+        from context_diagnosis import diagnose as context_diagnose
+        return context_diagnose(root,saved,now,source_commit)
     cs=clean(source,int(now.timestamp()*1000));events=read_events(root/'data/forecast_journal.jsonl')
     if len(cs)<3:return dict(status='insufficient_data',source_commit=source_commit,valid_closed_rows=len(cs))
     findings=[];out={};runtime=None

@@ -11,6 +11,9 @@ test('compact market, automatic decision, real interactive chart and forecast ou
  await expect(page.locator('#modelStatus')).toContainText(/آلي/);
  const response=await page.request.get(HOST+'/api/dashboard');expect(response.status()).toBe(200);const data=await response.json();
  expect(data.model_decisions['1h'].automatic).toBe(true);
+ expect(data.forecasts['1h'].engine).toBe('context_walk_forward_v3');
+ expect(data.forecasts['1h'].input_manifest.features).toBeGreaterThan(100);
+ await page.locator('#inputDetails summary').click();await expect(page.locator('#inputTable')).toContainText('BTC / ETH / SOL / ZEC');await expect(page.locator('#inputTable')).toContainText('أخطاء التوقعات السابقة');await page.locator('#inputDetails summary').click();
  expect(['approved','experimental']).toContain(data.model_decisions['1h'].status);
  expect(data.market.high_24h).toBeGreaterThanOrEqual(data.market.low_24h);
  await expect.poll(async()=>Number(await page.locator('#chart').getAttribute('data-forecast-points'))).toBeGreaterThan(0);

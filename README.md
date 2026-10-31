@@ -54,3 +54,13 @@ causal validation, compare simpler baselines and loss/feature controls, inspect
 later-period errors, and reconcile stored scores with the current runtime.
 The monitoring workflow records this autopsy after every research cycle.
 Diagnostic experiments do not promote or replace a production model.
+
+### V3: point-in-time multi-source model
+
+See [the source-to-model contract](docs/MULTISOURCE_MODEL.md). The autonomous
+research path trains robust multi-source challengers, selects on an earlier
+period, scores later nonoverlapping targets, and learns from available verified
+forecast outcomes. Every external value has an availability mask and timestamp.
+The dashboard reports which source groups were available and which profile won.
+Unavailable or unverified feeds stay explicit; a connection is not proof of
+historical coverage or forecasting skill.

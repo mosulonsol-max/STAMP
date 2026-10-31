@@ -15,13 +15,20 @@ def get(url,params=None):
     except Exception as exc:return None,type(exc).__name__
 
 def rpc(method,params):
-    # Never return a configured private RPC URL or provider error text to the UI.
-    try:
-        r=requests.post(os.getenv("SOLANA_RPC_URL","https://api.mainnet-beta.solana.com"),json={"jsonrpc":"2.0","id":1,"method":method,"params":params},timeout=10)
-        r.raise_for_status();d=r.json()
-        if d.get("error"):return None,"RPC_"+str(d["error"].get("code","error"))
-        return d.get("result"),None
-    except Exception as exc:return None,type(exc).__name__
+    # Independent public fallback improves availability; never expose a private URL.
+    configured=os.getenv("SOLANA_RPC_URL","").strip()
+    endpoints=list(dict.fromkeys([configured or "https://api.mainnet-beta.solana.com","https://solana-rpc.publicnode.com"]))
+    errors=[]
+    for endpoint in endpoints:
+        try:
+            r=requests.post(endpoint,json={"jsonrpc":"2.0","id":1,"method":method,"params":params},timeout=8)
+            r.raise_for_status();d=r.json()
+            if d.get("error"):
+                errors.append("RPC_"+str(d["error"].get("code","error")));continue
+            if "result" not in d:errors.append("missing_rpc_result");continue
+            return d["result"],None
+        except Exception as exc:errors.append(type(exc).__name__)
+    return None,"all_providers_failed:"+",".join(errors)
 
 def returns(cs):
     out={}

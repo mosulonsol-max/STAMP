@@ -19,8 +19,11 @@ class ModelValidationTests(unittest.TestCase):
             report=run(root)
             self.assertGreater(report["skipped_gap_windows"],0)
             self.assertEqual(report["data_quality"],"gaps_present")
-            self.assertEqual(report["validation_samples"],120)
-            self.assertEqual(len(report["folds"]),3)
+            self.assertGreater(report["validation_samples"],0)
+            self.assertEqual(report["engine"],"context_walk_forward_v3")
+            self.assertEqual(len(report["folds"]),report["selection"]["samples"]+report["validation_samples"])
+            self.assertLessEqual(report["selection"]["selection_last_target_ms"],report["selection"]["evaluation_first_feature_ms"])
+            for fold in report["folds"]:self.assertLessEqual(fold["train_last_target_ms"],fold["test_first_feature_ms"])
             self.assertEqual(report["promotion_gate"]["wilson_95_lower_direction_accuracy_gt"],0.5)
             for challenger in report["challengers"].values():
                 self.assertIn("direction_wilson_95",challenger)
@@ -36,3 +39,4 @@ class ModelValidationTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+

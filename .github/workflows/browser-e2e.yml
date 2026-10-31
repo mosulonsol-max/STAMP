@@ -35,7 +35,14 @@ jobs:
       - name: Verify actual MEXC binary market stream
         run: node scripts/check_market_stream.cjs
       - name: Build the current research snapshot and automatic model decisions
-        run: python src/model_governor.py && python src/build_deployment_snapshot.py
+        run: |
+          python src/monitor.py
+          python src/research_engine.py
+          python src/evidence_sources.py
+          python src/autonomous_research.py
+          python src/forecast_audit.py
+          python src/model_governor.py
+          python src/build_deployment_snapshot.py
       - name: Start real STAMP application with isolated test credentials
         env:
           DASHBOARD_USER: test-user

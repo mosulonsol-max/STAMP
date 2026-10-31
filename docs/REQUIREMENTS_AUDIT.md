@@ -41,3 +41,15 @@ Local acceptance includes 61 deterministic/unit/HTTP/runtime checks. The GitHub 
 - Each completed scheduled research cycle now rebuilds the hosted research snapshot; the previous once-per-hour snapshot gate was removed. GitHub scheduling and Vercel deployment remain best effort, not continuous workers. A production deployment becoming ready is not evidence that predictions are profitable.
 - Authenticated `/api/assurance` and the dashboard expose per-horizon numeric consistency, causal timestamps, exact horizon, matching model decision, decision freshness, expired targets, independent prospective sample counts, error improvement vs the no-change baseline, directional confidence intervals, and overdue unverified outcomes in the recent journal. Missing/failed/stale evidence cannot become approved merely because the price is live.
 - All-pair rollout remains blocked: a single STAMP model cannot establish generalization. Independent per-pair validation and prospective journals, symbol-isolated model/storage state, and multi-pair load/reconnect/rate-limit evidence are still required. This release does not claim that a multi-pair engine or execution profitability has been validated.
+
+## Multi-source research engine V3
+
+The production research entry point now uses `context_prediction.py` and the
+point-in-time `model_inputs.py` event archive. It includes market correlations,
+regime shifts, order book, executed trades, DEX liquidity, finalized on-chain
+measurements, separately labelled verified/discovery text, broad crypto context,
+and already-available verified forecast-error feedback. Identity-unverified
+project/derivative data is explicitly excluded until verified. Historical data
+without defensible availability times is not manufactured. See
+`MULTISOURCE_MODEL.md` for the exact source, expiry, selection, validation,
+versioning and remaining coverage constraints.

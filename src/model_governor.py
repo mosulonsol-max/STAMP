@@ -86,7 +86,7 @@ def decide(report,events,now=None):
         engine="internal_model_governor_v1",scope="research_forecasting",horizon=h,
         model_version=version,selected_model=selected,decided_at_utc=now.isoformat(),
         reason_codes=reasons or ["forward_and_prospective_evidence_passed"],
-        forward_validation=dict(samples=report.get("validation_samples",0),**candidate),
+        forward_validation={**candidate,"samples":report.get("validation_samples",0)},
         prospective=metrics,policy=dict(minimum_outcomes=minimum,minimum_error_improvement=gain,directional_lower_bound_gt=lower),
         next_review="on newly completed candles and matured forecast outcomes")
 

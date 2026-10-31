@@ -137,7 +137,13 @@ def build():
  except ImportError:
   from evidence_brief import compose
  payload["market_brief"]=compose(payload)
- return payload
+ return browser_projection(payload)
+def browser_projection(value):
+ """Keep training traces on the server/archive, not in every market refresh."""
+ if isinstance(value,dict):return {k:browser_projection(v) for k,v in value.items() if k not in ("validation_trace","folds")}
+ if isinstance(value,list):return [browser_projection(v) for v in value]
+ return value
+
 def forecast_review_report(events):
  try:
   from src.forecast_review import review
