@@ -153,7 +153,10 @@ function renderChart(){
  if(!initChart())return;
  currentBars=chartCandles(frame);const empty=el("chartEmpty");empty.hidden=currentBars.length>=2;
  if(currentBars.length<2){overlayKey="";while(overlaySeries.length){try{chart.removeSeries(overlaySeries.pop())}catch(e){}}set("chartEmpty",t("insufficientCandles"));candleSeries.setData([]);volumeSeries.setData([]);predictedSeries.setData([]);measuredSeries.setData([]);projectionSeries.setData([]);return}
- const forming=activeCandle(),displayBars=forming?[...currentBars.filter(c=>c.t<forming.t),forming]:currentBars;
+ const streamed=activeCandle();
+ const liveOpen=liveHistory.get(frame)?.find(c=>!c.closed&&c.t<=Date.now());
+ const forming=streamed||(liveOpen?{...liveOpen,observed_utc:new Date().toISOString()}:null);
+ const displayBars=forming?[...currentBars.filter(c=>c.t<forming.t),forming]:currentBars;
  set("activeCandle",forming?t("forming"):t("closedOnly"));el("chart").dataset.forming=String(!!forming);
  candleSeries.setData(displayBars.map(c=>({time:c.t/1000,open:c.o,high:c.h,low:c.l,close:c.c})));
  renderOverlays(currentBars);
