@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-10-31T18:53:44.821419+00:00",
+  "generated_at_utc": "2026-10-31T19:03:51.669665+00:00",
   "authority": "internal_model_governor_v1",
   "manual_override_available": false,
   "horizons": {
@@ -9,9 +9,9 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "1h",
-      "model_version": "walk_forward_v2_random_forest_1h",
-      "selected_model": "random_forest",
-      "decided_at_utc": "2026-10-31T18:53:44.821419+00:00",
+      "model_version": "context_walk_forward_v3_e116db99e86e_forest_absolute_1h",
+      "selected_model": "forest_absolute",
+      "decided_at_utc": "2026-10-31T19:03:51.669665+00:00",
       "reason_codes": [
         "forward_error_not_better_than_baseline",
         "forward_direction_uncertain",
@@ -19,29 +19,30 @@
       ],
       "forward_validation": {
         "samples": 120,
-        "mae": 0.093104284619769,
-        "skill_vs_zero": -0.083980734298573,
-        "direction_accuracy": 0.44166666666666665,
+        "mae": 0.0868567647090089,
+        "baseline_mae": 0.08558943753233374,
+        "skill_vs_zero": -0.014807051117684766,
         "direction_samples": 120,
+        "direction_accuracy": 0.525,
         "direction_wilson_95": [
-          0.3559974669953786,
-          0.5309547690868035
+          0.43626995305824834,
+          0.6121790886208165
         ],
-        "eligible": false,
-        "empirical_abs_log_error_p90": 0.2253845577781706
+        "empirical_abs_log_error_p90": 0.21693247795829462,
+        "eligible": false
       },
       "prospective": {
-        "samples": 26,
-        "direction_samples": 26,
-        "direction_correct": 13,
-        "direction_accuracy": 0.5,
+        "samples": 0,
+        "direction_samples": 0,
+        "direction_correct": 0,
+        "direction_accuracy": null,
         "direction_wilson_95": [
-          0.3206059352575905,
-          0.6793940647424095
+          null,
+          null
         ],
-        "mae": 0.10197042193759252,
-        "baseline_mae": 0.09541425885360802,
-        "skill_vs_zero": -0.06871261342650548,
+        "mae": null,
+        "baseline_mae": null,
+        "skill_vs_zero": null,
         "excluded_overlapping_or_old": 0,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
@@ -58,40 +59,41 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "4h",
-      "model_version": "walk_forward_v2_ridge_4h",
-      "selected_model": "ridge",
-      "decided_at_utc": "2026-10-31T18:53:44.821419+00:00",
+      "model_version": "context_walk_forward_v3_e116db99e86e_no_change_4h",
+      "selected_model": "no_change",
+      "decided_at_utc": "2026-10-31T19:03:51.669665+00:00",
       "reason_codes": [
         "forward_error_not_better_than_baseline",
         "forward_direction_uncertain",
         "insufficient_prospective_outcomes"
       ],
       "forward_validation": {
-        "samples": 120,
-        "mae": 0.09426916045425515,
-        "skill_vs_zero": -0.22727009071019055,
-        "direction_accuracy": 0.5210084033613446,
-        "direction_samples": 119,
+        "samples": 109,
+        "mae": 0.08480103251164015,
+        "baseline_mae": 0.08480103251164015,
+        "skill_vs_zero": 0.0,
+        "direction_samples": 0,
+        "direction_accuracy": null,
         "direction_wilson_95": [
-          0.43200807211287834,
-          0.6086947984651916
+          null,
+          null
         ],
-        "eligible": false,
-        "empirical_abs_log_error_p90": 0.27948184495412587
+        "empirical_abs_log_error_p90": 0.2588649364282843,
+        "eligible": false
       },
       "prospective": {
-        "samples": 10,
-        "direction_samples": 10,
-        "direction_correct": 6,
-        "direction_accuracy": 0.6,
+        "samples": 0,
+        "direction_samples": 0,
+        "direction_correct": 0,
+        "direction_accuracy": null,
         "direction_wilson_95": [
-          0.31267376973365824,
-          0.8318196702937638
+          null,
+          null
         ],
-        "mae": 0.23055419622707754,
-        "baseline_mae": 0.23079080996184906,
-        "skill_vs_zero": 0.0010252303148926556,
-        "excluded_overlapping_or_old": 9,
+        "mae": null,
+        "baseline_mae": null,
+        "skill_vs_zero": null,
+        "excluded_overlapping_or_old": 0,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
       "policy": {
@@ -107,41 +109,41 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "24h",
-      "model_version": "walk_forward_v2_ridge_24h",
-      "selected_model": "ridge",
-      "decided_at_utc": "2026-10-31T18:53:44.821419+00:00",
+      "model_version": "context_walk_forward_v3_e116db99e86e_hist_absolute_24h",
+      "selected_model": "hist_absolute",
+      "decided_at_utc": "2026-10-31T19:03:51.669665+00:00",
       "reason_codes": [
         "insufficient_forward_validation",
-        "forward_error_not_better_than_baseline",
         "forward_direction_uncertain",
         "insufficient_prospective_outcomes"
       ],
       "forward_validation": {
-        "samples": 23,
-        "mae": 0.24804010068329155,
-        "skill_vs_zero": 0.07520664355680451,
-        "direction_accuracy": 0.6521739130434783,
-        "direction_samples": 23,
+        "samples": 16,
+        "mae": 0.30244048872728657,
+        "baseline_mae": 0.33868602176264995,
+        "skill_vs_zero": 0.10701809554090225,
+        "direction_samples": 16,
+        "direction_accuracy": 0.625,
         "direction_wilson_95": [
-          0.44890335377263,
-          0.8118872406120227
+          0.38641040545502714,
+          0.8151876744113636
         ],
-        "eligible": false,
-        "empirical_abs_log_error_p90": 0.7529814368718944
+        "empirical_abs_log_error_p90": 0.9801471833783209,
+        "eligible": false
       },
       "prospective": {
-        "samples": 1,
-        "direction_samples": 1,
-        "direction_correct": 1,
-        "direction_accuracy": 1.0,
+        "samples": 0,
+        "direction_samples": 0,
+        "direction_correct": 0,
+        "direction_accuracy": null,
         "direction_wilson_95": [
-          0.20654931437723745,
-          1
+          null,
+          null
         ],
-        "mae": 0.27167512760711654,
-        "baseline_mae": 0.3026033385398789,
-        "skill_vs_zero": 0.10220710413175582,
-        "excluded_overlapping_or_old": 6,
+        "mae": null,
+        "baseline_mae": null,
+        "skill_vs_zero": null,
+        "excluded_overlapping_or_old": 0,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
       "policy": {
@@ -157,9 +159,9 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "7d",
-      "model_version": "walk_forward_v2_random_forest_7d",
-      "selected_model": "random_forest",
-      "decided_at_utc": "2026-10-31T18:53:44.821419+00:00",
+      "model_version": "context_walk_forward_v3_e116db99e86e_no_change_7d",
+      "selected_model": "no_change",
+      "decided_at_utc": "2026-10-31T19:03:51.669665+00:00",
       "reason_codes": [
         "insufficient_forward_validation",
         "forward_error_not_better_than_baseline",
@@ -167,17 +169,18 @@
         "insufficient_prospective_outcomes"
       ],
       "forward_validation": {
-        "samples": 2,
-        "mae": 0.45272835318046295,
-        "skill_vs_zero": -0.18469953909396297,
-        "direction_accuracy": 0.5,
-        "direction_samples": 2,
+        "samples": 1,
+        "mae": 0.6850590037101923,
+        "baseline_mae": 0.6850590037101923,
+        "skill_vs_zero": 0.0,
+        "direction_samples": 0,
+        "direction_accuracy": null,
         "direction_wilson_95": [
-          0.09453120573423074,
-          0.9054687942657693
+          null,
+          null
         ],
-        "eligible": false,
-        "empirical_abs_log_error_p90": 0.7568931150319348
+        "empirical_abs_log_error_p90": 0.6850590037101923,
+        "eligible": false
       },
       "prospective": {
         "samples": 0,
