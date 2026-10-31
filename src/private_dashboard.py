@@ -69,7 +69,7 @@ def fetch_mexc_quote():
 
 def fetch_live_candles(frame):
  """Authenticated same-origin OHLCV proxy; reject unsupported intervals and malformed exchange rows."""
- allowed={"15m":"15m","30m":"30m","1h":"60m","2h":"2h","4h":"4h","6h":"6h","12h":"12h","1d":"1d","1w":"1W"}
+ allowed={"1m":"1m","5m":"5m","15m":"15m","30m":"30m","1h":"60m","2h":"2h","4h":"4h","6h":"6h","12h":"12h","1d":"1d","1w":"1W","1M":"1M"}
  if frame not in allowed:raise ValueError("unsupported_frame")
  from urllib.parse import urlencode
  url="https://api.mexc.com/api/v3/klines?"+urlencode({"symbol":"STAMPUSDT","interval":allowed[frame],"limit":500})
@@ -81,7 +81,7 @@ def fetch_live_candles(frame):
  rows=json.loads(body)
  if not isinstance(rows,list):raise ValueError("invalid_candles")
  now=int(time.time()*1000)
- duration={"15m":900000,"30m":1800000,"1h":3600000,"2h":7200000,"4h":14400000,"6h":21600000,"12h":43200000,"1d":86400000,"1w":604800000}[frame]
+ duration={"1m":60000,"5m":300000,"15m":900000,"30m":1800000,"1h":3600000,"2h":7200000,"4h":14400000,"6h":21600000,"12h":43200000,"1d":86400000,"1w":604800000,"1M":2678400000}[frame]
  result=[]
  for row in rows:
   if not isinstance(row,list) or len(row)<6:continue
