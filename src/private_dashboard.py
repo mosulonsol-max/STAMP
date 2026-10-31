@@ -87,7 +87,7 @@ def fetch_live_candles(frame):
   if not isinstance(row,list) or len(row)<6:continue
   t=num(row[0]);o,h,l,c,v=[num(row[i]) for i in (1,2,3,4,5)]
   if t is None or any(x is None or x<=0 for x in (o,h,l,c)) or h<max(o,c) or l>min(o,c) or l>h:continue
-  end=(int(t)+duration) if frame!="1M" else int(dt.datetime.fromtimestamp(int(t)/1000,dt.timezone.utc).replace(day=28).timestamp()*1000)+4*86400000
+  end=int(t)+duration
   if frame=="1M":
    start=dt.datetime.fromtimestamp(int(t)/1000,dt.timezone.utc)
    end=int(dt.datetime(start.year+(start.month==12),start.month%12+1,1,tzinfo=dt.timezone.utc).timestamp()*1000)
