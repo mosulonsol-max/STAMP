@@ -67,6 +67,29 @@ def fetch_mexc_quote():
  except (OSError,HTTPError,URLError,ValueError,TypeError,json.JSONDecodeError) as exc:
   return dict(status="unavailable",source="MEXC public 24h ticker",error=type(exc).__name__)
 
+def fetch_live_candles(frame):
+ """Authenticated same-origin OHLCV proxy; reject unsupported intervals and malformed exchange rows."""
+ allowed={"15m":"15m","30m":"30m","1h":"60m","2h":"2h","4h":"4h","6h":"6h","12h":"12h","1d":"1d","1w":"1W"}
+ if frame not in allowed:raise ValueError("unsupported_frame")
+ from urllib.parse import urlencode
+ url="https://api.mexc.com/api/v3/klines?"+urlencode({"symbol":"STAMPUSDT","interval":allowed[frame],"limit":500})
+ req=Request(url,headers={"Accept":"application/json","User-Agent":"STAMP-private-dashboard/1.0"})
+ with urlopen(req,timeout=8) as response:
+  if response.status!=200:raise ValueError("exchange_http")
+  body=response.read(250001)
+ if len(body)>250000:raise ValueError("oversized_candles")
+ rows=json.loads(body)
+ if not isinstance(rows,list):raise ValueError("invalid_candles")
+ now=int(time.time()*1000)
+ duration={"15m":900000,"30m":1800000,"1h":3600000,"2h":7200000,"4h":14400000,"6h":21600000,"12h":43200000,"1d":86400000,"1w":604800000}[frame]
+ result=[]
+ for row in rows:
+  if not isinstance(row,list) or len(row)<6:continue
+  t=num(row[0]);o,h,l,c,v=[num(row[i]) for i in (1,2,3,4,5)]
+  if t is None or any(x is None or x<=0 for x in (o,h,l,c)) or h<max(o,c) or l>min(o,c) or l>h:continue
+  result.append({"t":int(t),"o":o,"h":h,"l":l,"c":c,"v":v,"closed":int(t)+duration<=now})
+ return {"frame":frame,"symbol":"STAMPUSDT","source":"MEXC REST klines","retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"candles":sorted(result,key=lambda x:x["t"])}
+
 def build():
  token=os.getenv("GITHUB_READ_TOKEN","").strip()
  items={};errors={}
@@ -345,6 +368,11 @@ class Handler(BaseHTTPRequestHandler):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
    return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
+  if path=="/api/candles":
+   frame=parse_qs(urlsplit(self.path).query).get("frame",["15m"])[0]
+   try:return self.send(200,json.dumps(fetch_live_candles(frame),allow_nan=False).encode(),"application/json; charset=utf-8")
+   except ValueError:return self.send(400,b'{"error":"invalid_candle_request"}',"application/json; charset=utf-8")
+   except Exception as exc:return self.send(503,json.dumps({"error":"exchange_candles_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/quote":
    # Independently fetched public exchange quote; research can remain archived.
    # Endpoint stays authenticated, like the rest of the private dashboard.
