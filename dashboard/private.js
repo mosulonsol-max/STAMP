@@ -12,8 +12,9 @@ const age=s=>s&&Number.isFinite(Date.parse(s))?Math.max(0,(Date.now()-Date.parse
 let lang="ar",zone="Asia/Makassar",frame="15m",horizon="1h",data=null,loading=false;
 let stream=null,streamState="connecting",quoteLive=null,quoteLoading=false,lastQuotePoll=0,lastStatsPoll=0;const liveCandles=new Map();
 let chart=null,candleSeries=null,volumeSeries=null,predictedSeries=null,measuredSeries=null,projectionSeries=null,livePriceLine=null,viewKey="",currentBars=[];
-const liveHistory=new Map(),overlaySeries=[];let candleFetchSeq=0,overlayKey="";
+const liveHistory=new Map(),overlaySeries=[];let candleFetchSeq=0,overlayKey="",lastFrameFetch=0;
 async function loadFrame(tf){
+ lastFrameFetch=Date.now();
  const seq=++candleFetchSeq;
  try{
   const response=await fetch("/api/candles?frame="+encodeURIComponent(tf),{credentials:"same-origin",cache:"no-store"});
@@ -108,7 +109,7 @@ function activeCandle(){
 }
 function renderOverlays(bars){
  if(!chart||!window.LightweightCharts)return;
- const key=frame+"|"+bars.length+"|"+(bars[bars.length-1]?.t||0);
+ const key=frame+"|"+bars.length+"|"+(bars[bars.length-1]?.t||0)+"|"+(bars[bars.length-1]?.c||0);
  if(overlayKey===key)return;
  overlayKey=key;
  const L=window.LightweightCharts;
@@ -287,5 +288,5 @@ el("zoneSelect").addEventListener("change",event=>{zone=["UTC","Asia/Baghdad","A
 el("diagnose").addEventListener("click",async()=>{try{const response=await fetch("/api/status",{credentials:"same-origin",cache:"no-store"}),s=await response.json();set("diagnosticResult","API: "+s.api+" · "+stamp(s.observation_utc)+" · "+(s.research_fresh?"FRESH":"ARCHIVED"))}catch(error){set("diagnosticResult",error.message)}});
 translate();refresh();startStream();loadFrame(frame);
 if(window.StampMarket){pollQuote(true);setInterval(()=>{updateFreshness();pollQuote();renderAssurance()},1000)}
-setInterval(()=>{if(!document.hidden){refresh();loadFrame(frame)}},15000);
+setInterval(()=>{if(!document.hidden){refresh();if(Date.now()-lastFrameFetch>55000)loadFrame(frame)}},15000);
 })();
