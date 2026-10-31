@@ -160,7 +160,7 @@ class Inputs:
   last=returns[-24:];prior=returns[-48:-24];v=statistics.pstdev(last) if len(last)>=20 else None;pv=statistics.pstdev(prior) if len(prior)>=20 else None
   c=cs[i]['c'];mean=sum(x['c'] for x in w[-20:])/20;volume=sum(x['v'] for x in w[-21:-1])/20
   gains=sum(max(r,0) for r in last[-14:]);losses=sum(max(-r,0) for r in last[-14:])
-  values={'regime':dict(zip(GROUPS['regime'],[v,v/pv if v is not None and pv else None,(cs[i]['h']-cs[i]['l'])/c,c/mean-1,cs[i]['v']/volume if volume else None,sum(last[-6:]),gains/(gains+losses) if gains+losses else .5]))};status={'regime':{'status':'derived_completed_candles','available_features':sum(number(x) is not None for x in values['regime'].values())}}
+  values={'regime':dict(zip(GROUPS['regime'],[v,v/pv if v is not None and pv else None,(cs[i]['h']-cs[i]['l'])/c,c/mean-1,cs[i]['v']/volume if volume else None,sum(last[-6:]),gains/(gains+losses) if gains+losses else .5]))};status={'regime':{'status':'derived_completed_candles','total_features':len(GROUPS['regime']),'available_features':sum(number(x) is not None for x in values['regime'].values())}}
   market={}
   stamp={b['t']+HOUR:math.log(b['c']/a['c']) for a,b in zip(cs[max(0,i-25):i+1],cs[max(0,i-25)+1:i+1]) if b['t']-a['t']==HOUR}
   for symbol,all_cs in self.context.items():
@@ -172,12 +172,12 @@ class Inputs:
    if len(keys)>=20:
     xs=[rs[k] for k in keys];ys=[stamp[k] for k in keys];xm=statistics.mean(xs);ym=statistics.mean(ys);den=math.sqrt(sum((x-xm)**2 for x in xs)*sum((y-ym)**2 for y in ys));corr=sum((x-xm)*(y-ym) for x,y in zip(xs,ys))/den if den else None
    market.update({symbol+'_return_1h':ret(1),symbol+'_return_24h':ret(24),symbol+'_correlation_24h':corr})
-  values['market']=market;status['market']={'status':'historical_closed_candle_reconstruction','available_features':sum(number(x) is not None for x in market.values()),'policy':'recompute returns/correlations using only exact closed candles at or before reference; no current correlation backfill'}
+  values['market']=market;status['market']={'status':'historical_closed_candle_reconstruction','total_features':len(GROUPS['market']),'available_features':sum(number(x) is not None for x in market.values()),'policy':'recompute returns/correlations using only exact closed candles at or before reference; no current correlation backfill'}
   for g in TTL:
    r,reason=self.at(g,cut);vals=dict(r['values']) if r else {}
    if g=='ticker' and number(vals.get('return_since_closed_reference')) is not None:vals['return_since_closed_reference']=math.log(vals['return_since_closed_reference']/c) if vals['return_since_closed_reference']>0 else None
-   values[g]=vals;status[g]={'status':'used' if r else 'missing','reason':reason,'available_features':sum(number(vals.get(k)) is not None for k in GROUPS[g]),'source':r.get('source') if r else None,'observed_utc':iso(r['observed_ms']) if r else None,'available_utc':iso(r['available_ms']) if r else None}
-  feedback,count=self.feedback(cut);values['feedback']=feedback;status['feedback']={'status':'verified_prospective_journal' if count else 'missing','available_features':sum(number(v) is not None for v in feedback.values()),'verified_outcomes':count,'policy':'Only v3 hourly forecasts; outcome evaluation must have been available by the feature time; no reconstructed future feedback'}
+   values[g]=vals;status[g]={'status':'used' if r else 'missing','reason':reason or (r.get('reason') if r else None),'available_features':sum(number(vals.get(k)) is not None for k in GROUPS[g]),'total_features':len(GROUPS[g]),'source_quality':r.get('status') if r else 'unavailable','source':r.get('source') if r else None,'observed_utc':iso(r['observed_ms']) if r else None,'available_utc':iso(r['available_ms']) if r else None}
+  feedback,count=self.feedback(cut);values['feedback']=feedback;status['feedback']={'status':'verified_prospective_journal' if count else 'missing','available_features':sum(number(v) is not None for v in feedback.values()),'verified_outcomes':count,'total_features':len(GROUPS['feedback']),'policy':'Only v3 hourly forecasts; outcome evaluation must have been available by the feature time; no reconstructed future feedback'}
   self.cache[key]=(values,status);return values,status
  def vector(self,cs,i,drop=None):
   vals,_=self.values(cs,i);out=[]
@@ -209,7 +209,7 @@ class Inputs:
   for group in TTL:
    row,reason=self.at(group,cut);index=bisect.bisect_right(self.times.get(group,[]),cut)-1
    observed=self.by[group][index] if index>=0 else None
-   result[group]={'status':'available' if row else 'missing','reason':reason,'source':observed.get('source') if observed else None,'observed_utc':iso(observed['observed_ms']) if observed else None,'available_utc':iso(observed['available_ms']) if observed else None,'nonmissing_features':sum(number((row.get('values') or {}).get(k)) is not None for k in GROUPS[group]) if row else 0}
+   result[group]={'status':'available' if row else 'missing','quality':row.get('status') if row else 'unavailable','reason':reason or (row.get('reason') if row else None),'source':observed.get('source') if observed else None,'observed_utc':iso(observed['observed_ms']) if observed else None,'available_utc':iso(observed['available_ms']) if observed else None,'nonmissing_features':sum(number((row.get('values') or {}).get(k)) is not None for k in GROUPS[group]) if row else 0}
   return result
  def manifest(self,cs,i):
   _,status=self.values(cs,i);return {'schema':SCHEMA,'reference_utc':iso(cs[i]['t']+HOUR),'features':10+len(NAMES),'groups':status,'policy':'Available timestamps <= closed reference; explicit availability masks; no future or unverified truth backfill'}

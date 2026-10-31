@@ -1,5 +1,5 @@
 """Diagnostic instrumentation must preserve forecasts and expose causal test errors."""
-import datetime as dt,math,pathlib,sys,unittest
+import datetime as dt,math,pathlib,sys,unittest,json,tempfile,subprocess
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/'src'))
 from prediction_engine import evaluate,HOUR
 from model_diagnosis import metrics
@@ -25,3 +25,14 @@ class ModelDiagnosisTests(unittest.TestCase):
  def test_zero_baseline_and_error_bias_are_not_hidden(self):
   m=metrics([.1,-.1],[0,0]);self.assertEqual(m['skill_vs_zero'],0);self.assertIsNone(m['direction_accuracy'])
   m=metrics([.1,.2],[-.1,-.2]);self.assertLess(m['skill_vs_zero'],0);self.assertLess(m['signed_bias'],0);self.assertEqual(m['error_larger_than_actual_move_fraction'],1)
+
+ def test_context_diagnosis_command_writes_report_without_legacy_quality_key(self):
+  root_source=pathlib.Path(__file__).resolve().parents[1]
+  with tempfile.TemporaryDirectory() as directory:
+   root=pathlib.Path(directory);(root/'data/candles').mkdir(parents=True)
+   (root/'data/candles/1h.json').write_text('[]')
+   (root/'data/learning_controller.json').write_text(json.dumps({'engine':'context_walk_forward_v3','at_utc':'2026-10-31T19:00:00+00:00','horizons':{},'runtime':{}}))
+   output=root/'report.json'
+   result=subprocess.run([sys.executable,str(root_source/'src/model_diagnosis.py'),'--root',str(root),'--output',str(output)],capture_output=True,text=True,timeout=20)
+   self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+   self.assertEqual(json.loads(output.read_text())['engine'],'context_walk_forward_v3')

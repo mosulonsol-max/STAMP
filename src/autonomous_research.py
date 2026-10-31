@@ -18,6 +18,7 @@ def run(root=ROOT,now=None):
     reused=previous.get('training_fingerprint')==fingerprint and previous.get('horizons')
     reports=copy.deepcopy(previous['horizons']) if reused else {h:evaluate(cs,h,now,inputs) for h in HORIZONS}
     for r in reports.values():
+        if len(closed)>=26:r['input_manifest']=inputs.manifest(closed,len(closed)-1)
         r['source_access']=inputs.inventory(int(now.timestamp()*1000));r['reused_unchanged_training_inputs']=bool(reused)
         r['last_reassessment_at_utc']=now.isoformat()
     for h,current in reports.items():

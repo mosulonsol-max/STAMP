@@ -105,4 +105,4 @@ def diagnose(root=ROOT,now=None,source_commit=None):
 if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser();parser.add_argument('--root',type=pathlib.Path,default=ROOT);parser.add_argument('--source-commit');parser.add_argument('--output',type=pathlib.Path,required=True);args=parser.parse_args()
-    report=diagnose(args.root,source_commit=args.source_commit);args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({'report':str(args.output),'data_quality':report['data_quality']}))
+    report=diagnose(args.root,source_commit=args.source_commit);args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({'report':str(args.output),'data_quality':report.get('data_quality',{'status':report.get('status','reported')})}))
