@@ -12,6 +12,19 @@ const age=s=>s&&Number.isFinite(Date.parse(s))?Math.max(0,(Date.now()-Date.parse
 let lang="ar",zone="Asia/Makassar",frame="15m",horizon="1h",data=null,loading=false;
 let stream=null,streamState="connecting",quoteLive=null,quoteLoading=false,lastQuotePoll=0,lastStatsPoll=0;const liveCandles=new Map();
 let chart=null,candleSeries=null,volumeSeries=null,predictedSeries=null,measuredSeries=null,projectionSeries=null,livePriceLine=null,viewKey="",currentBars=[];
+const liveHistory=new Map(),overlaySeries=[];let candleFetchSeq=0;
+async function loadFrame(tf){
+ const seq=++candleFetchSeq;
+ try{
+  const response=await fetch("/api/candles?frame="+encodeURIComponent(tf),{credentials:"same-origin",cache:"no-store"});
+  if(!response.ok)throw Error("OHLCV HTTP "+response.status);
+  const payload=await response.json();
+  if(payload.frame!==tf||payload.symbol!=="STAMPUSDT"||!Array.isArray(payload.candles))throw Error("Invalid OHLCV");
+  liveHistory.set(tf,payload.candles);
+  if(seq===candleFetchSeq&&frame===tf&&data)renderChart();
+ }catch(error){if(seq===candleFetchSeq&&frame===tf){set("activeCandle","Live OHLCV unavailable: "+error.message);}}
+}
+
 try{lang=localStorage.getItem("stamp_language")==="en"?"en":"ar";const saved=localStorage.getItem("stamp_timezone");if(["UTC","Asia/Baghdad","Asia/Makassar"].includes(saved))zone=saved}catch(e){}
 const words={
 ar:{inputsTitle:"مدخلات المحرك وكيف استُخدمت",inputGroup:"مجموعة البيانات",inputUsed:"عند مرجع التوقع",inputAccess:"الوصول الحالي",inputCoverage:"تغطية الاختبار",used:"متاحة",missing:"ناقصة / مستبعدة",regime:"المؤشرات وتغير نظام الحركة",market:"BTC / ETH / SOL / ZEC",ticker:"السعر وإحصاءات التداول",orderbook:"دفتر الأوامر",trades:"الصفقات المنفذة",dex:"سيولة وقيمة DEX",onchain:"المعروض والمحافظ والحرق",news:"الأخبار والإشارات المتحققة",project:"نشاط المشروع الموثق",macro:"حركة السوق العامة",derivatives:"العقود والمراكز والتمويل",feedback:"أخطاء التوقعات السابقة المتحققة",assuranceTitle:"فحص الإنتاج وصلاحية النتائج والتوسع",streamLive:"بث MEXC متصل",streamFallback:"بث غير متاح · تحديث احتياطي تلقائي",streamConnecting:"جارٍ الاتصال ببث MEXC",staleData:"البيانات متأخرة",dataSeconds:"ثانية منذ آخر سعر",forming:"شمعة جارية غير مغلقة · لا تدخل في تقييم النموذج",closedOnly:"الشموع المعروضة مغلقة؛ بانتظار تحديث الشمعة الجارية",production:"سلامة الإنتاج",quality:"صلاحية التوقع",healthy:"سليم",degraded:"يحتاج مراجعة",failed_evidence:"لم يجتز اختبار الجودة",insufficient_evidence:"أدلة غير كافية",approved_research:"معتمد للبحث",rolloutBlocked:"التوسع إلى جميع الأزواج غير معتمد: يلزم اختبار مستقل لكل زوج واختبار الحمل وعزل البيانات.",forwardSamples:"عينات الاختبار",verifiedSamples:"نتائج مستقبلية مستقلة",skill:"تحسن الخطأ مقابل ثبات السعر",direction:"دقة الاتجاه",interval:"نطاق الثقة 95%",overdue:"نتائج متأخرة غير متحققة",zoomIn:"تكبير +",zoomOut:"تصغير −",earlier:"← أقدم",later:"أحدث →",chartHelp:"اسحب للتنقل، وقرّب بإصبعين أو بعجلة الفأرة. المس الشمعة لعرض تفاصيلها. لوحة المفاتيح: + و − والأسهم، و Home لإعادة العرض.",candleVolume:"الحجم",refresh:"تحديث",settings:"الإعدادات",change24:"خلال 24 ساعة",liquidity:"السيولة المرصودة · DEX",marketCap:"القيمة السوقية · DEX",volume24:"حجم التداول 24 ساعة · USDT",high24:"أعلى سعر 24 ساعة · USDT",low24:"أدنى سعر 24 ساعة · USDT",forecastHorizon:"أفق التوقع",last24:"آخر 24 ساعة",candles:"شموع مغلقة",predicted:"توقع مسجّل",measured:"نتيجة مقاسة",nextForecast:"إسقاط آخر توقع",export:"تنزيل الشموع CSV",auditDetails:"سبب قرار المحرك وسجل التوقعات",language:"اللغة",timezone:"توقيت الرسم والبيانات",diagnostics:"فحص الاتصال",password:"تغيير كلمة المرور في Vercel",passwordHelp:"حدّث DASHBOARD_PASSWORD ثم أعد نشر التطبيق.",logout:"تسجيل الخروج",approved:"معتمد آليًا",experimental:"تجريبي آليًا",awaiting:"بانتظار قرار المحرك",live:"سعر مباشر",archive:"سعر مؤرشف",unavailable:"غير متاح",correct:"صحيح",wrong:"خاطئ",pending:"معلّق",unknown:"غير متحقق",approximate:"قياس تاريخي تقريبي",exact:"قياس عند الموعد",insufficientCandles:"لا توجد شموع مغلقة كافية لهذه الفترة",chartUnavailable:"تعذر تحميل محرك الرسم",target:"التوقع",due:"الموعد",reference:"المرجع",recordedAt:"صدر",observed:"تحقق",outcome:"النتيجة",decisionSource:"قرار محرك النماذج الداخلي",oldDecision:"قرار مؤرشف",noForecast:"لا يوجد توقع مسجّل لهذا الأفق",forecastExpired:"انتهى الأفق؛ تظهر النتيجة بعد تحقق القياس",model:"النموذج",samples:"نتائج مستقلة",forward:"اختبار زمني خارج التدريب",prospective:"نتائج مستقبلية تم التحقق منها",autoNote:"يعيد المحرك تقييم الاعتماد تلقائيًا؛ لا توجد موافقة يدوية في الواجهة."},
@@ -21,6 +34,12 @@ const stamp=value=>{if(!value||!Number.isFinite(Date.parse(value)))return "—";
 const FRAME_MS={"15m":900000,"30m":1800000,"1h":3600000,"2h":7200000,"4h":14400000,"6h":21600000,"12h":43200000,"1d":86400000,"1w":604800000};
 const FRAME_SOURCE={"30m":"15m","2h":"1h","6h":"1h","12h":"1h","1w":"1d"};
 function chartCandles(tf){
+ const direct=liveHistory.get(tf);
+ if(direct?.length){
+  const duration=FRAME_MS[tf],now=Date.now();
+  return direct.filter(c=>c.closed&&c.t+duration<=now).map(c=>({...c})).sort((a,b)=>a.t-b.t);
+ }
+
  const source=FRAME_SOURCE[tf]||tf,step=FRAME_MS[source],duration=FRAME_MS[tf],unique=new Map();
  for(const c of data?.candles?.[source]||[]){
   const values=[c.o,c.h,c.l,c.c].map(n),time=n(c.t);
@@ -87,6 +106,45 @@ function activeCandle(){
  }
  return c&&age(c.observed_utc)!==null&&age(c.observed_utc)<=15&&c.t<=Date.now()&&c.end>Date.now()?c:null;
 }
+function renderOverlays(bars){
+ if(!chart||!window.LightweightCharts)return;
+ const L=window.LightweightCharts;
+ while(overlaySeries.length){try{chart.removeSeries(overlaySeries.pop())}catch(e){}}
+ if(bars.length<30)return;
+ const add=(points,color,title,style=L.LineStyle.Solid)=>{
+  if(points.length<2)return;
+  const series=chart.addSeries(L.LineSeries,{color,title,lineWidth:1,lineStyle:style,priceLineVisible:false,lastValueVisible:false,pointMarkersVisible:false});
+  series.setData(points.map(p=>({time:p.t/1000,value:p.v})));overlaySeries.push(series);
+ };
+ // Ichimoku uses historical, closed candles only; future cloud displacement is not fabricated.
+ const mid=(i,len)=>{if(i<len-1)return null;const slice=bars.slice(i-len+1,i+1);return (Math.max(...slice.map(x=>x.h))+Math.min(...slice.map(x=>x.l)))/2};
+ const ten=[],kij=[],spanA=[],spanB=[];
+ for(let i=0;i<bars.length;i++){
+  const x=mid(i,9),y=mid(i,26),z=mid(i,52),t=bars[i].t;
+  if(x!==null)ten.push({t,v:x});
+  if(y!==null)kij.push({t,v:y});
+  if(x!==null&&y!==null&&i+26<bars.length)spanA.push({t:bars[i+26].t,v:(x+y)/2});
+  if(z!==null&&i+26<bars.length)spanB.push({t:bars[i+26].t,v:z});
+ }
+ add(ten,"#33c7d5","Ichimoku Tenkan");add(kij,"#e2a557","Ichimoku Kijun");
+ add(spanA,"#3f9e91","Ichimoku Span A",L.LineStyle.Dashed);add(spanB,"#d27686","Ichimoku Span B",L.LineStyle.Dashed);
+ // Fibonacci uses the observed high-low range of the most recent 100 closed bars.
+ const recent=bars.slice(-100),hi=Math.max(...recent.map(x=>x.h)),lo=Math.min(...recent.map(x=>x.l));
+ for(const level of [0,.236,.382,.5,.618,.786,1]){
+  const v=lo+(hi-lo)*level;
+  add([{t:recent[0].t,v},{t:recent[recent.length-1].t,v}],"#a18bbf","Fib "+level,L.LineStyle.Dotted);
+ }
+ // Confirmed pivot zigzag: descriptive Elliott swing candidates, not validated wave labels.
+ const pivots=[];
+ for(let i=3;i<bars.length-3;i++){
+  const window=bars.slice(i-3,i+4),b=bars[i];
+  if(window.every((x,j)=>j===3||b.h>x.h))pivots.push({t:b.t,v:b.h,type:"high"});
+  else if(window.every((x,j)=>j===3||b.l<x.l))pivots.push({t:b.t,v:b.l,type:"low"});
+ }
+ const alternating=[];
+ for(const p of pivots){const last=alternating[alternating.length-1];if(last?.type===p.type){if((p.type==="high"&&p.v>last.v)||(p.type==="low"&&p.v<last.v))alternating[alternating.length-1]=p}else alternating.push(p)}
+ add(alternating.slice(-15),"#f3ce68","Elliott candidate swings",L.LineStyle.Solid);
+}
 function renderChart(){
  if(!initChart())return;
  currentBars=chartCandles(frame);const empty=el("chartEmpty");empty.hidden=currentBars.length>=2;
@@ -94,6 +152,7 @@ function renderChart(){
  const forming=activeCandle(),displayBars=forming?[...currentBars.filter(c=>c.t<forming.t),forming]:currentBars;
  set("activeCandle",forming?t("forming"):t("closedOnly"));el("chart").dataset.forming=String(!!forming);
  candleSeries.setData(displayBars.map(c=>({time:c.t/1000,open:c.o,high:c.h,low:c.l,close:c.c})));
+ renderOverlays(currentBars);
  volumeSeries.setData(displayBars.filter(c=>c.v!==null&&c.v>=0).map(c=>({time:c.t/1000,value:c.v,color:c.c>=c.o?"#4bd0a040":"#f0869440"})));
  const rows=(data?.forecast_review?.rows||[]).filter(r=>r.horizon===horizon);
  // Prediction targets and measured outcomes keep their actual timestamps. An
@@ -213,7 +272,7 @@ async function refresh(){if(loading)return;loading=true;el("refresh").disabled=t
  try{const response=await fetch("/api/quote",{credentials:"same-origin",cache:"no-store",signal:quoteController.signal});if(response.status===401){window.location.href="/login";throw Error("AUTH_401")}if(response.ok){const body=await response.json();if(body.quote?.status==="fresh")result={...result,live_quote:body.quote}}}catch(quoteError){if(quoteError.message==="AUTH_401")throw quoteError}finally{clearTimeout(quoteTimer)}
 }render(result,origin)}catch(error){set("status","ERROR");el("warning").hidden=false;set("warning",error.message)}finally{loading=false;el("refresh").disabled=false}}
 function exportCsv(){const bars=chartCandles(frame),lines=["utc_open,open,high,low,close,volume",...bars.map(c=>[new Date(c.t).toISOString(),c.o,c.h,c.l,c.c,c.v??""].join(","))].join("\r\n");const url=URL.createObjectURL(new Blob([lines],{type:"text/csv"})),a=document.createElement("a");a.href=url;a.download="STAMP_"+frame+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-document.querySelectorAll("[data-frame]").forEach(button=>button.addEventListener("click",()=>{frame=button.dataset.frame;document.querySelectorAll("[data-frame]").forEach(b=>b.setAttribute("aria-pressed",String(b===button)));renderChart()}));
+document.querySelectorAll("[data-frame]").forEach(button=>button.addEventListener("click",()=>{frame=button.dataset.frame;document.querySelectorAll("[data-frame]").forEach(b=>b.setAttribute("aria-pressed",String(b===button)));renderChart();loadFrame(frame)}));
 el("forecastHorizon").addEventListener("change",event=>{horizon=["1h","4h","24h","7d"].includes(event.target.value)?event.target.value:"1h";renderForecasts();renderChart();renderAssurance();renderInputs()});
 for(const [id,action] of [["zoomIn","in"],["zoomOut","out"],["panEarlier","earlier"],["panLater","later"]])el(id).addEventListener("click",()=>navigateChart(action));
 el("chart").addEventListener("keydown",event=>{const actions={"+":"in","=":"in","-":"out","ArrowLeft":"earlier","ArrowRight":"later"};if(actions[event.key]){event.preventDefault();navigateChart(actions[event.key])}else if(event.key==="Home"){event.preventDefault();resetChartRange()}});
@@ -223,7 +282,7 @@ el("logoutButton").addEventListener("click",async()=>{try{await fetch("/logout",
 el("langSelect").addEventListener("change",event=>{lang=event.target.value==="en"?"en":"ar";try{localStorage.setItem("stamp_language",lang)}catch(e){}translate();if(data)render(data)});
 el("zoneSelect").addEventListener("change",event=>{zone=["UTC","Asia/Baghdad","Asia/Makassar"].includes(event.target.value)?event.target.value:"UTC";try{localStorage.setItem("stamp_timezone",zone)}catch(e){}translate();if(data)render(data)});
 el("diagnose").addEventListener("click",async()=>{try{const response=await fetch("/api/status",{credentials:"same-origin",cache:"no-store"}),s=await response.json();set("diagnosticResult","API: "+s.api+" · "+stamp(s.observation_utc)+" · "+(s.research_fresh?"FRESH":"ARCHIVED"))}catch(error){set("diagnosticResult",error.message)}});
-translate();refresh();startStream();
+translate();refresh();startStream();loadFrame(frame);
 if(window.StampMarket){pollQuote(true);setInterval(()=>{updateFreshness();pollQuote();renderAssurance()},1000)}
-setInterval(()=>{if(!document.hidden)refresh()},15000);
+setInterval(()=>{if(!document.hidden){refresh();loadFrame(frame)}},15000);
 })();
