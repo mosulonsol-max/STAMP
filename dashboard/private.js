@@ -38,7 +38,7 @@ function chartCandles(tf){
  const direct=liveHistory.get(tf);
  if(direct?.length){
   const duration=FRAME_MS[tf],now=Date.now();
-  return direct.filter(c=>c.closed&&c.t+duration<=now).map(c=>({...c})).sort((a,b)=>a.t-b.t);
+  return direct.filter(c=>c.closed&&(tf==="1M"?(()=>{const d=new Date(c.t);return Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,1)<=now})():c.t+duration<=now)).map(c=>({...c})).sort((a,b)=>a.t-b.t);
  }
 
  const source=FRAME_SOURCE[tf]||tf,step=FRAME_MS[source],duration=FRAME_MS[tf],unique=new Map();
