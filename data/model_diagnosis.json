@@ -1,13 +1,17 @@
 {
-  "generated_at_utc": "2026-10-31T19:04:05.365876+00:00",
+  "generated_at_utc": "2026-10-31T19:07:16.111021+00:00",
   "replay_asof_utc": "2026-10-31T19:02:24.660734+00:00",
-  "source_commit": "c8721a8240c6ebf01c757df81193b1816e40bd53",
+  "source_commit": "1c303bbe62a15e98c6bf31f3eb5d22eaceb8b881",
   "engine": "context_walk_forward_v3",
   "runtime": {
     "python": "3.11.17",
     "numpy": "2.4.6",
     "scikit-learn": "1.9.1",
     "scipy": "1.17.1"
+  },
+  "data_quality": {
+    "valid_closed_rows": 725,
+    "missing_hour_intervals": 0
   },
   "candles_sha256": "8972eb790b611be42c5a61a159490c1bad314d09c41dc7569ac17adb9c987c68",
   "horizons": {
@@ -128,10 +132,12 @@
         "groups": {
           "regime": {
             "status": "derived_completed_candles",
+            "total_features": 7,
             "available_features": 7
           },
           "market": {
             "status": "historical_closed_candle_reconstruction",
+            "total_features": 12,
             "available_features": 12,
             "policy": "recompute returns/correlations using only exact closed candles at or before reference; no current correlation backfill"
           },
@@ -139,6 +145,8 @@
             "status": "used",
             "reason": null,
             "available_features": 4,
+            "total_features": 4,
+            "source_quality": "measured",
             "source": "MEXC ticker; raw price normalized against reference at vector construction",
             "observed_utc": "2026-10-31T18:53:38.534000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -147,6 +155,8 @@
             "status": "used",
             "reason": null,
             "available_features": 5,
+            "total_features": 5,
+            "source_quality": "measured",
             "source": "MEXC depth snapshot",
             "observed_utc": "2026-10-31T18:53:38.266000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -155,6 +165,8 @@
             "status": "used",
             "reason": null,
             "available_features": 3,
+            "total_features": 3,
+            "source_quality": "measured",
             "source": "MEXC limited executed trade sample",
             "observed_utc": "2026-10-31T18:53:34.982000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -163,6 +175,8 @@
             "status": "used",
             "reason": null,
             "available_features": 3,
+            "total_features": 3,
+            "source_quality": "measured",
             "source": "DexScreener exact mint, pool deduplication",
             "observed_utc": "2026-10-31T18:53:39.443000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -171,6 +185,8 @@
             "status": "missing",
             "reason": "no_point_in_time_observation",
             "available_features": 0,
+            "total_features": 4,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -179,6 +195,8 @@
             "status": "missing",
             "reason": "no_point_in_time_observation",
             "available_features": 0,
+            "total_features": 18,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -187,6 +205,8 @@
             "status": "missing",
             "reason": "Repository identity not verified against the mint",
             "available_features": 0,
+            "total_features": 1,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -195,6 +215,8 @@
             "status": "used",
             "reason": null,
             "available_features": 4,
+            "total_features": 4,
+            "source_quality": "measured",
             "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
             "observed_utc": "2026-10-31T18:52:48+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -203,6 +225,8 @@
             "status": "missing",
             "reason": "No derivative instrument verified against the mint",
             "available_features": 0,
+            "total_features": 2,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -211,6 +235,7 @@
             "status": "missing",
             "available_features": 0,
             "verified_outcomes": 0,
+            "total_features": 5,
             "policy": "Only v3 hourly forecasts; outcome evaluation must have been available by the feature time; no reconstructed future feedback"
           }
         },
@@ -219,78 +244,87 @@
       "source_access": {
         "ticker": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC ticker; raw price normalized against reference at vector construction",
-          "observed_utc": "2026-10-31T19:02:19.652000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:50.036000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "orderbook": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC depth snapshot",
-          "observed_utc": "2026-10-31T19:02:19.970000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:50.205000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "trades": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC limited executed trade sample",
-          "observed_utc": "2026-10-31T19:02:06.093000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:09.602000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 3
         },
         "dex": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "DexScreener exact mint, pool deduplication",
-          "observed_utc": "2026-10-31T19:02:21.378000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.239000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 3
         },
         "onchain": {
           "status": "available",
-          "reason": null,
+          "quality": "measured",
+          "reason": "Recent verified burns only; no full burn history is inferred",
           "source": "Solana finalized exact mint",
-          "observed_utc": "2026-10-31T19:02:21.997000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.858000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "news": {
           "status": "available",
-          "reason": null,
+          "quality": "partial",
+          "reason": "Verified text and unverified discovery text are separate stateless hashed features; unverified text is search activity, never truth, sentiment or price causality",
           "source": "Exact-contract discovery and verified evidence registry",
-          "observed_utc": "2026-10-31T19:02:24.541000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:53.510000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 10
         },
         "project": {
           "status": "missing",
+          "quality": "unavailable",
           "reason": "Repository identity not verified against the mint",
           "source": "Verified project repository only",
-          "observed_utc": "2026-10-31T19:02:21.606000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.365000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 0
         },
         "macro": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-          "observed_utc": "2026-10-31T19:01:57+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:05:53+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "derivatives": {
           "status": "missing",
+          "quality": "unavailable",
           "reason": "No derivative instrument verified against the mint",
           "source": "Verified derivative instrument only",
-          "observed_utc": "2026-10-31T19:02:24.660000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:53.686000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 0
         }
       },
-      "source_access_checked_at_utc": "2026-10-31T19:02:24.660734+00:00",
+      "source_access_checked_at_utc": "2026-10-31T19:06:53.686675+00:00",
       "feature_coverage": {
         "regime": {
           "evaluation_points": 120,
@@ -710,10 +744,12 @@
         "groups": {
           "regime": {
             "status": "derived_completed_candles",
+            "total_features": 7,
             "available_features": 7
           },
           "market": {
             "status": "historical_closed_candle_reconstruction",
+            "total_features": 12,
             "available_features": 12,
             "policy": "recompute returns/correlations using only exact closed candles at or before reference; no current correlation backfill"
           },
@@ -721,6 +757,8 @@
             "status": "used",
             "reason": null,
             "available_features": 4,
+            "total_features": 4,
+            "source_quality": "measured",
             "source": "MEXC ticker; raw price normalized against reference at vector construction",
             "observed_utc": "2026-10-31T18:53:38.534000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -729,6 +767,8 @@
             "status": "used",
             "reason": null,
             "available_features": 5,
+            "total_features": 5,
+            "source_quality": "measured",
             "source": "MEXC depth snapshot",
             "observed_utc": "2026-10-31T18:53:38.266000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -737,6 +777,8 @@
             "status": "used",
             "reason": null,
             "available_features": 3,
+            "total_features": 3,
+            "source_quality": "measured",
             "source": "MEXC limited executed trade sample",
             "observed_utc": "2026-10-31T18:53:34.982000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -745,6 +787,8 @@
             "status": "used",
             "reason": null,
             "available_features": 3,
+            "total_features": 3,
+            "source_quality": "measured",
             "source": "DexScreener exact mint, pool deduplication",
             "observed_utc": "2026-10-31T18:53:39.443000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -753,6 +797,8 @@
             "status": "missing",
             "reason": "no_point_in_time_observation",
             "available_features": 0,
+            "total_features": 4,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -761,6 +807,8 @@
             "status": "missing",
             "reason": "no_point_in_time_observation",
             "available_features": 0,
+            "total_features": 18,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -769,6 +817,8 @@
             "status": "missing",
             "reason": "Repository identity not verified against the mint",
             "available_features": 0,
+            "total_features": 1,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -777,6 +827,8 @@
             "status": "used",
             "reason": null,
             "available_features": 4,
+            "total_features": 4,
+            "source_quality": "measured",
             "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
             "observed_utc": "2026-10-31T18:52:48+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -785,6 +837,8 @@
             "status": "missing",
             "reason": "No derivative instrument verified against the mint",
             "available_features": 0,
+            "total_features": 2,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -793,6 +847,7 @@
             "status": "missing",
             "available_features": 0,
             "verified_outcomes": 0,
+            "total_features": 5,
             "policy": "Only v3 hourly forecasts; outcome evaluation must have been available by the feature time; no reconstructed future feedback"
           }
         },
@@ -801,78 +856,87 @@
       "source_access": {
         "ticker": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC ticker; raw price normalized against reference at vector construction",
-          "observed_utc": "2026-10-31T19:02:19.652000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:50.036000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "orderbook": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC depth snapshot",
-          "observed_utc": "2026-10-31T19:02:19.970000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:50.205000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "trades": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC limited executed trade sample",
-          "observed_utc": "2026-10-31T19:02:06.093000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:09.602000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 3
         },
         "dex": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "DexScreener exact mint, pool deduplication",
-          "observed_utc": "2026-10-31T19:02:21.378000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.239000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 3
         },
         "onchain": {
           "status": "available",
-          "reason": null,
+          "quality": "measured",
+          "reason": "Recent verified burns only; no full burn history is inferred",
           "source": "Solana finalized exact mint",
-          "observed_utc": "2026-10-31T19:02:21.997000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.858000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "news": {
           "status": "available",
-          "reason": null,
+          "quality": "partial",
+          "reason": "Verified text and unverified discovery text are separate stateless hashed features; unverified text is search activity, never truth, sentiment or price causality",
           "source": "Exact-contract discovery and verified evidence registry",
-          "observed_utc": "2026-10-31T19:02:24.541000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:53.510000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 10
         },
         "project": {
           "status": "missing",
+          "quality": "unavailable",
           "reason": "Repository identity not verified against the mint",
           "source": "Verified project repository only",
-          "observed_utc": "2026-10-31T19:02:21.606000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.365000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 0
         },
         "macro": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-          "observed_utc": "2026-10-31T19:01:57+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:05:53+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "derivatives": {
           "status": "missing",
+          "quality": "unavailable",
           "reason": "No derivative instrument verified against the mint",
           "source": "Verified derivative instrument only",
-          "observed_utc": "2026-10-31T19:02:24.660000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:53.686000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 0
         }
       },
-      "source_access_checked_at_utc": "2026-10-31T19:02:24.660734+00:00",
+      "source_access_checked_at_utc": "2026-10-31T19:06:53.686675+00:00",
       "feature_coverage": {
         "regime": {
           "evaluation_points": 109,
@@ -1277,10 +1341,12 @@
         "groups": {
           "regime": {
             "status": "derived_completed_candles",
+            "total_features": 7,
             "available_features": 7
           },
           "market": {
             "status": "historical_closed_candle_reconstruction",
+            "total_features": 12,
             "available_features": 12,
             "policy": "recompute returns/correlations using only exact closed candles at or before reference; no current correlation backfill"
           },
@@ -1288,6 +1354,8 @@
             "status": "used",
             "reason": null,
             "available_features": 4,
+            "total_features": 4,
+            "source_quality": "measured",
             "source": "MEXC ticker; raw price normalized against reference at vector construction",
             "observed_utc": "2026-10-31T18:53:38.534000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -1296,6 +1364,8 @@
             "status": "used",
             "reason": null,
             "available_features": 5,
+            "total_features": 5,
+            "source_quality": "measured",
             "source": "MEXC depth snapshot",
             "observed_utc": "2026-10-31T18:53:38.266000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -1304,6 +1374,8 @@
             "status": "used",
             "reason": null,
             "available_features": 3,
+            "total_features": 3,
+            "source_quality": "measured",
             "source": "MEXC limited executed trade sample",
             "observed_utc": "2026-10-31T18:53:34.982000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -1312,6 +1384,8 @@
             "status": "used",
             "reason": null,
             "available_features": 3,
+            "total_features": 3,
+            "source_quality": "measured",
             "source": "DexScreener exact mint, pool deduplication",
             "observed_utc": "2026-10-31T18:53:39.443000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -1320,6 +1394,8 @@
             "status": "missing",
             "reason": "no_point_in_time_observation",
             "available_features": 0,
+            "total_features": 4,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -1328,6 +1404,8 @@
             "status": "missing",
             "reason": "no_point_in_time_observation",
             "available_features": 0,
+            "total_features": 18,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -1336,6 +1414,8 @@
             "status": "missing",
             "reason": "Repository identity not verified against the mint",
             "available_features": 0,
+            "total_features": 1,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -1344,6 +1424,8 @@
             "status": "used",
             "reason": null,
             "available_features": 4,
+            "total_features": 4,
+            "source_quality": "measured",
             "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
             "observed_utc": "2026-10-31T18:52:48+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -1352,6 +1434,8 @@
             "status": "missing",
             "reason": "No derivative instrument verified against the mint",
             "available_features": 0,
+            "total_features": 2,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -1360,6 +1444,7 @@
             "status": "missing",
             "available_features": 0,
             "verified_outcomes": 0,
+            "total_features": 5,
             "policy": "Only v3 hourly forecasts; outcome evaluation must have been available by the feature time; no reconstructed future feedback"
           }
         },
@@ -1368,78 +1453,87 @@
       "source_access": {
         "ticker": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC ticker; raw price normalized against reference at vector construction",
-          "observed_utc": "2026-10-31T19:02:19.652000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:50.036000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "orderbook": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC depth snapshot",
-          "observed_utc": "2026-10-31T19:02:19.970000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:50.205000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "trades": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC limited executed trade sample",
-          "observed_utc": "2026-10-31T19:02:06.093000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:09.602000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 3
         },
         "dex": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "DexScreener exact mint, pool deduplication",
-          "observed_utc": "2026-10-31T19:02:21.378000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.239000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 3
         },
         "onchain": {
           "status": "available",
-          "reason": null,
+          "quality": "measured",
+          "reason": "Recent verified burns only; no full burn history is inferred",
           "source": "Solana finalized exact mint",
-          "observed_utc": "2026-10-31T19:02:21.997000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.858000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "news": {
           "status": "available",
-          "reason": null,
+          "quality": "partial",
+          "reason": "Verified text and unverified discovery text are separate stateless hashed features; unverified text is search activity, never truth, sentiment or price causality",
           "source": "Exact-contract discovery and verified evidence registry",
-          "observed_utc": "2026-10-31T19:02:24.541000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:53.510000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 10
         },
         "project": {
           "status": "missing",
+          "quality": "unavailable",
           "reason": "Repository identity not verified against the mint",
           "source": "Verified project repository only",
-          "observed_utc": "2026-10-31T19:02:21.606000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.365000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 0
         },
         "macro": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-          "observed_utc": "2026-10-31T19:01:57+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:05:53+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "derivatives": {
           "status": "missing",
+          "quality": "unavailable",
           "reason": "No derivative instrument verified against the mint",
           "source": "Verified derivative instrument only",
-          "observed_utc": "2026-10-31T19:02:24.660000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:53.686000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 0
         }
       },
-      "source_access_checked_at_utc": "2026-10-31T19:02:24.660734+00:00",
+      "source_access_checked_at_utc": "2026-10-31T19:06:53.686675+00:00",
       "feature_coverage": {
         "regime": {
           "evaluation_points": 16,
@@ -1627,10 +1721,12 @@
         "groups": {
           "regime": {
             "status": "derived_completed_candles",
+            "total_features": 7,
             "available_features": 7
           },
           "market": {
             "status": "historical_closed_candle_reconstruction",
+            "total_features": 12,
             "available_features": 12,
             "policy": "recompute returns/correlations using only exact closed candles at or before reference; no current correlation backfill"
           },
@@ -1638,6 +1734,8 @@
             "status": "used",
             "reason": null,
             "available_features": 4,
+            "total_features": 4,
+            "source_quality": "measured",
             "source": "MEXC ticker; raw price normalized against reference at vector construction",
             "observed_utc": "2026-10-31T18:53:38.534000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -1646,6 +1744,8 @@
             "status": "used",
             "reason": null,
             "available_features": 5,
+            "total_features": 5,
+            "source_quality": "measured",
             "source": "MEXC depth snapshot",
             "observed_utc": "2026-10-31T18:53:38.266000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -1654,6 +1754,8 @@
             "status": "used",
             "reason": null,
             "available_features": 3,
+            "total_features": 3,
+            "source_quality": "measured",
             "source": "MEXC limited executed trade sample",
             "observed_utc": "2026-10-31T18:53:34.982000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -1662,6 +1764,8 @@
             "status": "used",
             "reason": null,
             "available_features": 3,
+            "total_features": 3,
+            "source_quality": "measured",
             "source": "DexScreener exact mint, pool deduplication",
             "observed_utc": "2026-10-31T18:53:39.443000+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -1670,6 +1774,8 @@
             "status": "missing",
             "reason": "no_point_in_time_observation",
             "available_features": 0,
+            "total_features": 4,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -1678,6 +1784,8 @@
             "status": "missing",
             "reason": "no_point_in_time_observation",
             "available_features": 0,
+            "total_features": 18,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -1686,6 +1794,8 @@
             "status": "missing",
             "reason": "Repository identity not verified against the mint",
             "available_features": 0,
+            "total_features": 1,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -1694,6 +1804,8 @@
             "status": "used",
             "reason": null,
             "available_features": 4,
+            "total_features": 4,
+            "source_quality": "measured",
             "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
             "observed_utc": "2026-10-31T18:52:48+00:00",
             "available_utc": "2026-10-31T18:53:39.838000+00:00"
@@ -1702,6 +1814,8 @@
             "status": "missing",
             "reason": "No derivative instrument verified against the mint",
             "available_features": 0,
+            "total_features": 2,
+            "source_quality": "unavailable",
             "source": null,
             "observed_utc": null,
             "available_utc": null
@@ -1710,6 +1824,7 @@
             "status": "missing",
             "available_features": 0,
             "verified_outcomes": 0,
+            "total_features": 5,
             "policy": "Only v3 hourly forecasts; outcome evaluation must have been available by the feature time; no reconstructed future feedback"
           }
         },
@@ -1718,78 +1833,87 @@
       "source_access": {
         "ticker": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC ticker; raw price normalized against reference at vector construction",
-          "observed_utc": "2026-10-31T19:02:19.652000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:50.036000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "orderbook": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC depth snapshot",
-          "observed_utc": "2026-10-31T19:02:19.970000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:50.205000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "trades": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "MEXC limited executed trade sample",
-          "observed_utc": "2026-10-31T19:02:06.093000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:09.602000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 3
         },
         "dex": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "DexScreener exact mint, pool deduplication",
-          "observed_utc": "2026-10-31T19:02:21.378000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.239000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 3
         },
         "onchain": {
           "status": "available",
-          "reason": null,
+          "quality": "measured",
+          "reason": "Recent verified burns only; no full burn history is inferred",
           "source": "Solana finalized exact mint",
-          "observed_utc": "2026-10-31T19:02:21.997000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.858000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "news": {
           "status": "available",
-          "reason": null,
+          "quality": "partial",
+          "reason": "Verified text and unverified discovery text are separate stateless hashed features; unverified text is search activity, never truth, sentiment or price causality",
           "source": "Exact-contract discovery and verified evidence registry",
-          "observed_utc": "2026-10-31T19:02:24.541000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:53.510000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 10
         },
         "project": {
           "status": "missing",
+          "quality": "unavailable",
           "reason": "Repository identity not verified against the mint",
           "source": "Verified project repository only",
-          "observed_utc": "2026-10-31T19:02:21.606000+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:06:51.365000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 0
         },
         "macro": {
           "status": "available",
+          "quality": "measured",
           "reason": null,
           "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-          "observed_utc": "2026-10-31T19:01:57+00:00",
-          "available_utc": "2026-10-31T19:02:21.736000+00:00",
+          "observed_utc": "2026-10-31T19:05:53+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 4
         },
         "derivatives": {
           "status": "missing",
+          "quality": "unavailable",
           "reason": "No derivative instrument verified against the mint",
           "source": "Verified derivative instrument only",
-          "observed_utc": "2026-10-31T19:02:24.660000+00:00",
-          "available_utc": "2026-10-31T19:02:24.660000+00:00",
+          "observed_utc": "2026-10-31T19:06:53.686000+00:00",
+          "available_utc": "2026-10-31T19:06:53.686000+00:00",
           "nonmissing_features": 0
         }
       },
-      "source_access_checked_at_utc": "2026-10-31T19:02:24.660734+00:00",
+      "source_access_checked_at_utc": "2026-10-31T19:06:53.686675+00:00",
       "feature_coverage": {
         "regime": {
           "evaluation_points": 1,
