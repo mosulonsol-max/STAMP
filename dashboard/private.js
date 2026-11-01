@@ -191,6 +191,72 @@ function startStream(){
  document.addEventListener("visibilitychange",()=>{if(document.hidden)stream.stop();else{stream.start();pollQuote(true);refresh()}});
  window.addEventListener("online",()=>{stream.stop();stream.start();pollQuote(true);refresh()});window.addEventListener("pagehide",()=>stream.stop());
 }
+function renderIntelligence(){
+ if(!data)return;
+ const learning=data.learning||{},registry=data.model_decisions||{},horizons=learning.horizons||{},lab=data.laboratory||{};
+ const localAr=lang==="ar";
+ const card=["1h","4h","24h","7d"].map(h=>{
+  const record=horizons[h]||{}, forecast=record.forecast||{}, governance=registry[h]||record.model_decision||{};
+  const approved=governance.status==="approved"&&forecast.approval_passed===true;
+  const state=approved?(localAr?"معتمد":"Approved"):(localAr?"تجريبي · غير معتمد":"Experimental · not approved");
+  const projected=n(forecast.predicted_price);
+  const observedAt=forecast.created_at_utc,expiry=forecast.due_at_utc;
+  const current=projected!==null&&age(observedAt)!==null;
+  return '<div class="forecast-card"><div class="intel-row"><strong>'+esc(h)+'</strong><span class="intel-status '+(approved?'verified':'unverified')+'">'+state+'</span></div>'+
+  '<div class="forecast-target">'+(current?'
+ if(!result||!result.market)throw Error("Invalid research payload");data=result;
+ const m=result.market,q=result.live_quote||{},fresh=q.status==="fresh"&&age(q.retrieved_at_utc)!==null&&age(q.retrieved_at_utc)<=180&&n(q.price)>0;
+ const quote=fresh?q:m,quoteTime=fresh?q.retrieved_at_utc:result.observed_utc;
+ set("price",price(quote.price));set("change",pct(fresh?q.change_24h_pct:n(m.change)===null?null:m.change*100));el("change").style.color=(fresh?q.change_24h_pct:m.change)>=0?"var(--up)":"var(--down)";
+ set("volume",number(fresh?q.volume_24h_usdt:m.volume));set("high24",price(quote.high_24h));set("low24",price(quote.low_24h));
+ const liquidity=result.liquidity||{};set("liquidity",money(liquidity.liquidity_usd));set("marketCap",money(liquidity.market_cap_usd));
+ set("observed",(fresh?t("live"):t("archive"))+" · MEXC · "+stamp(quoteTime));
+ set("liquidityTime","DEX · "+stamp(liquidity.observed_utc)+(liquidity.source?" · "+liquidity.source:""));
+ set("status",fresh?t("live"):t("archive"));el("status").className=fresh?"fresh":"stale";
+ set("sourceLine","MEXC / USDT · "+t("candles")+" · "+stamp(result.model_observed_utc||result.observed_utc));set("chartZone",zone);
+ el("warning").hidden=fresh;
+ set("warning",fresh?"":(lang==="ar"?"السعر المباشر غير متاح؛ القيم المعروضة مؤرشفة ومؤقتة.":"Live quote unavailable; displayed values are timestamped archives."));
+ renderForecasts();renderChart();renderAssurance();renderInputs();renderIntelligence();if(result.live_quote?.status==="fresh")acceptQuote({...result.live_quote,stats_at_utc:result.live_quote.stats_at_utc||result.live_quote.provider_at_utc||result.live_quote.retrieved_at_utc});if(quoteLive)acceptQuote(quoteLive);
+}
+function translate(){document.documentElement.lang=lang;document.documentElement.dir=lang==="ar"?"rtl":"ltr";document.querySelectorAll("[data-i18n]").forEach(node=>node.textContent=t(node.dataset.i18n));el("langSelect").value=lang;el("zoneSelect").value=zone;if(chart){chart.applyOptions({localization:{timeFormatter:time=>formatChartTime(time)},timeScale:{tickMarkFormatter:(time,type)=>formatChartTime(time,type>2)}})}}
+async function request(path){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{const response=await fetch(path,{credentials:"same-origin",cache:"no-store",signal:controller.signal,headers:{Accept:"application/json"}});if(response.status===401){window.location.href="/login";throw Error("AUTH_401")}if(!response.ok)throw Error("HTTP "+response.status);const payload=await response.json();if(!payload?.market)throw Error("Invalid payload");return payload}finally{clearTimeout(timer)}}
+async function refresh(){if(loading)return;loading=true;el("refresh").disabled=true;try{let result,origin="api";try{result=await request("/api/dashboard")}catch(error){if(error.message==="AUTH_401")throw error;origin="archive";try{result=await request("/api/dashboard-lite")}catch(liteError){if(liteError.message==="AUTH_401")throw liteError;const snapshot=el("stamp-snapshot");if(!snapshot)throw liteError;result=JSON.parse(snapshot.content?snapshot.content.textContent:snapshot.textContent)}}if(result.live_quote?.status!=="fresh"||age(result.live_quote?.retrieved_at_utc)===null||age(result.live_quote?.retrieved_at_utc)>180){
+ const quoteController=new AbortController(),quoteTimer=setTimeout(()=>quoteController.abort(),7000);
+ try{const response=await fetch("/api/quote",{credentials:"same-origin",cache:"no-store",signal:quoteController.signal});if(response.status===401){window.location.href="/login";throw Error("AUTH_401")}if(response.ok){const body=await response.json();if(body.quote?.status==="fresh")result={...result,live_quote:body.quote}}}catch(quoteError){if(quoteError.message==="AUTH_401")throw quoteError}finally{clearTimeout(quoteTimer)}
+}render(result,origin)}catch(error){set("status","ERROR");el("warning").hidden=false;set("warning",error.message)}finally{loading=false;el("refresh").disabled=false}}
+function exportCsv(){const bars=chartCandles(frame),lines=["utc_open,open,high,low,close,volume",...bars.map(c=>[new Date(c.t).toISOString(),c.o,c.h,c.l,c.c,c.v??""].join(","))].join("\r\n");const url=URL.createObjectURL(new Blob([lines],{type:"text/csv"})),a=document.createElement("a");a.href=url;a.download="STAMP_"+frame+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+document.querySelectorAll("[data-frame]").forEach(button=>button.addEventListener("click",()=>{frame=button.dataset.frame;document.querySelectorAll("[data-frame]").forEach(b=>b.setAttribute("aria-pressed",String(b===button)));renderChart()}));
+el("forecastHorizon").addEventListener("change",event=>{horizon=["1h","4h","24h","7d"].includes(event.target.value)?event.target.value:"1h";renderForecasts();renderChart();renderAssurance();renderInputs()});
+for(const [id,action] of [["zoomIn","in"],["zoomOut","out"],["panEarlier","earlier"],["panLater","later"]])el(id).addEventListener("click",()=>navigateChart(action));
+el("chart").addEventListener("keydown",event=>{const actions={"+":"in","=":"in","-":"out","ArrowLeft":"earlier","ArrowRight":"later"};if(actions[event.key]){event.preventDefault();navigateChart(actions[event.key])}else if(event.key==="Home"){event.preventDefault();resetChartRange()}});
+el("refresh").addEventListener("click",refresh);el("resetChart").addEventListener("click",resetChartRange);el("exportCandles").addEventListener("click",exportCsv);
+el("settingsButton").addEventListener("click",()=>el("settings").showModal());
+el("logoutButton").addEventListener("click",async()=>{try{await fetch("/logout",{method:"POST",credentials:"same-origin"})}finally{window.location.href="/"}});
+el("langSelect").addEventListener("change",event=>{lang=event.target.value==="en"?"en":"ar";try{localStorage.setItem("stamp_language",lang)}catch(e){}translate();if(data)render(data)});
+el("zoneSelect").addEventListener("change",event=>{zone=["UTC","Asia/Baghdad","Asia/Makassar"].includes(event.target.value)?event.target.value:"UTC";try{localStorage.setItem("stamp_timezone",zone)}catch(e){}translate();if(data)render(data)});
+el("diagnose").addEventListener("click",async()=>{try{const response=await fetch("/api/status",{credentials:"same-origin",cache:"no-store"}),s=await response.json();set("diagnosticResult","API: "+s.api+" · "+stamp(s.observation_utc)+" · "+(s.research_fresh?"FRESH":"ARCHIVED"))}catch(error){set("diagnosticResult",error.message)}});
+translate();refresh();startStream();
+if(window.StampMarket){pollQuote(true);setInterval(()=>{updateFreshness();pollQuote();renderAssurance()},1000)}
+setInterval(()=>{if(!document.hidden)refresh()},15000);
+})();
++projected.toFixed(8):'—')+'</div>'+
+  '<div class="intel-row"><small>'+(localAr?'وقت الإصدار':'Issued')+'</small><span>'+esc(stamp(observedAt))+'</span></div>'+
+  '<div class="intel-row"><small>'+(localAr?'موعد التحقق':'Due')+'</small><span>'+esc(stamp(expiry))+'</span></div>'+
+  '<div class="intel-row"><small>'+(localAr?'النموذج':'Model')+'</small><span>'+esc(record.selected_model||'—')+'</span></div></div>';
+ }).join("");
+ const forecastContainer=el("forecastCards");if(forecastContainer)forecastContainer.innerHTML=card;
+ set("labStatus",lab.status||"unavailable");
+ set("labProposals",n(lab.proposals)===null?"—":number(lab.proposals));
+ set("labEvaluated",n(lab.evaluated)===null?"—":number(lab.evaluated));
+ set("labDecisionsCount",n(lab.decision_count)===null?"—":number(lab.decision_count));
+ const decisions=(lab.decisions||[]).slice(0,6);
+ const dst=el("labRecentDecisions");if(dst)dst.innerHTML=decisions.length?decisions.map(x=>
+  '<div class="lab-decision"><strong>'+esc(x.horizon||'—')+'</strong><span>'+esc(x.family||'—')+'</span><em>'+esc(x.decision||'—')+'</em></div>').join(""):
+  '<p class="muted">'+(localAr?'لا توجد قرارات محفوظة من دورة المختبر الحالية.':'No archived laboratory decisions available.')+'</p>';
+ set("labEvidence",(localAr?'آخر تقييم: ':'Last evaluation: ')+stamp(lab.generated_at_utc||lab.audited_at_utc)+
+  ' · '+(localAr?'المختبر لا يعتمد نماذج التداول تلقائيًا من اختبار تجريبي':'Sandbox decisions alone do not approve trading models'));
+}
+
 function render(result,origin="api"){
  if(!result||!result.market)throw Error("Invalid research payload");data=result;
  const m=result.market,q=result.live_quote||{},fresh=q.status==="fresh"&&age(q.retrieved_at_utc)!==null&&age(q.retrieved_at_utc)<=180&&n(q.price)>0;
