@@ -115,7 +115,7 @@ if __name__=='__main__':
         from experiment_generator import generate as generate_lab_experiments
         experiments=generate_lab_experiments(args.root)
         target=args.root/'data/lab_experiments.json'
-        target.write_text(json.dumps(experiments,indent=2)+'\\n')
+        target.write_text(json.dumps(experiments,indent=2)+chr(10))
         print(json.dumps({'lab_generated_proposals':len(experiments['experiments'])}))
 
 
