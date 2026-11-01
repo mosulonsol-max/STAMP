@@ -49,10 +49,23 @@ def proposals(lab):
 
 def generate(root=ROOT):
     lab=evaluate_lab(root)
-    return {"generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
+    historical={}
+    try:
+        historical=json.loads((root/"data/lab_history.json").read_text()).get("experiments",{})
+    except (OSError,ValueError,TypeError):
+        pass
+    candidates=proposals(lab)
+    def priority(item):
+        previous=historical.get(item["id"],{})
+        attempts=previous.get("attempts",0)
+        skill=previous.get("last_skill")
+        return (attempts,-skill if isinstance(skill,(int,float)) else 100)
+    candidates.sort(key=priority)
+    return {"history_used":bool(historical),"previous_variants":len(historical),
+            "generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
             "source_lab_state":lab["flow"]["state"],
             "generation":"deterministic_single_parameter_mutations_v1",
-            "experiments":proposals(lab),
+            "experiments":candidates,
             "warning":"Proposed only; execution/training and out-of-sample results not yet performed."}
 
 if __name__=="__main__":
