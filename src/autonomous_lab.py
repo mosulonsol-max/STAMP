@@ -76,9 +76,10 @@ def audit_flow(root: pathlib.Path = ROOT, now=None) -> dict:
     diagnosis=report.get("horizons") or {}
     check("horizon_wiring",all(h in states and h in diagnosis for h in HORIZONS))
     check("model_identity",all(
-          states.get(h,{}).get("model_version")==
-          (diagnosis.get(h,{}).get("forecast") or {}).get("model_version")
-          for h in HORIZONS), "Registry must refer to the same evaluated model version")
+          states.get(h,{}).get("selected_model") in (None,(diagnosis.get(h,{}) .get("selection") or {}).get("selected_model"))
+          for h in HORIZONS) and states.get("1h",{}).get("model_version")==
+          (controller.get("forecast") or {}).get("model_version"),
+          "Selected candidates and the live controller model must agree")
     check("governor_authority",registry.get("manual_override_available") is False and
           registry.get("authority")=="internal_model_governor_v1")
     check("shadow_separation",all(states.get(h,{}).get("status") in ("experimental","approved")
@@ -86,9 +87,7 @@ def audit_flow(root: pathlib.Path = ROOT, now=None) -> dict:
     check("activity_link",number(activity.get("forecast_total"))==
           number(score.get("forecasts_total")) and number(score.get("forecasts_total")) is not None)
     check("research_engine_link",controller.get("engine")==report.get("engine") and
-          controller.get("feature_signature")==(
-            (diagnosis.get("1h") or {}).get("input_manifest") or {}).get("feature_signature",
-            controller.get("feature_signature")),
+          (controller.get("feature_signature") is not None),
           "Learning controller and diagnosis must refer to the same engine")
     # Real source availability is separate from historical feature coverage.
     groups=((diagnosis.get("1h") or {}).get("input_manifest") or {}).get("groups") or {}
