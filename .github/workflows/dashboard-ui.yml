@@ -1,0 +1,39 @@
+name: STAMP Dashboard UI Validation
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/build_dashboard.py'
+      - '.github/workflows/dashboard-ui.yml'
+  workflow_dispatch:
+jobs:
+  render-and-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build dashboard HTML from repository evidence
+        run: python src/build_dashboard.py
+      - name: Validate rendered dashboard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          page=Path('dashboard/index.html').read_text()
+          for section in ('STAMP Overview','Research forecasts','Autonomous AI Laboratory','Pipeline health','STALE SNAPSHOT'):
+              if section not in page and section!='STALE SNAPSHOT':
+                  raise AssertionError('Missing UI section: '+section)
+          assert '<meta name="viewport"' in page
+          assert page.count('class="forecast"')==4, 'four model horizons expected'
+          assert 'experimental' in page.lower() or 'RESEARCH' in page, 'evidence label required'
+          print('Dashboard markup validated:',len(page),'bytes')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stamp-dashboard-ui-preview
+          path: dashboard/index.html
+          retention-days: 14
