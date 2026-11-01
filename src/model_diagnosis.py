@@ -111,7 +111,7 @@ if __name__=='__main__':
     if report.get('engine')=='context_walk_forward_v3':
         from autonomous_lab import run as run_autonomous_lab
         lab=run_autonomous_lab(args.root)
-        print(json.dumps({'lab':lab['flow']['state'],'experiments':len(lab['experiments'])}))
+        print(json.dumps({'lab':lab['flow']['state'],'experiments':len(lab['experiments']),'failed_checks':lab['flow']['failed_checks'],'checks':lab['flow']['checks']}))
         from experiment_generator import generate as generate_lab_experiments
         experiments=generate_lab_experiments(args.root)
         target=args.root/'data/lab_experiments.json'
