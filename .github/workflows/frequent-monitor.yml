@@ -129,3 +129,24 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
+
+      - name: Enforce final end-to-end health gate
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,pathlib,sys
+          p=pathlib.Path("data/workflow_health.json")
+          if not p.exists():
+              print("FAIL: workflow health file missing",file=sys.stderr)
+              sys.exit(1)
+          record=json.loads(p.read_text())
+          expected=str(__import__("os").environ["GITHUB_RUN_ID"])
+          if record.get("run_id")!=expected:
+              print("FAIL: workflow health belongs to a different run",file=sys.stderr)
+              sys.exit(1)
+          if record.get("pipeline_passed") is not True or record.get("production_smoke_passed") is not True:
+              print("FAIL: end-to-end pipeline or production smoke is not verified",file=sys.stderr)
+              print(json.dumps(record,ensure_ascii=False))
+              sys.exit(1)
+          print("PASS: complete end-to-end pipeline and production smoke",expected)
+          PY
