@@ -193,18 +193,25 @@ function startStream(){
 }
 function renderIntelligence(){
  if(!data)return;
- const learning=data.learning||{},registry=data.model_decisions||{},horizons=learning.horizons||{},lab=data.laboratory||{};
- const localAr=lang==="ar";
- const card=["1h","4h","24h","7d"].map(h=>{
-  const record=horizons[h]||{}, forecast=record.forecast||{}, governance=registry[h]||record.model_decision||{};
-  const approved=governance.status==="approved"&&forecast.approval_passed===true;
-  const state=approved?(localAr?"معتمد":"Approved"):(localAr?"تجريبي · غير معتمد":"Experimental · not approved");
-  const projected=n(forecast.predicted_price);
-  const observedAt=forecast.created_at_utc,expiry=forecast.due_at_utc;
-  const current=projected!==null&&age(observedAt)!==null;
-  return '<div class="forecast-card"><div class="intel-row"><strong>'+esc(h)+'</strong><span class="intel-status '+(approved?'verified':'unverified')+'">'+state+'</span></div>'+
-  '<div class="forecast-target">'+(current?'
- if(!result||!result.market)throw Error("Invalid research payload");data=result;
+ const horizons=data.learning?.horizons||{},lab=data.laboratory||{};
+ const cards=["1h","4h","24h","7d"].map(h=>{
+  const row=horizons[h]||{},f=row.forecast||{},v=n(f.predicted_price);
+  const approved=f.approval_passed===true;
+  return '<article class="forecast-card"><strong>'+esc(h)+'</strong><p class="forecast-target">'+
+   (v===null?'—':v.toFixed(8))+'</p><p>'+esc(approved?'Approved':'Experimental')+'</p>'+
+   '<small>'+esc(stamp(f.created_at_utc))+' → '+esc(stamp(f.due_at_utc))+'</small></article>';
+ });
+ const panel=el("forecastCards");if(panel)panel.innerHTML=cards.join("");
+ set("labStatus",lab.status||"unavailable");
+ set("labProposals",lab.proposals??"—");
+ set("labEvaluated",lab.evaluated??"—");
+ set("labDecisionsCount",lab.decision_count??"—");
+ const list=el("labRecentDecisions");
+ if(list)list.textContent=(lab.decisions||[]).slice(0,6).map(v=>
+   [v.horizon,v.family,v.decision].filter(Boolean).join(" · ")).join(" | ")||"No archived decisions";
+ set("labEvidence",lab.warning||"Research only");
+}
+function render(result,origin="api"){ if(!result||!result.market)throw Error("Invalid research payload");data=result;
  const m=result.market,q=result.live_quote||{},fresh=q.status==="fresh"&&age(q.retrieved_at_utc)!==null&&age(q.retrieved_at_utc)<=180&&n(q.price)>0;
  const quote=fresh?q:m,quoteTime=fresh?q.retrieved_at_utc:result.observed_utc;
  set("price",price(quote.price));set("change",pct(fresh?q.change_24h_pct:n(m.change)===null?null:m.change*100));el("change").style.color=(fresh?q.change_24h_pct:m.change)>=0?"var(--up)":"var(--down)";
