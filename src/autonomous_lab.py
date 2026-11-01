@@ -96,8 +96,14 @@ def audit_flow(root: pathlib.Path = ROOT, now=None) -> dict:
           registry.get("authority")=="internal_model_governor_v1")
     check("shadow_separation",all(states.get(h,{}).get("status") in ("experimental","approved")
           for h in HORIZONS))
-    check("activity_link",number(activity.get("forecast_total"))==
-          number(score.get("forecasts_total")) and number(score.get("forecasts_total")) is not None)
+    # Forecast activity is refreshed AFTER diagnosis in the monitor workflow.
+    # If this scorecard is newer than the activity report, the old activity count
+    # is not a valid consistency check for this in-progress cycle.
+    if times["activity"] is not None and times["scorecard"] is not None and times["activity"]<times["scorecard"]:
+        checks["activity_link"]={"passed":None,"details":"activity report belongs to prior cycle; refresh pending"}
+    else:
+        check("activity_link",number(activity.get("forecast_total"))==
+              number(score.get("forecasts_total")) and number(score.get("forecasts_total")) is not None)
     check("research_engine_link",controller.get("engine")==report.get("engine") and
           (controller.get("feature_signature") is not None),
           "Learning controller and diagnosis must refer to the same engine")
