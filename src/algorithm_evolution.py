@@ -1,7 +1,7 @@
 """Bounded, auditable algorithm evolution. Never executes generated source code.
 
 The search space is declarative: each genome selects an existing estimator,
-causal feature profile, and a shrinkage coefficient. All proposals are
+and a shrinkage coefficient. All proposals are
 deterministic and versioned. Independent prospective approval remains outside.
 """
 from dataclasses import dataclass,asdict
@@ -12,21 +12,19 @@ import numpy as np
 @dataclass(frozen=True)
 class Genome:
     estimator: str
-    profile: str
     shrinkage: float
 
 ESTIMATORS=("hist_absolute","forest_absolute","market_absolute","technical_absolute","no_change")
-PROFILES=("all","market_and_regime","regime")
 SHRINKAGES=(0.0,0.25,0.5,0.75,1.0)
 
 def candidates():
     """Bounded variants; no-change is always an available fallback."""
-    for estimator,profile,shrinkage in product(ESTIMATORS,PROFILES,SHRINKAGES):
-        if estimator=="no_change" and (profile!="all" or shrinkage!=0.0):
+    for estimator,shrinkage in product(ESTIMATORS,SHRINKAGES):
+        if estimator=="no_change" and shrinkage!=0.0:
             continue
         if estimator!="no_change" and shrinkage==0.0:
             continue
-        yield Genome(estimator,profile,shrinkage)
+        yield Genome(estimator,shrinkage)
 
 def version(genome):
     return hashlib.sha256(json.dumps(asdict(genome),sort_keys=True).encode()).hexdigest()[:16]
