@@ -55,7 +55,12 @@ def run(root=ROOT,limit=6):
     source=root/"data/lab_experiments.json"
     proposals=json.loads(source.read_text()).get("experiments",[])
     candle_source=root/"data/candles/1h.json"
-    candles=clean(json.loads(candle_source.read_text()),int(dt.datetime.now(dt.timezone.utc).timestamp()*1000))
+    try:
+        raw=json.loads(candle_source.read_text())
+        candles=clean(raw,int(dt.datetime.now(dt.timezone.utc).timestamp()*1000))
+    except (OSError,ValueError,TypeError):
+        candles=[]  # Missing data must be reported, not crash the diagnosis pipeline.
+
     results=[]
     for proposal in proposals[:max(0,min(limit,16))]:
         result=score_proposal(proposal,candles)
