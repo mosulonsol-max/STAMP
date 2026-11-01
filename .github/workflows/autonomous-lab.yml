@@ -54,9 +54,12 @@ jobs:
         run: |
           python src/autonomous_lab.py
           python src/experiment_generator.py --output data/lab_experiments.json
-          python src/experiment_evaluator.py --limit 4
+          python src/experiment_evaluator.py --limit 16
           python src/sandbox_governor.py
           python -m json.tool data/autonomous_lab.json > /dev/null
+          python -m json.tool data/lab_experiments.json > /dev/null
+          python -m json.tool data/lab_evaluations.json > /dev/null
+          python -m json.tool data/lab_decisions.json > /dev/null
       - name: Publish sandbox proposal artifact
         uses: actions/upload-artifact@v4
         with:
