@@ -20,3 +20,22 @@ class EvaluationTest(unittest.TestCase):
             self.assertEqual(outcome["evaluated"],0)
             self.assertEqual(outcome["results"],[])
             self.assertTrue((d/"lab_history.json").is_file())
+
+    def test_same_candle_fingerprint_never_counts_as_new_evidence(self):
+        import json,tempfile
+        from unittest.mock import patch
+        from experiment_evaluator import run
+        item={"id":"same123","horizon":"1h","family":"forest_absolute",
+              "parameters":{"n_estimators":12,"max_depth":4,"min_samples_leaf":12}}
+        with tempfile.TemporaryDirectory() as temp:
+            root=pathlib.Path(temp);(root/"data/candles").mkdir(parents=True)
+            (root/"data/lab_experiments.json").write_text(json.dumps({"experiments":[item]}))
+            (root/"data/candles/1h.json").write_text("[]")
+            with patch("experiment_evaluator.clean",return_value=[]),patch("experiment_evaluator.score_proposal",return_value={"status":"sandbox_evaluated","test_samples":12,"skill_vs_zero":0.03}):
+                first=run(root,limit=1)
+                second=run(root,limit=1)
+            self.assertEqual(first["evaluated"],1)
+            self.assertEqual(second["evaluated"],0)
+            self.assertEqual(second["results"][0]["status"],"no_new_candle_evidence")
+            history=json.loads((root/"data/lab_history.json").read_text())
+            self.assertEqual(history["experiments"]["same123"]["attempts"],1)
