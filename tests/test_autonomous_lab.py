@@ -74,6 +74,22 @@ class LabTest(unittest.TestCase):
             self.assertIsNone(result["checks"]["activity_link"]["passed"])
             self.assertNotIn("activity_link",result["failed_checks"])
             self.assertEqual(evaluate_lab(root)["flow"]["state"],"healthy")
+    def test_old_failed_ci_does_not_stop_isolated_archive_experiments(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=pathlib.Path(temp);self.fixture(root)
+            d=root/"data"
+            diag=json.loads((d/"model_diagnosis.json").read_text())
+            diag["generated_at_utc"]=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(minutes=7)).isoformat()
+            (d/"model_diagnosis.json").write_text(json.dumps(diag))
+            health=json.loads((d/"workflow_health.json").read_text())
+            health["steps"]["tests"]="failure"
+            health["pipeline_passed"]=False
+            (d/"workflow_health.json").write_text(json.dumps(health))
+            result=evaluate_lab(root)
+            self.assertEqual(result["flow"]["state"],"degraded")
+            self.assertEqual(set(result["flow"]["failed_checks"]),{"pipeline_steps","pipeline_outcome"})
+            self.assertTrue(all(item["action"]=="revise_in_sandbox" for item in result["experiments"]))
+            self.assertTrue(all(not item["promotion_permitted_by_lab"] for item in result["experiments"]))
     def test_no_unearned_promotion(self):
         with tempfile.TemporaryDirectory() as t:
             root=pathlib.Path(t);self.fixture(root)
