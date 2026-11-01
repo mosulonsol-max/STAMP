@@ -11,7 +11,10 @@ on:
     branches: [main]
     paths:
       - "src/autonomous_lab.py"
+      - "src/experiment_generator.py"
+      - "src/model_diagnosis.py"
       - "tests/test_autonomous_lab.py"
+      - "tests/test_experiment_generator.py"
       - ".github/workflows/autonomous-lab.yml"
   workflow_dispatch:
   schedule:
@@ -30,7 +33,9 @@ jobs:
       - name: Test isolated lab
         env:
           PYTHONPATH: src
-        run: python -m unittest discover -s tests -p 'test_autonomous_lab.py' -v
+        run: |
+          python -m unittest discover -s tests -p 'test_autonomous_lab.py' -v
+          python -m unittest discover -s tests -p 'test_experiment_generator.py' -v
       - name: Run audit against archived data (never promote)
         env:
           PYTHONPATH: src
