@@ -3,7 +3,7 @@
 Sandbox only: no forecasts, registry writes, deployments or order placement.
 Train only on labels matured before each test feature timestamp.
 """
-import argparse,datetime as dt,json,math,pathlib
+import argparse,datetime as dt,json,math,pathlib,hashlib
 from autonomous_lab import ROOT
 from experiment_generator import DEFAULTS
 from prediction_engine import clean,features,HORIZONS,HOUR
@@ -61,9 +61,19 @@ def run(root=ROOT,limit=6):
     except (OSError,ValueError,TypeError):
         candles=[]  # Missing data must be reported, not crash the diagnosis pipeline.
 
+    try:
+        prior_ledger=json.loads((root/"data/lab_history.json").read_text()).get("experiments",{})
+    except (OSError,ValueError,TypeError):
+        prior_ledger={}
+    fingerprint=hashlib.sha256(json.dumps(candles[-100:],sort_keys=True).encode()).hexdigest()[:20]
     results=[]
     for proposal in proposals[:max(0,min(limit,16))]:
-        result=score_proposal(proposal,candles)
+        previous=prior_ledger.get(proposal["id"],{})
+        if previous.get("last_data_fingerprint")==fingerprint:
+            result={"status":"no_new_candle_evidence","test_samples":0,
+                    "production_eligible":False,"historical_skill":previous.get("last_skill")}
+        else:
+            result=score_proposal(proposal,candles)
         results.append({"id":proposal["id"],"horizon":proposal["horizon"],
                         "family":proposal["family"],"parameters":proposal["parameters"],**result})
     output={"generated_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -80,13 +90,15 @@ def run(root=ROOT,limit=6):
     except (OSError,ValueError,TypeError):
         ledger={"experiments":{}}
     for result in results:
+        if result.get("status")=="no_new_candle_evidence":continue
         key=result["id"]
         prior=ledger["experiments"].get(key,{})
         count=int(prior.get("attempts",0))+1
         ledger["experiments"][key]={"attempts":count,
             "last_status":result["status"],"last_skill":result.get("skill_vs_zero"),
             "last_samples":result.get("test_samples",0),
-            "last_evaluated_at_utc":output["generated_at_utc"]}
+            "last_evaluated_at_utc":output["generated_at_utc"],
+            "last_data_fingerprint":fingerprint}
     ledger["last_updated_utc"]=output["generated_at_utc"]
     ledger["schema"]="bounded_variant_history_v1"
     history_file.write_text(json.dumps(ledger,indent=2)+chr(10))
