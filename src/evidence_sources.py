@@ -79,6 +79,7 @@ def burn_instructions(transaction):
     instructions=list(message.get("instructions",[]))
     for group in meta.get("innerInstructions",[]):instructions.extend(group.get("instructions",[]))
     result=[]
+    # Solana RPC instructions can be partially parsed; invalid entries are not burn evidence.
     for i,ins in enumerate(instructions):
         if not isinstance(ins,dict):continue
         parsed=ins.get("parsed")
