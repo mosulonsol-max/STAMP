@@ -66,6 +66,9 @@ jobs:
         if: always()
         run: python src/build_dashboard.py
       - name: Commit data and health status
+        id: persist
+        # A PR checkout may be detached and its token read-only. Never push generated data from PRs.
+        if: always() && github.event_name != 'pull_request'
         # The shared concurrency group serializes push, schedule and manual runs.
         # Persist the first complete run after a code update as well.
         if: always()
@@ -131,7 +134,9 @@ jobs:
 
 
       - name: Enforce final end-to-end health gate
-        if: always()
+        if: always() && github.event_name != 'pull_request'
+        env:
+          PERSIST_OUTCOME: ${{ steps.persist.outcome }}
         run: |
           python - <<'PY'
           import json,pathlib,sys
@@ -141,6 +146,9 @@ jobs:
               sys.exit(1)
           record=json.loads(p.read_text())
           expected=str(__import__("os").environ["GITHUB_RUN_ID"])
+          if __import__("os").environ.get("PERSIST_OUTCOME")!="success":
+              print("FAIL: generated data and health status were not persisted",file=sys.stderr)
+              sys.exit(1)
           if record.get("run_id")!=expected:
               print("FAIL: workflow health belongs to a different run",file=sys.stderr)
               sys.exit(1)
