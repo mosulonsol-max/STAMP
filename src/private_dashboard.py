@@ -7,7 +7,7 @@ from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit,quote,parse_qs
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
-PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json")
+PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json","autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json")
 CACHE={"time":0.0,"payload":None}
 LOCK=threading.Lock()
 def age(stamp):
@@ -131,6 +131,24 @@ def build():
  payload["asset"]={"name":"STAMP","symbol":"STAMP","quote_asset":"USDT","venue":"MEXC","contract":raw.get("contract") or "EKtmPPLaCbEEKiwoHHtV7TsRsmPXs5CMGtQtZFSiinsc"}
  payload["liquidity"]=summarize((raw.get("dex") or {}).get("data"),(raw.get("dex") or {}).get("retrieved_at_utc"))
  payload["model_decisions"]=a.get("model_decisions") or {h:r.get("model_decision") for h,r in (learning.get("horizons") or {}).items() if r.get("model_decision")}
+ # Lab artifacts are recorded evidence; missing artifacts are explicitly unavailable.
+ lab=items.get("autonomous_lab.json") or {}
+ variants=items.get("lab_experiments.json") or {}
+ evaluations=items.get("lab_evaluations.json") or {}
+ decisions=items.get("lab_decisions.json") or {}
+ payload["laboratory"]={
+  "status":(lab.get("flow") or {}).get("state") or "unavailable",
+  "audited_at_utc":lab.get("generated_at_utc"),
+  "generated_at_utc":decisions.get("created_at_utc"),
+  "proposals":len(variants.get("experiments") or []),
+  "evaluated":evaluations.get("evaluated"),
+  "decision_count":len(decisions.get("decisions") or []),
+  "decisions":(decisions.get("decisions") or [])[:24],
+  "source":"model_diagnosis research artifacts",
+  "warning":"Sandbox research only; no model is approved by lab metrics alone",
+  "errors":{k:errors[k] for k in ("autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json") if k in errors}
+ }
+
  payload.update(market_context=a.get("market_context") or {},onchain=a.get("onchain") or {},news=a.get("news") or {},model_observed_utc=learning.get("at_utc"))
  try:
   from src.evidence_brief import compose
