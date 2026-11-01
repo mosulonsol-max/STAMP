@@ -121,6 +121,9 @@ if __name__=='__main__':
         from experiment_evaluator import run as evaluate_sandbox
         outcome=evaluate_sandbox(args.root,limit=2)
         print(json.dumps({'sandbox_evaluated':outcome['evaluated']}))
+        from sandbox_governor import run as govern_sandbox
+        decisions=govern_sandbox(args.root)
+        print(json.dumps({'sandbox_decisions':len(decisions['decisions'])}))
 
 
 
