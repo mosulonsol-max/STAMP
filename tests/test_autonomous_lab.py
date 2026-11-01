@@ -90,6 +90,21 @@ class LabTest(unittest.TestCase):
             self.assertEqual(set(result["flow"]["failed_checks"]),{"pipeline_steps","pipeline_outcome"})
             self.assertTrue(all(item["action"]=="revise_in_sandbox" for item in result["experiments"]))
             self.assertTrue(all(not item["promotion_permitted_by_lab"] for item in result["experiments"]))
+    def test_independent_lab_audit_does_not_inherit_failed_previous_pipeline(self):
+        with tempfile.TemporaryDirectory() as t:
+            root=pathlib.Path(t);self.fixture(root)
+            d=root/"data"
+            old=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(minutes=15)).isoformat()
+            health=json.loads((d/"workflow_health.json").read_text())
+            health["timestamp_utc"]=old
+            health["pipeline_passed"]=False
+            health["steps"]["tests"]="failure"
+            (d/"workflow_health.json").write_text(json.dumps(health))
+            result=audit_flow(root)
+            self.assertEqual(result["state"],"healthy")
+            self.assertIsNone(result["checks"]["pipeline_outcome"]["passed"])
+            self.assertFalse(result["previous_pipeline_passed"])
+            self.assertEqual(result["previous_pipeline_at_utc"],old)
     def test_no_unearned_promotion(self):
         with tempfile.TemporaryDirectory() as t:
             root=pathlib.Path(t);self.fixture(root)
