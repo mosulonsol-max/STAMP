@@ -29,7 +29,7 @@ class LabTest(unittest.TestCase):
               for k in ("1h","4h","24h","7d")}})
         put("forecast_activity.json",{"checked_at_utc":stamp,"forecast_total":15})
         put("forecast_scorecard.json",{"generated_at_utc":stamp,"forecasts_total":15})
-        put("learning_controller.json",{"engine":"v3"})
+        put("learning_controller.json",{"engine":"v3","feature_signature":"test","forecast":{"model_version":"x"}})
     def test_rejects_bad_pipeline(self):
         with tempfile.TemporaryDirectory() as t:
             root=pathlib.Path(t);self.fixture(root)
