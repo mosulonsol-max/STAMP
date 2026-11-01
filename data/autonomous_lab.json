@@ -1,0 +1,176 @@
+{
+  "generated_at_utc": "2026-11-01T07:32:32.636466+00:00",
+  "authority": "autonomous_lab_v1",
+  "flow": {
+    "generated_at_utc": "2026-11-01T07:32:32.636466+00:00",
+    "state": "degraded",
+    "failed_checks": [
+      "pipeline_steps",
+      "pipeline_outcome"
+    ],
+    "checks": {
+      "pipeline_steps": {
+        "passed": false,
+        "details": "Every required stage must report success; a missing stage is a failure."
+      },
+      "pipeline_outcome": {
+        "passed": false,
+        "details": ""
+      },
+      "exact_contract": {
+        "passed": true,
+        "details": ""
+      },
+      "clock_integrity": {
+        "passed": true,
+        "details": "No missing/future clock"
+      },
+      "fresh_pipeline": {
+        "passed": true,
+        "details": "Scheduled Actions are best effort; 3 hours is a health threshold."
+      },
+      "horizon_wiring": {
+        "passed": true,
+        "details": ""
+      },
+      "model_identity": {
+        "passed": true,
+        "details": "Selected candidates and the live controller model must agree"
+      },
+      "governor_authority": {
+        "passed": true,
+        "details": ""
+      },
+      "shadow_separation": {
+        "passed": true,
+        "details": ""
+      },
+      "activity_link": {
+        "passed": true,
+        "details": ""
+      },
+      "research_engine_link": {
+        "passed": true,
+        "details": "Learning controller and diagnosis must refer to the same engine"
+      },
+      "feature_manifest": {
+        "passed": true,
+        "details": "Feature-group status and freshness must remain explicit"
+      }
+    },
+    "sources": {
+      "regime": {
+        "status": "derived_completed_candles",
+        "historical_points": 120,
+        "currently_available": true
+      },
+      "market": {
+        "status": "historical_closed_candle_reconstruction",
+        "historical_points": 120,
+        "currently_available": true
+      },
+      "ticker": {
+        "status": "missing",
+        "historical_points": 42,
+        "currently_available": false
+      },
+      "orderbook": {
+        "status": "missing",
+        "historical_points": 42,
+        "currently_available": false
+      },
+      "trades": {
+        "status": "missing",
+        "historical_points": 42,
+        "currently_available": false
+      },
+      "dex": {
+        "status": "used",
+        "historical_points": 120,
+        "currently_available": true
+      },
+      "onchain": {
+        "status": "used",
+        "historical_points": 11,
+        "currently_available": true
+      },
+      "news": {
+        "status": "used",
+        "historical_points": 11,
+        "currently_available": true
+      },
+      "project": {
+        "status": "missing",
+        "historical_points": 0,
+        "currently_available": false
+      },
+      "macro": {
+        "status": "missing",
+        "historical_points": 120,
+        "currently_available": false
+      },
+      "derivatives": {
+        "status": "missing",
+        "historical_points": 0,
+        "currently_available": false
+      },
+      "feedback": {
+        "status": "verified_prospective_journal",
+        "historical_points": 10,
+        "currently_available": true
+      }
+    },
+    "policy": "Consistency audit only; does not certify forecast accuracy or deploy."
+  },
+  "experiments": [
+    {
+      "id": "ef16261196f5479f",
+      "horizon": "1h",
+      "candidate": "forest_absolute",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
+      "replay_consistent": true,
+      "later_samples": 120.0,
+      "skill_vs_zero": -0.01676215714098772,
+      "production_status": "experimental",
+      "promotion_permitted_by_lab": false
+    },
+    {
+      "id": "d9579f651ba22707",
+      "horizon": "4h",
+      "candidate": "no_change",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
+      "replay_consistent": true,
+      "later_samples": 112.0,
+      "skill_vs_zero": 0.0,
+      "production_status": "experimental",
+      "promotion_permitted_by_lab": false
+    },
+    {
+      "id": "bace7209c1d171e3",
+      "horizon": "24h",
+      "candidate": "forest_absolute",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
+      "replay_consistent": true,
+      "later_samples": 16.0,
+      "skill_vs_zero": 0.051367688464605044,
+      "production_status": "experimental",
+      "promotion_permitted_by_lab": false
+    },
+    {
+      "id": "df101fdeaea9f826",
+      "horizon": "7d",
+      "candidate": "technical_absolute",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
+      "replay_consistent": true,
+      "later_samples": 1.0,
+      "skill_vs_zero": -0.3554321234822484,
+      "production_status": "experimental",
+      "promotion_permitted_by_lab": false
+    }
+  ],
+  "policy": "Sandbox recommendations only; governor requires forward and prospective evidence."
+}
