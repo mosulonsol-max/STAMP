@@ -4,6 +4,10 @@ on:
     branches: [main]
     paths:
       - 'src/build_dashboard.py'
+      - 'src/private_dashboard.py'
+      - 'dashboard/private.html'
+      - 'dashboard/private.css'
+      - 'dashboard/private.js'
       - '.github/workflows/dashboard-ui.yml'
   workflow_dispatch:
 jobs:
@@ -17,6 +21,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Validate authenticated app scripts and backend imports
+        run: |
+          node --check dashboard/private.js
+          node --check dashboard/market-stream.js
+          python -m py_compile src/private_dashboard.py src/build_dashboard.py
+          python - <<'PY'
+          from pathlib import Path
+          markup=Path("dashboard/private.html").read_text()
+          script=Path("dashboard/private.js").read_text()
+          backend=Path("src/private_dashboard.py").read_text()
+          for identity in ("forecastCards","labStatus","labProposals","labEvaluated","labRecentDecisions"):
+              assert 'id="'+identity+'"' in markup, identity
+          assert "renderIntelligence()" in script
+          assert 'payload["laboratory"]' in backend
+          assert '"lab_decisions.json"' in backend
+          print("Authenticated dashboard data bindings: PASS")
+          PY
       - name: Build dashboard HTML from repository evidence
         run: python src/build_dashboard.py
       - name: Validate rendered dashboard
