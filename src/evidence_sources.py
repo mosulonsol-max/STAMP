@@ -80,7 +80,11 @@ def burn_instructions(transaction):
     for group in meta.get("innerInstructions",[]):instructions.extend(group.get("instructions",[]))
     result=[]
     for i,ins in enumerate(instructions):
-        parsed=ins.get("parsed") or {};info=parsed.get("info") or {}
+        if not isinstance(ins,dict):continue
+        parsed=ins.get("parsed")
+        if not isinstance(parsed,dict):continue
+        info=parsed.get("info")
+        if not isinstance(info,dict):continue
         if ins.get("program") not in ("spl-token","spl-token-2022") or parsed.get("type") not in ("burn","burnChecked"):continue
         mint=info.get("mint") or mint_by_account.get(info.get("account"))
         if mint!=CONTRACT:continue
