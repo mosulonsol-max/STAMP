@@ -71,7 +71,7 @@ def run(root=ROOT,limit=6):
             "evaluated":sum(r.get("status")=="sandbox_evaluated" for r in results),
             "authority":"research_only_no_deployment_or_model_promotion"}
     path=root/"data/lab_evaluations.json"
-    path.write_text(json.dumps(output,indent=2)+"\\n")
+    path.write_text(json.dumps(output,indent=2)+chr(10))
     # Persist a bounded variant ledger; keep sample counts and source timestamps.
     history_file=root/"data/lab_history.json"
     try:
@@ -89,7 +89,7 @@ def run(root=ROOT,limit=6):
             "last_evaluated_at_utc":output["generated_at_utc"]}
     ledger["last_updated_utc"]=output["generated_at_utc"]
     ledger["schema"]="bounded_variant_history_v1"
-    history_file.write_text(json.dumps(ledger,indent=2)+"\\n")
+    history_file.write_text(json.dumps(ledger,indent=2)+chr(10))
     return output
 
 if __name__=="__main__":
