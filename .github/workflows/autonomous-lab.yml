@@ -1,0 +1,35 @@
+name: Autonomous Lab Integrity
+on:
+  pull_request:
+    paths:
+      - "src/autonomous_lab.py"
+      - "tests/test_autonomous_lab.py"
+      - ".github/workflows/autonomous-lab.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/autonomous_lab.py"
+      - "tests/test_autonomous_lab.py"
+      - ".github/workflows/autonomous-lab.yml"
+  workflow_dispatch:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Test isolated lab
+        env:
+          PYTHONPATH: src
+        run: python -m unittest discover -s tests -p 'test_autonomous_lab.py' -v
+      - name: Run audit against archived data (never promote)
+        env:
+          PYTHONPATH: src
+        run: |
+          python src/autonomous_lab.py
+          python -m json.tool data/autonomous_lab.json > /dev/null
