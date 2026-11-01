@@ -23,7 +23,10 @@ def decide(evaluation):
         decided.append({"id":row.get("id"),"horizon":row.get("horizon"),
           "family":row.get("family"),"decision":state,"reason":reason,
           "evaluation_samples":n,"skill_vs_zero":skill,
-          "approved_for_production":False})
+          "approved_for_production":False,
+          "next_action":("rebuild_experiment" if state in ("quarantined","revise") else
+                         "expand_forward_validation" if state=="needs_more_forward_tests" else
+                         "collect_independent_prospective_outcomes")})
     return {"created_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
       "authority":"sandbox_governor_v1",
       "capabilities":["generate","evaluate","quarantine","revise","shadow_recommend"],
