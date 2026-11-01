@@ -66,7 +66,25 @@ def run(root=ROOT,limit=6):
             "evaluated":sum(r.get("status")=="sandbox_evaluated" for r in results),
             "authority":"research_only_no_deployment_or_model_promotion"}
     path=root/"data/lab_evaluations.json"
-    path.write_text(json.dumps(output,indent=2)+"\n")
+    path.write_text(json.dumps(output,indent=2)+"\\n")
+    # Persist a bounded variant ledger; keep sample counts and source timestamps.
+    history_file=root/"data/lab_history.json"
+    try:
+        ledger=json.loads(history_file.read_text())
+        if not isinstance(ledger.get("experiments"),dict):raise ValueError("invalid ledger")
+    except (OSError,ValueError,TypeError):
+        ledger={"experiments":{}}
+    for result in results:
+        key=result["id"]
+        prior=ledger["experiments"].get(key,{})
+        count=int(prior.get("attempts",0))+1
+        ledger["experiments"][key]={"attempts":count,
+            "last_status":result["status"],"last_skill":result.get("skill_vs_zero"),
+            "last_samples":result.get("test_samples",0),
+            "last_evaluated_at_utc":output["generated_at_utc"]}
+    ledger["last_updated_utc"]=output["generated_at_utc"]
+    ledger["schema"]="bounded_variant_history_v1"
+    history_file.write_text(json.dumps(ledger,indent=2)+"\\n")
     return output
 
 if __name__=="__main__":
