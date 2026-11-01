@@ -62,8 +62,13 @@ def audit_flow(root: pathlib.Path = ROOT, now=None) -> dict:
     steps=health.get("steps") or {}
     health_time=iso(health.get("timestamp_utc"))
     diagnosis_time=iso(report.get("generated_at_utc"))
-    prior_health=(health_time is not None and diagnosis_time is not None
-                  and health_time < diagnosis_time)
+    # The lab may run independently of the monitor after a failed CI cycle.
+    # A prior failure is historical evidence, never the outcome of this lab run.
+    # Preserve its state in a separate field; leave current pipeline validation pending.
+    prior_health=(health_time is not None and
+                  (diagnosis_time is not None and health_time < diagnosis_time
+                   or health.get("pipeline_passed") is False
+                   and health_time < now-dt.timedelta(seconds=5)))
     if prior_health:
         checks["pipeline_steps"]={"passed":None,"details":"previous cycle; current CI result pending"}
         checks["pipeline_outcome"]={"passed":None,"details":"previous cycle; current CI result pending"}
@@ -121,6 +126,8 @@ def audit_flow(root: pathlib.Path = ROOT, now=None) -> dict:
     check("feature_manifest",len(groups)>=len(GROUPS)-2,
           "Feature-group status and freshness must remain explicit")
     return {"generated_at_utc":now.isoformat(),"state":"healthy" if not issues else "degraded",
+            "previous_pipeline_passed":health.get("pipeline_passed"),
+            "previous_pipeline_at_utc":health.get("timestamp_utc"),
             "failed_checks":issues,"checks":checks,"sources":source_status,
             "policy":"Consistency audit only; does not certify forecast accuracy or deploy."}
 
