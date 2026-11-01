@@ -14,6 +14,7 @@ on:
     paths:
       - "src/autonomous_lab.py"
       - "src/experiment_generator.py"
+      - "src/experiment_evaluator.py"
       - "src/model_diagnosis.py"
       - "tests/test_autonomous_lab.py"
       - "tests/test_experiment_generator.py"
@@ -26,18 +27,21 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install model dependencies
+        run: python -m pip install -r requirements.txt
       - name: Test isolated lab
         env:
           PYTHONPATH: src
         run: |
           python -m unittest discover -s tests -p 'test_autonomous_lab.py' -v
           python -m unittest discover -s tests -p 'test_experiment_generator.py' -v
+          python -m unittest discover -s tests -p 'test_experiment_evaluator.py' -v
       - name: Run audit against archived data (never promote)
         env:
           PYTHONPATH: src
