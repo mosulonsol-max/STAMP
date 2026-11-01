@@ -21,4 +21,11 @@ class BurnParsingTests(unittest.TestCase):
        {"program":"spl-token","parsed":{"type":"burn","info":{"mint":"other","amount":"3"}}}
       ]}}}
   self.assertEqual(burn_instructions(tx),[])
+ def test_burn_with_string_token_amount_is_ignored_without_crashing(self):
+  tx={"meta":{"err":None,"preTokenBalances":[],"postTokenBalances":[],"innerInstructions":[]},
+      "transaction":{"message":{"accountKeys":[],"instructions":[
+       {"program":"spl-token","parsed":{"type":"burnChecked","info":{"mint":CONTRACT,"tokenAmount":"not_an_object"}}},
+       {"program":"spl-token","parsed":{"type":"burn","info":{"mint":CONTRACT,"amount":"7"}}}
+      ]}}}
+  self.assertEqual([x["amount_raw"] for x in burn_instructions(tx)],["7"])
 if __name__=="__main__":unittest.main()
