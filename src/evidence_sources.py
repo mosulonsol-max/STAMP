@@ -80,6 +80,7 @@ def burn_instructions(transaction):
     for group in meta.get("innerInstructions",[]):instructions.extend(group.get("instructions",[]))
     result=[]
     # Solana RPC instructions can be partially parsed; invalid entries are not burn evidence.
+    # Full production verification requires strict mint matching for every decoded burn.
     for i,ins in enumerate(instructions):
         if not isinstance(ins,dict):continue
         parsed=ins.get("parsed")
