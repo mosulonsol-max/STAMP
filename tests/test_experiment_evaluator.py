@@ -9,3 +9,14 @@ class EvaluationTest(unittest.TestCase):
         from experiment_evaluator import _model
         with self.assertRaises(ValueError):
             _model("arbitrary_python",{})
+
+    def test_missing_archive_does_not_crash_pipeline(self):
+        import json,tempfile
+        from experiment_evaluator import run
+        with tempfile.TemporaryDirectory() as temp:
+            root=pathlib.Path(temp);d=root/"data";d.mkdir()
+            (d/"lab_experiments.json").write_text(json.dumps({"experiments":[]}))
+            outcome=run(root,limit=2)
+            self.assertEqual(outcome["evaluated"],0)
+            self.assertEqual(outcome["results"],[])
+            self.assertTrue((d/"lab_history.json").is_file())
