@@ -27,7 +27,7 @@ def freshness(s,minutes=15):
         v=dt.datetime.fromisoformat(str(s).replace("Z","+00:00"))
         age=(dt.datetime.now(dt.timezone.utc)-v).total_seconds()
         return "CURRENT SNAPSHOT" if 0<=age<=minutes*60 else "STALE SNAPSHOT"
-    except (ValueError,TypeError):return "UNVERIFIED"
+    except (ValueError,TypeError):return "UNKNOWN"
 def build(root=ROOT):
     latest=read(root,"latest.json");health=read(root,"workflow_health.json")
     registry=read(root,"model_registry.json");learning=read(root,"learning_controller.json")
