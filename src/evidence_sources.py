@@ -88,7 +88,8 @@ def burn_instructions(transaction):
         if ins.get("program") not in ("spl-token","spl-token-2022") or parsed.get("type") not in ("burn","burnChecked"):continue
         mint=info.get("mint") or mint_by_account.get(info.get("account"))
         if mint!=CONTRACT:continue
-        token=info.get("tokenAmount") or {}
+        token=info.get("tokenAmount")
+        if not isinstance(token,dict):token={}
         amount=info.get("amount") or token.get("amount")
         if amount is not None:result.append({"instruction_index":i,"amount_raw":str(amount),"account":info.get("account"),"mint":mint})
     return result
