@@ -61,6 +61,19 @@ class LabTest(unittest.TestCase):
             self.assertIsNone(flow["checks"]["pipeline_outcome"]["passed"])
             self.assertNotIn("pipeline_outcome",flow["failed_checks"])
             self.assertEqual(evaluate_lab(root)["experiments"][0]["action"],"revise_in_sandbox")
+    def test_previous_activity_count_is_deferred_until_refresh(self):
+        with tempfile.TemporaryDirectory() as t:
+            root=pathlib.Path(t);self.fixture(root)
+            d=root/"data"
+            old=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(minutes=10)).isoformat()
+            activity=json.loads((d/"forecast_activity.json").read_text())
+            activity["checked_at_utc"]=old
+            activity["forecast_total"]=10
+            (d/"forecast_activity.json").write_text(json.dumps(activity))
+            result=audit_flow(root)
+            self.assertIsNone(result["checks"]["activity_link"]["passed"])
+            self.assertNotIn("activity_link",result["failed_checks"])
+            self.assertEqual(evaluate_lab(root)["flow"]["state"],"healthy")
     def test_no_unearned_promotion(self):
         with tempfile.TemporaryDirectory() as t:
             root=pathlib.Path(t);self.fixture(root)
