@@ -106,3 +106,10 @@ if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser();parser.add_argument('--root',type=pathlib.Path,default=ROOT);parser.add_argument('--source-commit');parser.add_argument('--output',type=pathlib.Path,required=True);args=parser.parse_args()
     report=diagnose(args.root,source_commit=args.source_commit);args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({'report':str(args.output),'data_quality':report.get('data_quality',{'status':report.get('status','reported')})}))
+    # Lab is downstream of diagnosis. It may quarantine experiments but never alters
+    # the research reports, forecasts or model governor's authority.
+    if report.get('engine')=='context_walk_forward_v3':
+        from autonomous_lab import run as run_autonomous_lab
+        lab=run_autonomous_lab(args.root)
+        print(json.dumps({'lab':lab['flow']['state'],'experiments':len(lab['experiments'])}))
+
