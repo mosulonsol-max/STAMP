@@ -117,5 +117,10 @@ if __name__=='__main__':
         target=args.root/'data/lab_experiments.json'
         target.write_text(json.dumps(experiments,indent=2)+chr(10))
         print(json.dumps({'lab_generated_proposals':len(experiments['experiments'])}))
+        # Train and score bounded sandbox variants; no model registry writes.
+        from experiment_evaluator import run as evaluate_sandbox
+        outcome=evaluate_sandbox(args.root,limit=2)
+        print(json.dumps({'sandbox_evaluated':outcome['evaluated']}))
+
 
 
