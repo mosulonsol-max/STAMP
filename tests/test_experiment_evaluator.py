@@ -50,5 +50,4 @@ class EvaluationTest(unittest.TestCase):
             run(root,limit=0)
             content=(root/"data/lab_evaluations.json").read_text()
             self.assertEqual(json.loads(content)["results"],[])
-            self.assertTrue(content.endswith("\\n") is False)
             self.assertTrue(content.endswith(chr(10)))
