@@ -48,6 +48,19 @@ class LabTest(unittest.TestCase):
             report["horizons"]["1h"]["saved_metrics"]["mae"]=0.2
             (root/"data"/"model_diagnosis.json").write_text(json.dumps(report))
             self.assertEqual(evaluate_lab(root)["experiments"][0]["action"],"quarantine")
+    def test_previous_cycle_failure_does_not_quarantine_current_diagnosis(self):
+        with tempfile.TemporaryDirectory() as t:
+            root=pathlib.Path(t);self.fixture(root)
+            old=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(minutes=20)).isoformat()
+            health=json.loads((root/"data"/"workflow_health.json").read_text())
+            health["timestamp_utc"]=old
+            health["pipeline_passed"]=False
+            health["steps"]["tests"]="failure"
+            (root/"data"/"workflow_health.json").write_text(json.dumps(health))
+            flow=audit_flow(root)
+            self.assertIsNone(flow["checks"]["pipeline_outcome"]["passed"])
+            self.assertNotIn("pipeline_outcome",flow["failed_checks"])
+            self.assertEqual(evaluate_lab(root)["experiments"][0]["action"],"revise_in_sandbox")
     def test_no_unearned_promotion(self):
         with tempfile.TemporaryDirectory() as t:
             root=pathlib.Path(t);self.fixture(root)
