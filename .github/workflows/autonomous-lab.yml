@@ -3,7 +3,9 @@ on:
   pull_request:
     paths:
       - "src/autonomous_lab.py"
+      - "src/experiment_generator.py"
       - "tests/test_autonomous_lab.py"
+      - "tests/test_experiment_generator.py"
       - ".github/workflows/autonomous-lab.yml"
   push:
     branches: [main]
@@ -32,4 +34,5 @@ jobs:
           PYTHONPATH: src
         run: |
           python src/autonomous_lab.py
+          python src/experiment_generator.py --output data/lab_experiments.json
           python -m json.tool data/autonomous_lab.json > /dev/null
