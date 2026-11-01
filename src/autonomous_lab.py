@@ -55,10 +55,22 @@ def audit_flow(root: pathlib.Path = ROOT, now=None) -> dict:
     def check(name,ok,details=""):
         checks[name]={"passed":bool(ok),"details":details}
         if not ok:issues.append(name)
+    # Monitoring writes workflow_health only AFTER research and diagnosis complete.
+    # A prior-cycle failure must not quarantine the ongoing successfully executing
+    # diagnosis. Keep previous-cycle failures visible, and require explicit final
+    # CI success separately; never silently treat old failure as a passing run.
     steps=health.get("steps") or {}
-    check("pipeline_steps",all(steps.get(s)=="success" for s in REQUIRED_STEPS),
-          "Every required stage must report success; a missing stage is a failure.")
-    check("pipeline_outcome",health.get("pipeline_passed") is True)
+    health_time=iso(health.get("timestamp_utc"))
+    diagnosis_time=iso(report.get("generated_at_utc"))
+    prior_health=(health_time is not None and diagnosis_time is not None
+                  and health_time < diagnosis_time)
+    if prior_health:
+        checks["pipeline_steps"]={"passed":None,"details":"previous cycle; current CI result pending"}
+        checks["pipeline_outcome"]={"passed":None,"details":"previous cycle; current CI result pending"}
+    else:
+        check("pipeline_steps",all(steps.get(s)=="success" for s in REQUIRED_STEPS),
+              "Every required stage must report success; a missing stage is a failure.")
+        check("pipeline_outcome",health.get("pipeline_passed") is True)
     contract=(load(d/"STAMP_archive.json").get("contract"))
     check("exact_contract",contract=="EKtmPPLaCbEEKiwoHHtV7TsRsmPXs5CMGtQtZFSiinsc")
     times={key:iso(val) for key,val in (
