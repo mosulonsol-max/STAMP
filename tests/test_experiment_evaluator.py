@@ -39,3 +39,16 @@ class EvaluationTest(unittest.TestCase):
             self.assertEqual(second["results"][0]["status"],"no_new_candle_evidence")
             history=json.loads((root/"data/lab_history.json").read_text())
             self.assertEqual(history["experiments"]["same123"]["attempts"],1)
+
+    def test_evaluation_artifact_is_parseable_json(self):
+        import json,tempfile
+        from experiment_evaluator import run
+        with tempfile.TemporaryDirectory() as temp:
+            root=pathlib.Path(temp);(root/"data/candles").mkdir(parents=True)
+            (root/"data/lab_experiments.json").write_text('{"experiments":[]}')
+            (root/"data/candles/1h.json").write_text("[]")
+            run(root,limit=0)
+            content=(root/"data/lab_evaluations.json").read_text()
+            self.assertEqual(json.loads(content)["results"],[])
+            self.assertTrue(content.endswith("\\n") is False)
+            self.assertTrue(content.endswith(chr(10)))
