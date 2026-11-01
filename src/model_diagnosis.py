@@ -123,7 +123,7 @@ if __name__=='__main__':
         print(json.dumps({'sandbox_evaluated':outcome['evaluated']}))
         from sandbox_governor import run as govern_sandbox
         decisions=govern_sandbox(args.root)
-        print(json.dumps({'sandbox_decisions':len(decisions['decisions'])}))
+        print(json.dumps({'sandbox_decisions':len(decisions['decisions']), 'decision_states':{state:sum(d['decision']==state for d in decisions['decisions']) for state in sorted({d['decision'] for d in decisions['decisions']})}}))
 
 
 
