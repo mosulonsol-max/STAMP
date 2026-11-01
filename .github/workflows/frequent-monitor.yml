@@ -68,10 +68,8 @@ jobs:
       - name: Commit data and health status
         id: persist
         # A PR checkout may be detached and its token read-only. Never push generated data from PRs.
-        if: always() && github.event_name != 'pull_request'
-        # The shared concurrency group serializes push, schedule and manual runs.
-        # Persist the first complete run after a code update as well.
-        if: always()
+        # Only scheduled, main-branch pushes and manual runs can write generated artifacts.
+        if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
         run: |
           git config user.name 'stamp-monitor[bot]'
           git config user.email 'stamp-monitor[bot]@users.noreply.github.com'
@@ -110,7 +108,7 @@ jobs:
             for attempt in 1 2 3; do
               # During rebase, 'theirs' is this newly generated data commit.
               # All files in this commit are generated artifacts, never source code.
-              if git pull --rebase -X theirs && git push; then
+              if git fetch origin main && git rebase -X theirs origin/main && git push origin HEAD:main; then
                 pushed=1
                 break
               fi
