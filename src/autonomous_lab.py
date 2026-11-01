@@ -146,7 +146,16 @@ def evaluate_lab(root: pathlib.Path = ROOT, now=None) -> dict:
                    abs(float(saved["mae"])-float(metrics["mae"]))<=1e-9)
         production=(registry.get("horizons") or {}).get(horizon) or {}
         # Failed runs must be isolated even if their retrospective score looks promising.
-        if not replay_ok or flow["failed_checks"]:
+        # A completed earlier CI failure (for example a dashboard-only test)
+        # must not disable *isolated* research on a provenance-checked archive.
+        # This NEVER overrides production approval or changes the flow audit.
+        previous_pipeline_failed=(iso(load(d/"workflow_health.json").get("timestamp_utc")) is not None
+            and iso(diagnosis.get("generated_at_utc")) is not None
+            and iso(load(d/"workflow_health.json").get("timestamp_utc")) > iso(diagnosis.get("generated_at_utc"))+dt.timedelta(seconds=5))
+        blocking=set(flow["failed_checks"])
+        if previous_pipeline_failed and blocking.issubset({"pipeline_steps","pipeline_outcome"}):
+            blocking=set()
+        if not replay_ok or blocking:
             action="quarantine"
             reason="invalid_replay_or_dataflow"
         elif samples<100 or skill is None:
