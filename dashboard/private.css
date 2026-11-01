@@ -3,3 +3,25 @@
 .chart-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 14px 10px;direction:ltr}.chart-controls button{min-height:36px;font-size:12px;padding:5px 10px}.chart-controls span{font-size:11px;color:var(--muted);direction:rtl;margin-inline-start:6px;flex:1;min-width:180px}html[lang=en] .chart-controls span{direction:ltr}#chart{cursor:crosshair;touch-action:pan-y}#chart:active{cursor:grabbing}#chart:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 
 .stream-health{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;font-size:11px;color:var(--muted);padding-top:8px}.stream-health .fresh{color:var(--up)}.stream-health .stale{color:var(--gold)}#assuranceSummary{padding:10px 0}#activeCandle:empty{display:none}
+
+/* STAMP Intelligence panels — authenticated production interface */
+.intel-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;margin:24px 0 16px}
+.intel-panel{border:1px solid #2b3d54;border-radius:16px;background:linear-gradient(145deg,#142437,#0c192a);padding:21px;min-width:0;box-shadow:0 15px 32px #020a1440}
+.intel-panel>header{display:flex;justify-content:space-between;align-items:start;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.intel-panel h2{margin:3px 0 0;font-size:19px;font-weight:650}
+.eyebrow{color:#62d8c8;font-size:10px;font-weight:750;letter-spacing:.13em}
+.intel-label{font-size:11px;border-radius:50px;background:#233650;padding:6px 11px;color:#b9cce3}
+.forecast-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.forecast-card{border:1px solid #2b3e54;background:#101d2e;border-radius:12px;padding:14px;min-width:0}
+.intel-row{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11px;border-bottom:1px solid #203149;padding:8px 0;flex-wrap:wrap}
+.intel-row:last-child{border-bottom:0}.intel-row span{overflow-wrap:anywhere}.intel-row small{color:#95abc6}
+.intel-status{border-radius:25px;padding:4px 7px;font-size:10px}.intel-status.verified{color:#6ce4b2;background:#173a32}.intel-status.unverified{color:#f2c17c;background:#352a1d}
+.forecast-target{font-size:21px;font-weight:750;font-variant-numeric:tabular-nums;direction:ltr;text-align:start;margin:12px 0;overflow-wrap:anywhere}
+.intel-note{font-size:11px;color:#9ab0c8;margin-top:14px}
+.lab-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.lab-metrics>div{padding:13px 8px;border-radius:10px;background:#101f32;border:1px solid #253750;text-align:center}
+.lab-metrics small{display:block;color:#93abc5}.lab-metrics strong{display:block;font-size:24px;font-variant-numeric:tabular-nums}
+.lab-decisions{margin-top:14px}.lab-decision{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #28394d;font-size:12px}
+.lab-decision strong{min-width:27px;color:#68d8cb}.lab-decision span{flex:1;overflow-wrap:anywhere}.lab-decision em{font-style:normal;color:#e7be82}
+@media(max-width:1000px){.intel-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.intel-panel{padding:14px}.forecast-cards{grid-template-columns:1fr}.intel-panel h2{font-size:17px}}
