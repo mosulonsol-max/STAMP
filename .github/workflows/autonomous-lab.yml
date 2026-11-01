@@ -5,9 +5,11 @@ on:
       - "src/autonomous_lab.py"
       - "src/experiment_generator.py"
       - "src/experiment_evaluator.py"
+      - "src/sandbox_governor.py"
       - "tests/test_autonomous_lab.py"
       - "tests/test_experiment_generator.py"
       - "tests/test_experiment_evaluator.py"
+      - "tests/test_sandbox_governor.py"
       - ".github/workflows/autonomous-lab.yml"
   push:
     branches: [main]
@@ -15,6 +17,7 @@ on:
       - "src/autonomous_lab.py"
       - "src/experiment_generator.py"
       - "src/experiment_evaluator.py"
+      - "src/sandbox_governor.py"
       - "src/model_diagnosis.py"
       - "tests/test_autonomous_lab.py"
       - "tests/test_experiment_generator.py"
@@ -42,6 +45,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_autonomous_lab.py' -v
           python -m unittest discover -s tests -p 'test_experiment_generator.py' -v
           python -m unittest discover -s tests -p 'test_experiment_evaluator.py' -v
+          python -m unittest discover -s tests -p 'test_sandbox_governor.py' -v
       - name: Run audit against archived data (never promote)
         env:
           PYTHONPATH: src
@@ -49,6 +53,7 @@ jobs:
           python src/autonomous_lab.py
           python src/experiment_generator.py --output data/lab_experiments.json
           python src/experiment_evaluator.py --limit 4
+          python src/sandbox_governor.py
           python -m json.tool data/autonomous_lab.json > /dev/null
       - name: Publish sandbox proposal artifact
         uses: actions/upload-artifact@v4
@@ -58,5 +63,6 @@ jobs:
             data/autonomous_lab.json
             data/lab_experiments.json
             data/lab_evaluations.json
+            data/lab_decisions.json
           if-no-files-found: error
           retention-days: 14
