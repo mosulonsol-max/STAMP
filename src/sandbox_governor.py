@@ -12,7 +12,9 @@ def decide(evaluation):
     for row in rows:
         skill=row.get("skill_vs_zero")
         n=row.get("test_samples",0)
-        if row.get("status")!="sandbox_evaluated":
+        if row.get("status")=="no_new_candle_evidence":
+            state="awaiting_new_data";reason="identical_candle_window_no_independent_evidence"
+        elif row.get("status")!="sandbox_evaluated":
             state="quarantined";reason="invalid_or_incomplete_evaluation"
         elif n<100:
             state="needs_more_forward_tests";reason="less_than_100_forward_tests"
@@ -25,6 +27,7 @@ def decide(evaluation):
           "evaluation_samples":n,"skill_vs_zero":skill,
           "approved_for_production":False,
           "next_action":("rebuild_experiment" if state in ("quarantined","revise") else
+                         "wait_for_new_closed_candle" if state=="awaiting_new_data" else
                          "expand_forward_validation" if state=="needs_more_forward_tests" else
                          "collect_independent_prospective_outcomes")})
     return {"created_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
