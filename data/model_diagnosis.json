@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-11-01T03:48:30.285577+00:00",
-  "replay_asof_utc": "2026-11-01T03:02:55.422681+00:00",
-  "source_commit": "1be7eee4d9998efc7330d77c406a01ff32314a2b",
+  "generated_at_utc": "2026-11-01T04:20:37.477045+00:00",
+  "replay_asof_utc": "2026-11-01T04:17:42.927179+00:00",
+  "source_commit": "561b2c4e3c6f17d715ffac34dbb28e565dd3de05",
   "engine": "context_walk_forward_v3",
   "runtime": {
     "python": "3.11.17",
@@ -10,10 +10,10 @@
     "scipy": "1.17.1"
   },
   "data_quality": {
-    "valid_closed_rows": 733,
+    "valid_closed_rows": 734,
     "missing_hour_intervals": 0
   },
-  "candles_sha256": "b4652d5437969d4c26a763ef85d02f54fc03b2751ccdf1838c7dcfeebab3c729",
+  "candles_sha256": "f42b65520928732d745865937ec88b1a0e3615780e7258a6ccdbe4e9570b87ba",
   "horizons": {
     "1h": {
       "engine": "context_walk_forward_v3",
@@ -23,8 +23,8 @@
         "candidates": {
           "no_change": {
             "samples": 40,
-            "mae": 0.054702162751375884,
-            "baseline_mae": 0.054702162751375884,
+            "mae": 0.0497775837470633,
+            "baseline_mae": 0.0497775837470633,
             "skill_vs_zero": 0.0,
             "direction_samples": 0,
             "direction_accuracy": null,
@@ -32,102 +32,102 @@
               null,
               null
             ],
-            "empirical_abs_log_error_p90": 0.1141930678754306,
+            "empirical_abs_log_error_p90": 0.11287668512836448,
             "eligible": false
           },
           "hist_absolute": {
             "samples": 40,
-            "mae": 0.05523600634227164,
-            "baseline_mae": 0.054702162751375884,
-            "skill_vs_zero": -0.009759094778795108,
-            "direction_samples": 40,
-            "direction_accuracy": 0.425,
-            "direction_wilson_95": [
-              0.28509392559950375,
-              0.5780493145800892
-            ],
-            "empirical_abs_log_error_p90": 0.1184863016343169,
-            "eligible": false
-          },
-          "forest_absolute": {
-            "samples": 40,
-            "mae": 0.053985559160121134,
-            "baseline_mae": 0.054702162751375884,
-            "skill_vs_zero": 0.013100096142665274,
-            "direction_samples": 40,
-            "direction_accuracy": 0.575,
-            "direction_wilson_95": [
-              0.42195068541991065,
-              0.7149060744004962
-            ],
-            "empirical_abs_log_error_p90": 0.11752527654226602,
-            "eligible": false
-          },
-          "market_absolute": {
-            "samples": 40,
-            "mae": 0.055230618832707835,
-            "baseline_mae": 0.054702162751375884,
-            "skill_vs_zero": -0.009660606724706922,
+            "mae": 0.05006242151710653,
+            "baseline_mae": 0.0497775837470633,
+            "skill_vs_zero": -0.005722209649439369,
             "direction_samples": 40,
             "direction_accuracy": 0.45,
             "direction_wilson_95": [
               0.3070530781090492,
               0.6017090820106794
             ],
-            "empirical_abs_log_error_p90": 0.11830430052661313,
+            "empirical_abs_log_error_p90": 0.10687307989361967,
+            "eligible": false
+          },
+          "forest_absolute": {
+            "samples": 40,
+            "mae": 0.048451933292933916,
+            "baseline_mae": 0.0497775837470633,
+            "skill_vs_zero": 0.026631474538126643,
+            "direction_samples": 40,
+            "direction_accuracy": 0.6,
+            "direction_wilson_95": [
+              0.44595893660346186,
+              0.7365167431570808
+            ],
+            "empirical_abs_log_error_p90": 0.10878730271259467,
+            "eligible": false
+          },
+          "market_absolute": {
+            "samples": 40,
+            "mae": 0.050136091075901223,
+            "baseline_mae": 0.0497775837470633,
+            "skill_vs_zero": -0.007202184233361386,
+            "direction_samples": 40,
+            "direction_accuracy": 0.475,
+            "direction_wilson_95": [
+              0.329354701126789,
+              0.6250263789330753
+            ],
+            "empirical_abs_log_error_p90": 0.10778058744869153,
             "eligible": false
           },
           "technical_absolute": {
             "samples": 40,
-            "mae": 0.05476063438851546,
-            "baseline_mae": 0.054702162751375884,
-            "skill_vs_zero": -0.0010689090558508862,
+            "mae": 0.049628780912773965,
+            "baseline_mae": 0.0497775837470633,
+            "skill_vs_zero": 0.002989354305453107,
             "direction_samples": 40,
-            "direction_accuracy": 0.55,
+            "direction_accuracy": 0.575,
             "direction_wilson_95": [
-              0.39829091798932054,
-              0.6929469218909508
+              0.42195068541991065,
+              0.7149060744004962
             ],
-            "empirical_abs_log_error_p90": 0.11584722230391023,
+            "empirical_abs_log_error_p90": 0.10395896187654904,
             "eligible": false
           }
         },
         "selected_model": "forest_absolute",
-        "selection_last_target_ms": 1793070000000,
-        "evaluation_first_feature_ms": 1793070000000,
+        "selection_last_target_ms": 1793073600000,
+        "evaluation_first_feature_ms": 1793073600000,
         "policy": "Candidate chosen before later scores are computed; no choice from later holdout"
       },
       "saved_metrics": {
         "samples": 120,
-        "mae": 0.08841697322011034,
-        "baseline_mae": 0.08687475205562468,
-        "skill_vs_zero": -0.017752236731544135,
+        "mae": 0.0883462325573358,
+        "baseline_mae": 0.08664324616622171,
+        "skill_vs_zero": -0.01965515451541333,
         "direction_samples": 120,
-        "direction_accuracy": 0.5333333333333333,
+        "direction_accuracy": 0.525,
         "direction_wilson_95": [
-          0.4444278926967431,
-          0.6201708295420101
+          0.43626995305824834,
+          0.6121790886208165
         ],
         "empirical_abs_log_error_p90": 0.22373831519241152,
         "eligible": false
       },
       "reproduced_metrics": {
         "samples": 120,
-        "mae": 0.08841697322011034,
-        "baseline_mae": 0.08687475205562468,
-        "skill_vs_zero": -0.017752236731544135,
+        "mae": 0.0883462325573358,
+        "baseline_mae": 0.08664324616622171,
+        "skill_vs_zero": -0.01965515451541333,
         "direction_samples": 120,
-        "direction_accuracy": 0.5333333333333333,
+        "direction_accuracy": 0.525,
         "direction_wilson_95": [
-          0.4444278926967431,
-          0.6201708295420101
+          0.43626995305824834,
+          0.6121790886208165
         ],
         "empirical_abs_log_error_p90": 0.22373831519241152,
         "eligible": false
       },
       "input_manifest": {
         "schema": "asof_multi_source_v1",
-        "reference_utc": "2026-11-01T03:00:00+00:00",
+        "reference_utc": "2026-11-01T04:00:00+00:00",
         "features": 146,
         "groups": {
           "regime": {
@@ -142,34 +142,34 @@
             "policy": "recompute returns/correlations using only exact closed candles at or before reference; no current correlation backfill"
           },
           "ticker": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 4,
             "total_features": 4,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC ticker; raw price normalized against reference at vector construction",
+            "observed_utc": "2026-11-01T03:48:10.892000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "orderbook": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 4,
             "total_features": 5,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC depth snapshot",
+            "observed_utc": "2026-11-01T03:48:11.070000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "trades": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 3,
             "total_features": 3,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC limited executed trade sample",
+            "observed_utc": "2026-11-01T03:47:21.085000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "dex": {
             "status": "used",
@@ -178,8 +178,8 @@
             "total_features": 3,
             "source_quality": "measured",
             "source": "DexScreener exact mint, pool deduplication",
-            "observed_utc": "2026-11-01T02:18:32.743000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:12.072000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "onchain": {
             "status": "used",
@@ -188,8 +188,8 @@
             "total_features": 4,
             "source_quality": "measured",
             "source": "Solana finalized exact mint",
-            "observed_utc": "2026-11-01T02:18:33.518000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:12.746000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "news": {
             "status": "used",
@@ -198,8 +198,8 @@
             "total_features": 18,
             "source_quality": "partial",
             "source": "Exact-contract discovery and verified evidence registry",
-            "observed_utc": "2026-11-01T02:18:35.033000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:14.628000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "project": {
             "status": "missing",
@@ -218,12 +218,12 @@
             "total_features": 4,
             "source_quality": "measured",
             "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-            "observed_utc": "2026-11-01T02:17:48+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:47:48+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "derivatives": {
             "status": "missing",
-            "reason": "stale",
+            "reason": "No derivative instrument verified against the mint",
             "available_features": 0,
             "total_features": 2,
             "source_quality": "unavailable",
@@ -234,7 +234,7 @@
           "feedback": {
             "status": "verified_prospective_journal",
             "available_features": 5,
-            "verified_outcomes": 7,
+            "verified_outcomes": 8,
             "total_features": 5,
             "policy": "Only v3 hourly forecasts; outcome evaluation must have been available by the feature time; no reconstructed future feedback"
           }
@@ -247,8 +247,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC ticker; raw price normalized against reference at vector construction",
-          "observed_utc": "2026-11-01T03:48:10.892000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:31.157000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "orderbook": {
@@ -256,8 +256,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC depth snapshot",
-          "observed_utc": "2026-11-01T03:48:11.070000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:31.331000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "trades": {
@@ -265,8 +265,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC limited executed trade sample",
-          "observed_utc": "2026-11-01T03:47:21.085000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:22.586000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 3
         },
         "dex": {
@@ -274,8 +274,8 @@
           "quality": "measured",
           "reason": null,
           "source": "DexScreener exact mint, pool deduplication",
-          "observed_utc": "2026-11-01T03:48:12.072000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:32.431000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 3
         },
         "onchain": {
@@ -283,17 +283,17 @@
           "quality": "measured",
           "reason": "Recent verified burns only; no full burn history is inferred",
           "source": "Solana finalized exact mint",
-          "observed_utc": "2026-11-01T03:48:12.746000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:33.138000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "news": {
           "status": "available",
           "quality": "partial",
-          "reason": "Verified text and unverified discovery text are separate stateless hashed features; unverified text is search activity, never truth, sentiment or price causality",
+          "reason": "using_prior_valid_observation_within_source_TTL",
           "source": "Exact-contract discovery and verified evidence registry",
-          "observed_utc": "2026-11-01T03:48:14.628000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:42.748000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 10
         },
         "project": {
@@ -301,8 +301,8 @@
           "quality": "unavailable",
           "reason": "Repository identity not verified against the mint",
           "source": "Verified project repository only",
-          "observed_utc": "2026-11-01T03:48:12.288000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:32.579000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 0
         },
         "macro": {
@@ -310,8 +310,8 @@
           "quality": "measured",
           "reason": null,
           "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-          "observed_utc": "2026-11-01T03:47:48+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:16:51+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "derivatives": {
@@ -319,12 +319,12 @@
           "quality": "unavailable",
           "reason": "No derivative instrument verified against the mint",
           "source": "Verified derivative instrument only",
-          "observed_utc": "2026-11-01T03:48:14.750000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:42.927000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 0
         }
       },
-      "source_access_checked_at_utc": "2026-11-01T03:48:14.750039+00:00",
+      "source_access_checked_at_utc": "2026-11-01T04:17:42.927179+00:00",
       "feature_coverage": {
         "regime": {
           "evaluation_points": 120,
@@ -336,15 +336,15 @@
         },
         "ticker": {
           "evaluation_points": 120,
-          "points_with_data": 42
+          "points_with_data": 41
         },
         "orderbook": {
           "evaluation_points": 120,
-          "points_with_data": 42
+          "points_with_data": 41
         },
         "trades": {
           "evaluation_points": 120,
-          "points_with_data": 42
+          "points_with_data": 41
         },
         "dex": {
           "evaluation_points": 120,
@@ -352,11 +352,11 @@
         },
         "onchain": {
           "evaluation_points": 120,
-          "points_with_data": 7
+          "points_with_data": 8
         },
         "news": {
           "evaluation_points": 120,
-          "points_with_data": 7
+          "points_with_data": 8
         },
         "project": {
           "evaluation_points": 120,
@@ -372,40 +372,40 @@
         },
         "feedback": {
           "evaluation_points": 120,
-          "points_with_data": 6
+          "points_with_data": 7
         }
       },
       "learned_group_importance": {
         "status": "learned_split_importance",
         "groups": {
-          "base_ohlcv": 0.5194910162537446,
-          "regime": 0.31238747230621994,
-          "market": 0.025865024814594084,
-          "ticker": 0.0485743356266232,
+          "base_ohlcv": 0.5243703761406281,
+          "regime": 0.3029241039024186,
+          "market": 0.03176680556465317,
+          "ticker": 0.0486574292703008,
           "orderbook": 0.0,
           "trades": 0.0,
-          "dex": 0.07559613820794864,
+          "dex": 0.06087466318670463,
           "onchain": 0.0,
           "news": 0.0,
           "project": 0.0,
-          "macro": 0.018086012790869462,
+          "macro": 0.03140662193529443,
           "derivatives": 0.0,
           "feedback": 0.0
         },
         "warning": "Training split importance, not causal contribution or out-of-sample benefit"
       },
       "prospective": {
-        "samples": 8,
-        "direction_samples": 8,
+        "samples": 9,
+        "direction_samples": 9,
         "direction_correct": 6,
-        "direction_accuracy": 0.75,
+        "direction_accuracy": 0.6666666666666666,
         "direction_wilson_95": [
-          0.40927543031016883,
-          0.9285207872478909
+          0.3542021355803963,
+          0.879416181613089
         ],
-        "mae": 0.06552731414067785,
-        "baseline_mae": 0.06297240040507611,
-        "skill_vs_zero": -0.04057196040117583,
+        "mae": 0.05986242623878402,
+        "baseline_mae": 0.05704248333597872,
+        "skill_vs_zero": -0.04943583690415276,
         "excluded_overlapping_or_old": 0,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
@@ -415,212 +415,212 @@
         "metrics": {
           "full": {
             "samples": 120,
-            "mae": 0.08732834838648958,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.005221267631065674,
+            "mae": 0.08717814904370728,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.0061736246176578025,
             "direction_samples": 120,
-            "direction_accuracy": 0.525,
+            "direction_accuracy": 0.5083333333333333,
             "direction_wilson_95": [
-              0.43626995305824834,
-              0.6121790886208165
+              0.4200253978366605,
+              0.5961242827230276
             ],
-            "empirical_abs_log_error_p90": 0.2193083785032648,
+            "empirical_abs_log_error_p90": 0.22343682227809902,
             "eligible": false
           },
           "base_only": {
             "samples": 120,
-            "mae": 0.08702577884485388,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.0017384428232094518,
+            "mae": 0.08643251542755431,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": 0.0024321657831600785,
+            "direction_samples": 120,
+            "direction_accuracy": 0.5583333333333333,
+            "direction_wilson_95": [
+              0.4690452309131966,
+              0.6440025330046214
+            ],
+            "empirical_abs_log_error_p90": 0.22155062029922898,
+            "eligible": false
+          },
+          "regime": {
+            "samples": 120,
+            "mae": 0.08673841929085166,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.0010984482789040406,
             "direction_samples": 120,
             "direction_accuracy": 0.575,
             "direction_wilson_95": [
               0.4855775172299302,
               0.6597696078072643
             ],
-            "empirical_abs_log_error_p90": 0.22005602886629325,
-            "eligible": false
-          },
-          "regime": {
-            "samples": 120,
-            "mae": 0.08737119281982487,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.005714442371960171,
-            "direction_samples": 120,
-            "direction_accuracy": 0.6,
-            "direction_wilson_95": [
-              0.5105602479246307,
-              0.6832359187916286
-            ],
-            "empirical_abs_log_error_p90": 0.22384655197595427,
+            "empirical_abs_log_error_p90": 0.22523869717449183,
             "eligible": false
           },
           "market": {
             "samples": 120,
-            "mae": 0.08726376397102602,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.004477847777364152,
+            "mae": 0.08689978045265633,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.0029608111166847806,
             "direction_samples": 120,
-            "direction_accuracy": 0.5583333333333333,
+            "direction_accuracy": 0.575,
             "direction_wilson_95": [
-              0.4690452309131966,
-              0.6440025330046214
+              0.4855775172299302,
+              0.6597696078072643
             ],
-            "empirical_abs_log_error_p90": 0.21593614569538636,
+            "empirical_abs_log_error_p90": 0.2191428448705552,
             "eligible": false
           },
           "ticker": {
             "samples": 120,
-            "mae": 0.0873200788763407,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.005126078753363128,
+            "mae": 0.08717814904370728,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.0061736246176578025,
+            "direction_samples": 120,
+            "direction_accuracy": 0.5083333333333333,
+            "direction_wilson_95": [
+              0.4200253978366605,
+              0.5961242827230276
+            ],
+            "empirical_abs_log_error_p90": 0.22343682227809902,
+            "eligible": false
+          },
+          "orderbook": {
+            "samples": 120,
+            "mae": 0.08723543741121062,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.006834822922640926,
             "direction_samples": 120,
             "direction_accuracy": 0.5166666666666667,
             "direction_wilson_95": [
               0.4281358041299209,
               0.6041635569894558
             ],
-            "empirical_abs_log_error_p90": 0.22332608263460865,
+            "empirical_abs_log_error_p90": 0.2230970019523974,
             "eligible": false
           },
-          "orderbook": {
+          "trades": {
             "samples": 120,
-            "mae": 0.0872918966613858,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.0048016782309090456,
+            "mae": 0.08711457388586338,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.005439866815902139,
+            "direction_samples": 120,
+            "direction_accuracy": 0.5083333333333333,
+            "direction_wilson_95": [
+              0.4200253978366605,
+              0.5961242827230276
+            ],
+            "empirical_abs_log_error_p90": 0.22343682227809902,
+            "eligible": false
+          },
+          "dex": {
+            "samples": 120,
+            "mae": 0.08677104321293093,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.0014749799016537946,
             "direction_samples": 120,
             "direction_accuracy": 0.5333333333333333,
             "direction_wilson_95": [
               0.4444278926967431,
               0.6201708295420101
             ],
-            "empirical_abs_log_error_p90": 0.21924307343298569,
-            "eligible": false
-          },
-          "trades": {
-            "samples": 120,
-            "mae": 0.0873276833442891,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.005213612447197757,
-            "direction_samples": 120,
-            "direction_accuracy": 0.525,
-            "direction_wilson_95": [
-              0.43626995305824834,
-              0.6121790886208165
-            ],
-            "empirical_abs_log_error_p90": 0.2193083785032648,
-            "eligible": false
-          },
-          "dex": {
-            "samples": 120,
-            "mae": 0.08691521803252261,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.0004657967469308133,
-            "direction_samples": 120,
-            "direction_accuracy": 0.5583333333333333,
-            "direction_wilson_95": [
-              0.4690452309131966,
-              0.6440025330046214
-            ],
-            "empirical_abs_log_error_p90": 0.21881862892859824,
+            "empirical_abs_log_error_p90": 0.22214618417758933,
             "eligible": false
           },
           "onchain": {
             "samples": 120,
-            "mae": 0.08732834838648958,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.005221267631065674,
+            "mae": 0.08717814904370728,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.0061736246176578025,
             "direction_samples": 120,
-            "direction_accuracy": 0.525,
+            "direction_accuracy": 0.5083333333333333,
             "direction_wilson_95": [
-              0.43626995305824834,
-              0.6121790886208165
+              0.4200253978366605,
+              0.5961242827230276
             ],
-            "empirical_abs_log_error_p90": 0.2193083785032648,
+            "empirical_abs_log_error_p90": 0.22343682227809902,
             "eligible": false
           },
           "news": {
             "samples": 120,
-            "mae": 0.08732834838648958,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.005221267631065674,
+            "mae": 0.08717814904370728,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.0061736246176578025,
             "direction_samples": 120,
-            "direction_accuracy": 0.525,
+            "direction_accuracy": 0.5083333333333333,
             "direction_wilson_95": [
-              0.43626995305824834,
-              0.6121790886208165
+              0.4200253978366605,
+              0.5961242827230276
             ],
-            "empirical_abs_log_error_p90": 0.2193083785032648,
+            "empirical_abs_log_error_p90": 0.22343682227809902,
             "eligible": false
           },
           "project": {
             "samples": 120,
-            "mae": 0.08732834838648958,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.005221267631065674,
+            "mae": 0.08717814904370728,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.0061736246176578025,
             "direction_samples": 120,
-            "direction_accuracy": 0.525,
+            "direction_accuracy": 0.5083333333333333,
             "direction_wilson_95": [
-              0.43626995305824834,
-              0.6121790886208165
+              0.4200253978366605,
+              0.5961242827230276
             ],
-            "empirical_abs_log_error_p90": 0.2193083785032648,
+            "empirical_abs_log_error_p90": 0.22343682227809902,
             "eligible": false
           },
           "macro": {
             "samples": 120,
-            "mae": 0.0871562521565965,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.0032402981799772856,
+            "mae": 0.08728632394512577,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.007422133949948506,
             "direction_samples": 120,
-            "direction_accuracy": 0.55,
+            "direction_accuracy": 0.5333333333333333,
             "direction_wilson_95": [
-              0.46081543419687576,
-              0.6360826491612539
+              0.4444278926967431,
+              0.6201708295420101
             ],
-            "empirical_abs_log_error_p90": 0.21903988901018562,
+            "empirical_abs_log_error_p90": 0.22328949685293115,
             "eligible": false
           },
           "derivatives": {
             "samples": 120,
-            "mae": 0.08732834838648958,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.005221267631065674,
+            "mae": 0.08717814904370728,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.0061736246176578025,
             "direction_samples": 120,
-            "direction_accuracy": 0.525,
+            "direction_accuracy": 0.5083333333333333,
             "direction_wilson_95": [
-              0.43626995305824834,
-              0.6121790886208165
+              0.4200253978366605,
+              0.5961242827230276
             ],
-            "empirical_abs_log_error_p90": 0.2193083785032648,
+            "empirical_abs_log_error_p90": 0.22343682227809902,
             "eligible": false
           },
           "feedback": {
             "samples": 120,
-            "mae": 0.08732834838648958,
-            "baseline_mae": 0.08687475205562468,
-            "skill_vs_zero": -0.005221267631065674,
+            "mae": 0.08717814904370728,
+            "baseline_mae": 0.08664324616622171,
+            "skill_vs_zero": -0.0061736246176578025,
             "direction_samples": 120,
-            "direction_accuracy": 0.525,
+            "direction_accuracy": 0.5083333333333333,
             "direction_wilson_95": [
-              0.43626995305824834,
-              0.6121790886208165
+              0.4200253978366605,
+              0.5961242827230276
             ],
-            "empirical_abs_log_error_p90": 0.2193083785032648,
+            "empirical_abs_log_error_p90": 0.22343682227809902,
             "eligible": false
           }
         },
         "group_deletion_relative_error": {
-          "regime": 0.0004906131184994056,
-          "market": -0.000739558421255504,
-          "ticker": -9.469445262233478e-05,
-          "orderbook": -0.00041740999088235586,
-          "trades": -7.615421713125237e-06,
-          "dex": -0.004730770266472617,
+          "regime": -0.005044036351760206,
+          "market": -0.003193100497137169,
+          "ticker": 0.0,
+          "orderbook": 0.0006571413609002263,
+          "trades": -0.000729255651115368,
+          "dex": -0.004669815030968971,
           "onchain": 0.0,
           "news": 0.0,
           "project": 0.0,
-          "macro": -0.0019706800033756355,
+          "macro": 0.001240848797606997,
           "derivatives": 0.0,
           "feedback": 0.0
         },
@@ -635,8 +635,8 @@
         "candidates": {
           "no_change": {
             "samples": 40,
-            "mae": 0.029783872993647598,
-            "baseline_mae": 0.029783872993647598,
+            "mae": 0.037228774873313775,
+            "baseline_mae": 0.037228774873313775,
             "skill_vs_zero": 0.0,
             "direction_samples": 0,
             "direction_accuracy": null,
@@ -644,75 +644,75 @@
               null,
               null
             ],
-            "empirical_abs_log_error_p90": 0.04831787054244299,
+            "empirical_abs_log_error_p90": 0.09947998669061975,
             "eligible": false
           },
           "hist_absolute": {
             "samples": 40,
-            "mae": 0.03139390642542844,
-            "baseline_mae": 0.029783872993647598,
-            "skill_vs_zero": -0.05405722191080509,
+            "mae": 0.03827700060805957,
+            "baseline_mae": 0.037228774873313775,
+            "skill_vs_zero": -0.028156331716872707,
             "direction_samples": 40,
-            "direction_accuracy": 0.5,
+            "direction_accuracy": 0.525,
             "direction_wilson_95": [
-              0.35199526933465386,
-              0.6480047306653461
+              0.3749736210669248,
+              0.670645298873211
             ],
-            "empirical_abs_log_error_p90": 0.05790996105385178,
+            "empirical_abs_log_error_p90": 0.10984091705025137,
             "eligible": false
           },
           "forest_absolute": {
             "samples": 40,
-            "mae": 0.03200584824010325,
-            "baseline_mae": 0.029783872993647598,
-            "skill_vs_zero": -0.07460330115326386,
+            "mae": 0.03936561608464602,
+            "baseline_mae": 0.037228774873313775,
+            "skill_vs_zero": -0.05739756998729417,
             "direction_samples": 40,
-            "direction_accuracy": 0.5,
+            "direction_accuracy": 0.525,
             "direction_wilson_95": [
-              0.35199526933465386,
-              0.6480047306653461
+              0.3749736210669248,
+              0.670645298873211
             ],
-            "empirical_abs_log_error_p90": 0.05451154071476124,
+            "empirical_abs_log_error_p90": 0.10706288084573279,
             "eligible": false
           },
           "market_absolute": {
             "samples": 40,
-            "mae": 0.03139390642542844,
-            "baseline_mae": 0.029783872993647598,
-            "skill_vs_zero": -0.05405722191080509,
+            "mae": 0.03827700060805957,
+            "baseline_mae": 0.037228774873313775,
+            "skill_vs_zero": -0.028156331716872707,
             "direction_samples": 40,
-            "direction_accuracy": 0.5,
+            "direction_accuracy": 0.525,
             "direction_wilson_95": [
-              0.35199526933465386,
-              0.6480047306653461
+              0.3749736210669248,
+              0.670645298873211
             ],
-            "empirical_abs_log_error_p90": 0.05790996105385178,
+            "empirical_abs_log_error_p90": 0.10984091705025137,
             "eligible": false
           },
           "technical_absolute": {
             "samples": 40,
-            "mae": 0.031724956661528414,
-            "baseline_mae": 0.029783872993647598,
-            "skill_vs_zero": -0.06517230543841013,
+            "mae": 0.0383835429033984,
+            "baseline_mae": 0.037228774873313775,
+            "skill_vs_zero": -0.031018158239539018,
             "direction_samples": 40,
             "direction_accuracy": 0.5,
             "direction_wilson_95": [
               0.35199526933465386,
               0.6480047306653461
             ],
-            "empirical_abs_log_error_p90": 0.05591370151882013,
+            "empirical_abs_log_error_p90": 0.11098711675440644,
             "eligible": false
           }
         },
         "selected_model": "no_change",
-        "selection_last_target_ms": 1791903600000,
-        "evaluation_first_feature_ms": 1791903600000,
+        "selection_last_target_ms": 1791907200000,
+        "evaluation_first_feature_ms": 1791907200000,
         "policy": "Candidate chosen before later scores are computed; no choice from later holdout"
       },
       "saved_metrics": {
         "samples": 111,
-        "mae": 0.08495296674776813,
-        "baseline_mae": 0.08495296674776813,
+        "mae": 0.08718772296725348,
+        "baseline_mae": 0.08718772296725348,
         "skill_vs_zero": 0.0,
         "direction_samples": 0,
         "direction_accuracy": null,
@@ -720,13 +720,13 @@
           null,
           null
         ],
-        "empirical_abs_log_error_p90": 0.25600618878754056,
+        "empirical_abs_log_error_p90": 0.2563794174495827,
         "eligible": false
       },
       "reproduced_metrics": {
         "samples": 111,
-        "mae": 0.08495296674776813,
-        "baseline_mae": 0.08495296674776813,
+        "mae": 0.08718772296725348,
+        "baseline_mae": 0.08718772296725348,
         "skill_vs_zero": 0.0,
         "direction_samples": 0,
         "direction_accuracy": null,
@@ -734,12 +734,12 @@
           null,
           null
         ],
-        "empirical_abs_log_error_p90": 0.25600618878754056,
+        "empirical_abs_log_error_p90": 0.2563794174495827,
         "eligible": false
       },
       "input_manifest": {
         "schema": "asof_multi_source_v1",
-        "reference_utc": "2026-11-01T03:00:00+00:00",
+        "reference_utc": "2026-11-01T04:00:00+00:00",
         "features": 146,
         "groups": {
           "regime": {
@@ -754,34 +754,34 @@
             "policy": "recompute returns/correlations using only exact closed candles at or before reference; no current correlation backfill"
           },
           "ticker": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 4,
             "total_features": 4,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC ticker; raw price normalized against reference at vector construction",
+            "observed_utc": "2026-11-01T03:48:10.892000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "orderbook": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 4,
             "total_features": 5,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC depth snapshot",
+            "observed_utc": "2026-11-01T03:48:11.070000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "trades": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 3,
             "total_features": 3,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC limited executed trade sample",
+            "observed_utc": "2026-11-01T03:47:21.085000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "dex": {
             "status": "used",
@@ -790,8 +790,8 @@
             "total_features": 3,
             "source_quality": "measured",
             "source": "DexScreener exact mint, pool deduplication",
-            "observed_utc": "2026-11-01T02:18:32.743000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:12.072000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "onchain": {
             "status": "used",
@@ -800,8 +800,8 @@
             "total_features": 4,
             "source_quality": "measured",
             "source": "Solana finalized exact mint",
-            "observed_utc": "2026-11-01T02:18:33.518000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:12.746000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "news": {
             "status": "used",
@@ -810,8 +810,8 @@
             "total_features": 18,
             "source_quality": "partial",
             "source": "Exact-contract discovery and verified evidence registry",
-            "observed_utc": "2026-11-01T02:18:35.033000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:14.628000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "project": {
             "status": "missing",
@@ -830,12 +830,12 @@
             "total_features": 4,
             "source_quality": "measured",
             "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-            "observed_utc": "2026-11-01T02:17:48+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:47:48+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "derivatives": {
             "status": "missing",
-            "reason": "stale",
+            "reason": "No derivative instrument verified against the mint",
             "available_features": 0,
             "total_features": 2,
             "source_quality": "unavailable",
@@ -846,7 +846,7 @@
           "feedback": {
             "status": "verified_prospective_journal",
             "available_features": 5,
-            "verified_outcomes": 7,
+            "verified_outcomes": 8,
             "total_features": 5,
             "policy": "Only v3 hourly forecasts; outcome evaluation must have been available by the feature time; no reconstructed future feedback"
           }
@@ -859,8 +859,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC ticker; raw price normalized against reference at vector construction",
-          "observed_utc": "2026-11-01T03:48:10.892000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:31.157000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "orderbook": {
@@ -868,8 +868,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC depth snapshot",
-          "observed_utc": "2026-11-01T03:48:11.070000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:31.331000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "trades": {
@@ -877,8 +877,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC limited executed trade sample",
-          "observed_utc": "2026-11-01T03:47:21.085000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:22.586000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 3
         },
         "dex": {
@@ -886,8 +886,8 @@
           "quality": "measured",
           "reason": null,
           "source": "DexScreener exact mint, pool deduplication",
-          "observed_utc": "2026-11-01T03:48:12.072000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:32.431000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 3
         },
         "onchain": {
@@ -895,17 +895,17 @@
           "quality": "measured",
           "reason": "Recent verified burns only; no full burn history is inferred",
           "source": "Solana finalized exact mint",
-          "observed_utc": "2026-11-01T03:48:12.746000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:33.138000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "news": {
           "status": "available",
           "quality": "partial",
-          "reason": "Verified text and unverified discovery text are separate stateless hashed features; unverified text is search activity, never truth, sentiment or price causality",
+          "reason": "using_prior_valid_observation_within_source_TTL",
           "source": "Exact-contract discovery and verified evidence registry",
-          "observed_utc": "2026-11-01T03:48:14.628000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:42.748000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 10
         },
         "project": {
@@ -913,8 +913,8 @@
           "quality": "unavailable",
           "reason": "Repository identity not verified against the mint",
           "source": "Verified project repository only",
-          "observed_utc": "2026-11-01T03:48:12.288000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:32.579000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 0
         },
         "macro": {
@@ -922,8 +922,8 @@
           "quality": "measured",
           "reason": null,
           "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-          "observed_utc": "2026-11-01T03:47:48+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:16:51+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "derivatives": {
@@ -931,12 +931,12 @@
           "quality": "unavailable",
           "reason": "No derivative instrument verified against the mint",
           "source": "Verified derivative instrument only",
-          "observed_utc": "2026-11-01T03:48:14.750000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:42.927000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 0
         }
       },
-      "source_access_checked_at_utc": "2026-11-01T03:48:14.750039+00:00",
+      "source_access_checked_at_utc": "2026-11-01T04:17:42.927179+00:00",
       "feature_coverage": {
         "regime": {
           "evaluation_points": 111,
@@ -948,15 +948,15 @@
         },
         "ticker": {
           "evaluation_points": 111,
-          "points_with_data": 20
+          "points_with_data": 22
         },
         "orderbook": {
           "evaluation_points": 111,
-          "points_with_data": 20
+          "points_with_data": 22
         },
         "trades": {
           "evaluation_points": 111,
-          "points_with_data": 20
+          "points_with_data": 21
         },
         "dex": {
           "evaluation_points": 111,
@@ -964,11 +964,11 @@
         },
         "onchain": {
           "evaluation_points": 111,
-          "points_with_data": 1
+          "points_with_data": 2
         },
         "news": {
           "evaluation_points": 111,
-          "points_with_data": 1
+          "points_with_data": 2
         },
         "project": {
           "evaluation_points": 111,
@@ -1003,7 +1003,7 @@
         "mae": 0.09323338261674372,
         "baseline_mae": 0.09323338261674372,
         "skill_vs_zero": 0.0,
-        "excluded_overlapping_or_old": 2,
+        "excluded_overlapping_or_old": 3,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
       "group_ablation": {
@@ -1012,204 +1012,204 @@
         "metrics": {
           "full": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08912984964621809,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022275231109017968,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           },
           "base_only": {
             "samples": 111,
-            "mae": 0.08619552330315386,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.014626405680156829,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5675675675675675,
+            "mae": 0.0895038251691363,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.0265645451338683,
+            "direction_samples": 109,
+            "direction_accuracy": 0.42201834862385323,
             "direction_wilson_95": [
-              0.47467121788751543,
-              0.6559436328295938
+              0.33350964579265363,
+              0.5158365060768192
             ],
-            "empirical_abs_log_error_p90": 0.26944452043490363,
+            "empirical_abs_log_error_p90": 0.265709475521683,
             "eligible": false
           },
           "regime": {
             "samples": 111,
-            "mae": 0.0862077448041056,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.014770267647779889,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5405405405405406,
+            "mae": 0.0892095212853021,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.023189025349451775,
+            "direction_samples": 109,
+            "direction_accuracy": 0.45871559633027525,
             "direction_wilson_95": [
-              0.4480286067541221,
-              0.6303403036761435
+              0.3681716204188823,
+              0.5520704599826033
             ],
-            "empirical_abs_log_error_p90": 0.26716189002122753,
+            "empirical_abs_log_error_p90": 0.26059987722424816,
             "eligible": false
           },
           "market": {
             "samples": 111,
-            "mae": 0.08495841932934897,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -6.418353342541039e-05,
-            "direction_samples": 111,
-            "direction_accuracy": 0.6216216216216216,
+            "mae": 0.08905418472716531,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.021407391962889655,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5137614678899083,
             "direction_wilson_95": [
-              0.5287598467882427,
-              0.7063468845025537
+              0.4210730542514851,
+              0.6055129189480197
             ],
-            "empirical_abs_log_error_p90": 0.27452876949850524,
+            "empirical_abs_log_error_p90": 0.27389521220754903,
             "eligible": false
           },
           "ticker": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08912984964621809,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022275231109017968,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           },
           "orderbook": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08912984964621809,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022275231109017968,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           },
           "trades": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08912984964621809,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022275231109017968,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           },
           "dex": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08912984964621809,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022275231109017968,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           },
           "onchain": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08912984964621809,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022275231109017968,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           },
           "news": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08912984964621809,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022275231109017968,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           },
           "project": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08912984964621809,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022275231109017968,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           },
           "macro": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08911395948522167,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022092978832486176,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           },
           "derivatives": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08912984964621809,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022275231109017968,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           },
           "feedback": {
             "samples": 111,
-            "mae": 0.0854280725351571,
-            "baseline_mae": 0.08495296674776813,
-            "skill_vs_zero": -0.005592574404135853,
-            "direction_samples": 111,
-            "direction_accuracy": 0.5585585585585585,
+            "mae": 0.08912984964621809,
+            "baseline_mae": 0.08718772296725348,
+            "skill_vs_zero": -0.022275231109017968,
+            "direction_samples": 109,
+            "direction_accuracy": 0.5321100917431193,
             "direction_wilson_95": [
-              0.4657611253397782,
-              0.6474384119483829
+              0.4389472230200744,
+              0.6230867144454368
             ],
-            "empirical_abs_log_error_p90": 0.27200312474629795,
+            "empirical_abs_log_error_p90": 0.2714861949294433,
             "eligible": false
           }
         },
         "group_deletion_relative_error": {
-          "regime": 0.009126651764589822,
-          "market": -0.005497644882656694,
+          "regime": 0.0008938827945996763,
+          "market": -0.0008489290552280426,
           "ticker": 0.0,
           "orderbook": 0.0,
           "trades": 0.0,
@@ -1217,7 +1217,7 @@
           "onchain": 0.0,
           "news": 0.0,
           "project": 0.0,
-          "macro": 0.0,
+          "macro": -0.0001782810254867817,
           "derivatives": 0.0,
           "feedback": 0.0
         },
@@ -1232,8 +1232,8 @@
         "candidates": {
           "no_change": {
             "samples": 8,
-            "mae": 0.11346146531648565,
-            "baseline_mae": 0.11346146531648565,
+            "mae": 0.10910497062585806,
+            "baseline_mae": 0.10910497062585806,
             "skill_vs_zero": 0.0,
             "direction_samples": 0,
             "direction_accuracy": null,
@@ -1241,102 +1241,102 @@
               null,
               null
             ],
-            "empirical_abs_log_error_p90": 0.2232213699383451,
+            "empirical_abs_log_error_p90": 0.19882474021710603,
             "eligible": false
           },
           "hist_absolute": {
             "samples": 8,
-            "mae": 0.10469349893596816,
-            "baseline_mae": 0.11346146531648565,
-            "skill_vs_zero": 0.07727704164634597,
+            "mae": 0.10172311863966614,
+            "baseline_mae": 0.10910497062585806,
+            "skill_vs_zero": 0.0676582555666112,
             "direction_samples": 8,
             "direction_accuracy": 0.625,
             "direction_wilson_95": [
               0.30574239460262737,
               0.8631557141764026
             ],
-            "empirical_abs_log_error_p90": 0.1842825657496791,
+            "empirical_abs_log_error_p90": 0.17446675165279504,
             "eligible": false
           },
           "forest_absolute": {
             "samples": 8,
-            "mae": 0.09619980724510624,
-            "baseline_mae": 0.11346146531648565,
-            "skill_vs_zero": 0.15213674548649903,
+            "mae": 0.09856220221356624,
+            "baseline_mae": 0.10910497062585806,
+            "skill_vs_zero": 0.09662958847626657,
+            "direction_samples": 8,
+            "direction_accuracy": 0.625,
+            "direction_wilson_95": [
+              0.30574239460262737,
+              0.8631557141764026
+            ],
+            "empirical_abs_log_error_p90": 0.16551343625328538,
+            "eligible": false
+          },
+          "market_absolute": {
+            "samples": 8,
+            "mae": 0.10172311863966614,
+            "baseline_mae": 0.10910497062585806,
+            "skill_vs_zero": 0.0676582555666112,
+            "direction_samples": 8,
+            "direction_accuracy": 0.625,
+            "direction_wilson_95": [
+              0.30574239460262737,
+              0.8631557141764026
+            ],
+            "empirical_abs_log_error_p90": 0.17446675165279504,
+            "eligible": false
+          },
+          "technical_absolute": {
+            "samples": 8,
+            "mae": 0.09909044491081234,
+            "baseline_mae": 0.10910497062585806,
+            "skill_vs_zero": 0.09178798782126485,
             "direction_samples": 8,
             "direction_accuracy": 0.75,
             "direction_wilson_95": [
               0.40927543031016883,
               0.9285207872478909
             ],
-            "empirical_abs_log_error_p90": 0.1713907386077537,
-            "eligible": false
-          },
-          "market_absolute": {
-            "samples": 8,
-            "mae": 0.10469349893596816,
-            "baseline_mae": 0.11346146531648565,
-            "skill_vs_zero": 0.07727704164634597,
-            "direction_samples": 8,
-            "direction_accuracy": 0.625,
-            "direction_wilson_95": [
-              0.30574239460262737,
-              0.8631557141764026
-            ],
-            "empirical_abs_log_error_p90": 0.1842825657496791,
-            "eligible": false
-          },
-          "technical_absolute": {
-            "samples": 8,
-            "mae": 0.10670861540335272,
-            "baseline_mae": 0.11346146531648565,
-            "skill_vs_zero": 0.05951668167070434,
-            "direction_samples": 8,
-            "direction_accuracy": 0.625,
-            "direction_wilson_95": [
-              0.30574239460262737,
-              0.8631557141764026
-            ],
-            "empirical_abs_log_error_p90": 0.18729593270065023,
+            "empirical_abs_log_error_p90": 0.17949490264419704,
             "eligible": false
           }
         },
         "selected_model": "forest_absolute",
-        "selection_last_target_ms": 1792119600000,
-        "evaluation_first_feature_ms": 1792119600000,
+        "selection_last_target_ms": 1792123200000,
+        "evaluation_first_feature_ms": 1792123200000,
         "policy": "Candidate chosen before later scores are computed; no choice from later holdout"
       },
       "saved_metrics": {
         "samples": 16,
-        "mae": 0.2627621617432372,
-        "baseline_mae": 0.2341732439190726,
-        "skill_vs_zero": -0.12208447620106666,
+        "mae": 0.24558613996264766,
+        "baseline_mae": 0.2274325980891886,
+        "skill_vs_zero": -0.07981943672973424,
         "direction_samples": 16,
-        "direction_accuracy": 0.625,
+        "direction_accuracy": 0.6875,
         "direction_wilson_95": [
-          0.38641040545502714,
-          0.8151876744113636
+          0.44404355834740666,
+          0.8583535614521796
         ],
-        "empirical_abs_log_error_p90": 0.5516442719371989,
+        "empirical_abs_log_error_p90": 0.5074961790095947,
         "eligible": false
       },
       "reproduced_metrics": {
         "samples": 16,
-        "mae": 0.2627621617432372,
-        "baseline_mae": 0.2341732439190726,
-        "skill_vs_zero": -0.12208447620106666,
+        "mae": 0.24558613996264766,
+        "baseline_mae": 0.2274325980891886,
+        "skill_vs_zero": -0.07981943672973424,
         "direction_samples": 16,
-        "direction_accuracy": 0.625,
+        "direction_accuracy": 0.6875,
         "direction_wilson_95": [
-          0.38641040545502714,
-          0.8151876744113636
+          0.44404355834740666,
+          0.8583535614521796
         ],
-        "empirical_abs_log_error_p90": 0.5516442719371989,
+        "empirical_abs_log_error_p90": 0.5074961790095947,
         "eligible": false
       },
       "input_manifest": {
         "schema": "asof_multi_source_v1",
-        "reference_utc": "2026-11-01T03:00:00+00:00",
+        "reference_utc": "2026-11-01T04:00:00+00:00",
         "features": 146,
         "groups": {
           "regime": {
@@ -1351,34 +1351,34 @@
             "policy": "recompute returns/correlations using only exact closed candles at or before reference; no current correlation backfill"
           },
           "ticker": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 4,
             "total_features": 4,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC ticker; raw price normalized against reference at vector construction",
+            "observed_utc": "2026-11-01T03:48:10.892000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "orderbook": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 4,
             "total_features": 5,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC depth snapshot",
+            "observed_utc": "2026-11-01T03:48:11.070000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "trades": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 3,
             "total_features": 3,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC limited executed trade sample",
+            "observed_utc": "2026-11-01T03:47:21.085000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "dex": {
             "status": "used",
@@ -1387,8 +1387,8 @@
             "total_features": 3,
             "source_quality": "measured",
             "source": "DexScreener exact mint, pool deduplication",
-            "observed_utc": "2026-11-01T02:18:32.743000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:12.072000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "onchain": {
             "status": "used",
@@ -1397,8 +1397,8 @@
             "total_features": 4,
             "source_quality": "measured",
             "source": "Solana finalized exact mint",
-            "observed_utc": "2026-11-01T02:18:33.518000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:12.746000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "news": {
             "status": "used",
@@ -1407,8 +1407,8 @@
             "total_features": 18,
             "source_quality": "partial",
             "source": "Exact-contract discovery and verified evidence registry",
-            "observed_utc": "2026-11-01T02:18:35.033000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:14.628000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "project": {
             "status": "missing",
@@ -1427,12 +1427,12 @@
             "total_features": 4,
             "source_quality": "measured",
             "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-            "observed_utc": "2026-11-01T02:17:48+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:47:48+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "derivatives": {
             "status": "missing",
-            "reason": "stale",
+            "reason": "No derivative instrument verified against the mint",
             "available_features": 0,
             "total_features": 2,
             "source_quality": "unavailable",
@@ -1443,7 +1443,7 @@
           "feedback": {
             "status": "verified_prospective_journal",
             "available_features": 5,
-            "verified_outcomes": 7,
+            "verified_outcomes": 8,
             "total_features": 5,
             "policy": "Only v3 hourly forecasts; outcome evaluation must have been available by the feature time; no reconstructed future feedback"
           }
@@ -1456,8 +1456,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC ticker; raw price normalized against reference at vector construction",
-          "observed_utc": "2026-11-01T03:48:10.892000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:31.157000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "orderbook": {
@@ -1465,8 +1465,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC depth snapshot",
-          "observed_utc": "2026-11-01T03:48:11.070000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:31.331000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "trades": {
@@ -1474,8 +1474,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC limited executed trade sample",
-          "observed_utc": "2026-11-01T03:47:21.085000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:22.586000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 3
         },
         "dex": {
@@ -1483,8 +1483,8 @@
           "quality": "measured",
           "reason": null,
           "source": "DexScreener exact mint, pool deduplication",
-          "observed_utc": "2026-11-01T03:48:12.072000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:32.431000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 3
         },
         "onchain": {
@@ -1492,17 +1492,17 @@
           "quality": "measured",
           "reason": "Recent verified burns only; no full burn history is inferred",
           "source": "Solana finalized exact mint",
-          "observed_utc": "2026-11-01T03:48:12.746000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:33.138000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "news": {
           "status": "available",
           "quality": "partial",
-          "reason": "Verified text and unverified discovery text are separate stateless hashed features; unverified text is search activity, never truth, sentiment or price causality",
+          "reason": "using_prior_valid_observation_within_source_TTL",
           "source": "Exact-contract discovery and verified evidence registry",
-          "observed_utc": "2026-11-01T03:48:14.628000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:42.748000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 10
         },
         "project": {
@@ -1510,8 +1510,8 @@
           "quality": "unavailable",
           "reason": "Repository identity not verified against the mint",
           "source": "Verified project repository only",
-          "observed_utc": "2026-11-01T03:48:12.288000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:32.579000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 0
         },
         "macro": {
@@ -1519,8 +1519,8 @@
           "quality": "measured",
           "reason": null,
           "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-          "observed_utc": "2026-11-01T03:47:48+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:16:51+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "derivatives": {
@@ -1528,12 +1528,12 @@
           "quality": "unavailable",
           "reason": "No derivative instrument verified against the mint",
           "source": "Verified derivative instrument only",
-          "observed_utc": "2026-11-01T03:48:14.750000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:42.927000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 0
         }
       },
-      "source_access_checked_at_utc": "2026-11-01T03:48:14.750039+00:00",
+      "source_access_checked_at_utc": "2026-11-01T04:17:42.927179+00:00",
       "feature_coverage": {
         "regime": {
           "evaluation_points": 16,
@@ -1545,15 +1545,15 @@
         },
         "ticker": {
           "evaluation_points": 16,
-          "points_with_data": 4
+          "points_with_data": 2
         },
         "orderbook": {
           "evaluation_points": 16,
-          "points_with_data": 4
+          "points_with_data": 2
         },
         "trades": {
           "evaluation_points": 16,
-          "points_with_data": 4
+          "points_with_data": 2
         },
         "dex": {
           "evaluation_points": 16,
@@ -1587,17 +1587,17 @@
       "learned_group_importance": {
         "status": "learned_split_importance",
         "groups": {
-          "base_ohlcv": 0.007254689018430111,
-          "regime": 0.1637606669253914,
-          "market": 0.17716107282228805,
+          "base_ohlcv": 0.006777739750317745,
+          "regime": 0.15215439836003908,
+          "market": 0.1854253049564956,
           "ticker": 0.0,
           "orderbook": 0.0,
           "trades": 0.0,
-          "dex": 0.25037588936745486,
+          "dex": 0.26423504001503195,
           "onchain": 0.0,
           "news": 0.0,
           "project": 0.0,
-          "macro": 0.4014476818664356,
+          "macro": 0.3914075169181158,
           "derivatives": 0.0,
           "feedback": 0.0
         },
@@ -1621,14 +1621,14 @@
     },
     "7d": {
       "engine": "context_walk_forward_v3",
-      "selected_model": "no_change",
+      "selected_model": "technical_absolute",
       "selection": {
         "samples": 1,
         "candidates": {
           "no_change": {
             "samples": 1,
-            "mae": 0.07402899880718523,
-            "baseline_mae": 0.07402899880718523,
+            "mae": 0.11367836083225136,
+            "baseline_mae": 0.11367836083225136,
             "skill_vs_zero": 0.0,
             "direction_samples": 0,
             "direction_accuracy": null,
@@ -1636,102 +1636,102 @@
               null,
               null
             ],
-            "empirical_abs_log_error_p90": 0.07402899880718523,
+            "empirical_abs_log_error_p90": 0.11367836083225136,
             "eligible": false
           },
           "hist_absolute": {
             "samples": 1,
-            "mae": 0.2500738649177412,
-            "baseline_mae": 0.07402899880718523,
-            "skill_vs_zero": -2.3780527759004233,
+            "mae": 0.22462040639732095,
+            "baseline_mae": 0.11367836083225136,
+            "skill_vs_zero": -0.9759293215775728,
             "direction_samples": 1,
             "direction_accuracy": 1.0,
             "direction_wilson_95": [
               0.20654931437723745,
               1
             ],
-            "empirical_abs_log_error_p90": 0.2500738649177412,
+            "empirical_abs_log_error_p90": 0.22462040639732095,
             "eligible": false
           },
           "forest_absolute": {
             "samples": 1,
-            "mae": 0.2387139979577838,
-            "baseline_mae": 0.07402899880718523,
-            "skill_vs_zero": -2.2246011941824926,
+            "mae": 0.210733331281441,
+            "baseline_mae": 0.11367836083225136,
+            "skill_vs_zero": -0.8537682082908296,
             "direction_samples": 1,
             "direction_accuracy": 1.0,
             "direction_wilson_95": [
               0.20654931437723745,
               1
             ],
-            "empirical_abs_log_error_p90": 0.2387139979577838,
+            "empirical_abs_log_error_p90": 0.210733331281441,
             "eligible": false
           },
           "market_absolute": {
             "samples": 1,
-            "mae": 0.2500738649177412,
-            "baseline_mae": 0.07402899880718523,
-            "skill_vs_zero": -2.3780527759004233,
+            "mae": 0.22462040639732095,
+            "baseline_mae": 0.11367836083225136,
+            "skill_vs_zero": -0.9759293215775728,
             "direction_samples": 1,
             "direction_accuracy": 1.0,
             "direction_wilson_95": [
               0.20654931437723745,
               1
             ],
-            "empirical_abs_log_error_p90": 0.2500738649177412,
+            "empirical_abs_log_error_p90": 0.22462040639732095,
             "eligible": false
           },
           "technical_absolute": {
             "samples": 1,
-            "mae": 0.115782995719979,
-            "baseline_mae": 0.07402899880718523,
-            "skill_vs_zero": -0.5640221748985905,
+            "mae": 0.06556795424873485,
+            "baseline_mae": 0.11367836083225136,
+            "skill_vs_zero": 0.4232151680521703,
             "direction_samples": 1,
             "direction_accuracy": 1.0,
             "direction_wilson_95": [
               0.20654931437723745,
               1
             ],
-            "empirical_abs_log_error_p90": 0.115782995719979,
+            "empirical_abs_log_error_p90": 0.06556795424873485,
             "eligible": false
           }
         },
-        "selected_model": "no_change",
-        "selection_last_target_ms": 1792897200000,
-        "evaluation_first_feature_ms": 1792897200000,
+        "selected_model": "technical_absolute",
+        "selection_last_target_ms": 1792900800000,
+        "evaluation_first_feature_ms": 1792900800000,
         "policy": "Candidate chosen before later scores are computed; no choice from later holdout"
       },
       "saved_metrics": {
         "samples": 1,
-        "mae": 0.5511300714466583,
-        "baseline_mae": 0.5511300714466583,
-        "skill_vs_zero": 0.0,
-        "direction_samples": 0,
-        "direction_accuracy": null,
+        "mae": 0.7844802239028308,
+        "baseline_mae": 0.5827175148384585,
+        "skill_vs_zero": -0.34624445623589195,
+        "direction_samples": 1,
+        "direction_accuracy": 0.0,
         "direction_wilson_95": [
-          null,
-          null
+          0,
+          0.7934506856227626
         ],
-        "empirical_abs_log_error_p90": 0.5511300714466583,
+        "empirical_abs_log_error_p90": 0.7844802239028308,
         "eligible": false
       },
       "reproduced_metrics": {
         "samples": 1,
-        "mae": 0.5511300714466583,
-        "baseline_mae": 0.5511300714466583,
-        "skill_vs_zero": 0.0,
-        "direction_samples": 0,
-        "direction_accuracy": null,
+        "mae": 0.7844802239028308,
+        "baseline_mae": 0.5827175148384585,
+        "skill_vs_zero": -0.34624445623589195,
+        "direction_samples": 1,
+        "direction_accuracy": 0.0,
         "direction_wilson_95": [
-          null,
-          null
+          0,
+          0.7934506856227626
         ],
-        "empirical_abs_log_error_p90": 0.5511300714466583,
+        "empirical_abs_log_error_p90": 0.7844802239028308,
         "eligible": false
       },
       "input_manifest": {
         "schema": "asof_multi_source_v1",
-        "reference_utc": "2026-11-01T03:00:00+00:00",
+        "reference_utc": "2026-11-01T04:00:00+00:00",
         "features": 146,
         "groups": {
           "regime": {
@@ -1746,34 +1746,34 @@
             "policy": "recompute returns/correlations using only exact closed candles at or before reference; no current correlation backfill"
           },
           "ticker": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 4,
             "total_features": 4,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC ticker; raw price normalized against reference at vector construction",
+            "observed_utc": "2026-11-01T03:48:10.892000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "orderbook": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 4,
             "total_features": 5,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC depth snapshot",
+            "observed_utc": "2026-11-01T03:48:11.070000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "trades": {
-            "status": "missing",
-            "reason": "stale",
-            "available_features": 0,
+            "status": "used",
+            "reason": null,
+            "available_features": 3,
             "total_features": 3,
-            "source_quality": "unavailable",
-            "source": null,
-            "observed_utc": null,
-            "available_utc": null
+            "source_quality": "measured",
+            "source": "MEXC limited executed trade sample",
+            "observed_utc": "2026-11-01T03:47:21.085000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "dex": {
             "status": "used",
@@ -1782,8 +1782,8 @@
             "total_features": 3,
             "source_quality": "measured",
             "source": "DexScreener exact mint, pool deduplication",
-            "observed_utc": "2026-11-01T02:18:32.743000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:12.072000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "onchain": {
             "status": "used",
@@ -1792,8 +1792,8 @@
             "total_features": 4,
             "source_quality": "measured",
             "source": "Solana finalized exact mint",
-            "observed_utc": "2026-11-01T02:18:33.518000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:12.746000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "news": {
             "status": "used",
@@ -1802,8 +1802,8 @@
             "total_features": 18,
             "source_quality": "partial",
             "source": "Exact-contract discovery and verified evidence registry",
-            "observed_utc": "2026-11-01T02:18:35.033000+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:48:14.628000+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "project": {
             "status": "missing",
@@ -1822,12 +1822,12 @@
             "total_features": 4,
             "source_quality": "measured",
             "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-            "observed_utc": "2026-11-01T02:17:48+00:00",
-            "available_utc": "2026-11-01T02:18:35.215000+00:00"
+            "observed_utc": "2026-11-01T03:47:48+00:00",
+            "available_utc": "2026-11-01T03:48:14.750000+00:00"
           },
           "derivatives": {
             "status": "missing",
-            "reason": "stale",
+            "reason": "No derivative instrument verified against the mint",
             "available_features": 0,
             "total_features": 2,
             "source_quality": "unavailable",
@@ -1838,7 +1838,7 @@
           "feedback": {
             "status": "verified_prospective_journal",
             "available_features": 5,
-            "verified_outcomes": 7,
+            "verified_outcomes": 8,
             "total_features": 5,
             "policy": "Only v3 hourly forecasts; outcome evaluation must have been available by the feature time; no reconstructed future feedback"
           }
@@ -1851,8 +1851,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC ticker; raw price normalized against reference at vector construction",
-          "observed_utc": "2026-11-01T03:48:10.892000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:31.157000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "orderbook": {
@@ -1860,8 +1860,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC depth snapshot",
-          "observed_utc": "2026-11-01T03:48:11.070000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:31.331000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "trades": {
@@ -1869,8 +1869,8 @@
           "quality": "measured",
           "reason": null,
           "source": "MEXC limited executed trade sample",
-          "observed_utc": "2026-11-01T03:47:21.085000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:22.586000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 3
         },
         "dex": {
@@ -1878,8 +1878,8 @@
           "quality": "measured",
           "reason": null,
           "source": "DexScreener exact mint, pool deduplication",
-          "observed_utc": "2026-11-01T03:48:12.072000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:32.431000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 3
         },
         "onchain": {
@@ -1887,17 +1887,17 @@
           "quality": "measured",
           "reason": "Recent verified burns only; no full burn history is inferred",
           "source": "Solana finalized exact mint",
-          "observed_utc": "2026-11-01T03:48:12.746000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:33.138000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "news": {
           "status": "available",
           "quality": "partial",
-          "reason": "Verified text and unverified discovery text are separate stateless hashed features; unverified text is search activity, never truth, sentiment or price causality",
+          "reason": "using_prior_valid_observation_within_source_TTL",
           "source": "Exact-contract discovery and verified evidence registry",
-          "observed_utc": "2026-11-01T03:48:14.628000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:42.748000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 10
         },
         "project": {
@@ -1905,8 +1905,8 @@
           "quality": "unavailable",
           "reason": "Repository identity not verified against the mint",
           "source": "Verified project repository only",
-          "observed_utc": "2026-11-01T03:48:12.288000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:32.579000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 0
         },
         "macro": {
@@ -1914,8 +1914,8 @@
           "quality": "measured",
           "reason": null,
           "source": "CoinGecko broad crypto snapshot with provider update times; not Fed macro data",
-          "observed_utc": "2026-11-01T03:47:48+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:16:51+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 4
         },
         "derivatives": {
@@ -1923,12 +1923,12 @@
           "quality": "unavailable",
           "reason": "No derivative instrument verified against the mint",
           "source": "Verified derivative instrument only",
-          "observed_utc": "2026-11-01T03:48:14.750000+00:00",
-          "available_utc": "2026-11-01T03:48:14.750000+00:00",
+          "observed_utc": "2026-11-01T04:17:42.927000+00:00",
+          "available_utc": "2026-11-01T04:17:42.927000+00:00",
           "nonmissing_features": 0
         }
       },
-      "source_access_checked_at_utc": "2026-11-01T03:48:14.750039+00:00",
+      "source_access_checked_at_utc": "2026-11-01T04:17:42.927179+00:00",
       "feature_coverage": {
         "regime": {
           "evaluation_points": 1,
