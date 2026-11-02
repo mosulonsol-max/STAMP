@@ -81,9 +81,14 @@ def cycle(pairs=None):
                           "next_cursor":data["cursor"],"complete_this_cycle":batch==len(requested)}
     data=reconcile(data)
     issued={r["id"] for r in data["records"]}
+    processed=[]
+    failed={}
     for pair in pairs:
         try:values=forecasts({tf:candles(pair,{"1h":"60m"}.get(tf,tf)) for tf in HORIZONS})
-        except (OSError,ValueError):continue
+        except (OSError,ValueError,TimeoutError) as exc:
+            failed[pair]=type(exc).__name__
+            continue
+        processed.append(pair)
         for frame,result in values.items():
             if result.get("status")!="research_only":continue
             rid=pair+"|"+frame+"|"+result["reference_at_utc"]
