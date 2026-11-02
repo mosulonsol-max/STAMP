@@ -7,6 +7,12 @@ PATH=ROOT/"data"/"multi_asset_forecasts.json"
 HORIZONS={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000}
 MIN_VERIFIED=30
 def load():
+    if os.getenv("DATABASE_URL"):
+        import psycopg
+        with psycopg.connect(os.environ["DATABASE_URL"],connect_timeout=10) as conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS research_state (id INTEGER PRIMARY KEY, payload JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW())")
+            row=conn.execute("SELECT payload FROM research_state WHERE id=1").fetchone()
+            return row[0] if row else {}
     try:
         d=json.loads(PATH.read_text())
         return d if isinstance(d,dict) else {}
@@ -98,10 +104,17 @@ def cycle(pairs=None):
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
             issued.add(rid)
     data["cycle_result"]={"processed":processed,"failed":failed,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
-    PATH.parent.mkdir(parents=True,exist_ok=True)
-    temp=PATH.with_suffix(".json.tmp")
-    temp.write_text(json.dumps(data,indent=2,allow_nan=False))
-    temp.replace(PATH)
+    if os.getenv("DATABASE_URL"):
+        import psycopg
+        from psycopg.types.json import Jsonb
+        with psycopg.connect(os.environ["DATABASE_URL"],connect_timeout=10) as conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS research_state (id INTEGER PRIMARY KEY, payload JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW())")
+            conn.execute("INSERT INTO research_state (id,payload) VALUES (1,%s) ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()",(Jsonb(data),))
+    else:
+        PATH.parent.mkdir(parents=True,exist_ok=True)
+        temp=PATH.with_suffix(".json.tmp")
+        temp.write_text(json.dumps(data,indent=2,allow_nan=False))
+        temp.replace(PATH)
     return data
 if __name__=="__main__":
     d=cycle()
