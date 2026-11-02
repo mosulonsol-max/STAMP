@@ -54,6 +54,10 @@ jobs:
       - name: Diagnose model error against baselines and later time windows
         id: diagnosis
         run: python src/model_diagnosis.py --source-commit "$GITHUB_SHA" --output data/model_diagnosis.json
+      - name: Verify matured multi-asset predictions and record fresh forecasts
+        id: multi_asset_governance
+        continue-on-error: true
+        run: python src/multi_asset_governor.py
       - name: Verify forecast issuance and market freshness
         id: forecast_health
         run: python src/forecast_health.py
@@ -99,7 +103,7 @@ jobs:
           if [ -f dashboard/private-offline.html ]; then git add dashboard/private-offline.html; fi
           if [ -d data/candles ]; then git add data/candles/; fi
           if [ -d data/context_candles ]; then git add data/context_candles/; fi
-          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/forecast_activity.json data/learning_controller.json data/workflow_health.json data/evidence_sources.json data/onchain_history.jsonl data/verified_burns.jsonl data/news_journal.jsonl data/model_registry.json data/model_decisions.jsonl data/model_diagnosis.json data/model_input_events.jsonl data/model_input_migration.json; do
+          for path in data/latest.json data/observations.jsonl data/forecast_journal.jsonl data/candle_quality.json data/forecast_scorecard.json data/forecast_activity.json data/learning_controller.json data/workflow_health.json data/evidence_sources.json data/onchain_history.jsonl data/verified_burns.jsonl data/news_journal.jsonl data/model_registry.json data/model_decisions.jsonl data/model_diagnosis.json data/model_input_events.jsonl data/model_input_migration.json data/multi_asset_forecasts.json; do
             if [ -f "$path" ]; then git add "$path"; fi
           done
           if ! git diff --cached --quiet; then
