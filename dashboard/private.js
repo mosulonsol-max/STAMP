@@ -101,7 +101,7 @@ function renderChart(){
  const predictions=uniquePoints(rows.map(r=>({time:Date.parse(r.due_utc)/1000,value:r.predicted_price})));
  const outcomes=uniquePoints(rows.filter(r=>r.actual_price!==null&&r.measurement_time_utc).map(r=>({time:Date.parse(r.measurement_time_utc)/1000,value:r.actual_price})));
  predictedSeries.setData(predictions);measuredSeries.setData(outcomes);
- const f=data?.forecasts?.[horizon]?.forecast;
+ const f=data?.asset_research_forecasts?.[frame]||data?.forecasts?.[horizon]?.forecast;
  const projection=f?uniquePoints([{time:Date.parse(f.reference_at_utc)/1000,value:f.reference_price},{time:Date.parse(f.due_at_utc)/1000,value:f.predicted_price}]):[];
  projectionSeries.setData(projection);
  const q=data?.live_quote||{},fresh=q.status==="fresh"&&age(q.retrieved_at_utc)!==null&&age(q.retrieved_at_utc)<=180&&n(q.price)>0;
@@ -263,10 +263,13 @@ function showSelectedAsset(){
  const snapshot=assetCache,q=snapshot.ticker||{};
  const px=n(q.lastPrice),pct24=n(q.priceChangePercent);
  const market={...data.market,price:px,change:pct24===null?null:pct24/100,volume:n(q.quoteVolume),high_24h:n(q.highPrice),low_24h:n(q.lowPrice)};
- const alternate={...data,market,candles:snapshot.candles||{},forecasts:{},forecast_review:{rows:[]},model_decisions:{},
+ const alternate={...data,market,candles:snapshot.candles||{},forecasts:{},asset_research_forecasts:snapshot.research_forecasts||{},forecast_review:{rows:[]},model_decisions:{},
     learning:{horizons:{}},output_assurance:null,live_quote:{status:"unavailable"},liquidity:{},
     observed_utc:snapshot.retrieved_at_utc,model_observed_utc:null};
  render(alternate);
+ const proposed=alternate.asset_research_forecasts?.[frame];
+ set("forecastSummary",proposed?.status==="research_only"?"RESEARCH · "+frame+" · "+price(proposed.predicted_price)+" · "+stamp(proposed.due_at_utc)+" · MSE improvement "+pct((proposed.relative_mse_improvement??0)*100):"لا توجد أدلة كافية لتوقع هذه الفترة");
+ set("modelStatus","بحث تجريبي غير معتمد");
  set("coinName",selectedAsset.replace(/USDT$/,"")+" / USDT");
  set("venueLine","MEXC · أبحاث السوق (بدون توقعات معتمدة)");
  set("assetMessage",selectedAsset+" · "+Object.values(snapshot.candles||{}).reduce((n,arr)=>n+arr.length,0)+" شمعة مسترجعة");
@@ -288,7 +291,7 @@ async function refresh(){if(selectedAsset!=="STAMPUSDT"){await selectAsset(selec
  try{const response=await fetch("/api/quote",{credentials:"same-origin",cache:"no-store",signal:quoteController.signal});if(response.status===401){window.location.href="/login";throw Error("AUTH_401")}if(response.ok){const body=await response.json();if(body.quote?.status==="fresh")result={...result,live_quote:body.quote}}}catch(quoteError){if(quoteError.message==="AUTH_401")throw quoteError}finally{clearTimeout(quoteTimer)}
 }render(result,origin)}catch(error){set("status","ERROR");el("warning").hidden=false;set("warning",error.message)}finally{loading=false;el("refresh").disabled=false}}
 function exportCsv(){const bars=chartCandles(frame),lines=["utc_open,open,high,low,close,volume",...bars.map(c=>[new Date(c.t).toISOString(),c.o,c.h,c.l,c.c,c.v??""].join(","))].join("\r\n");const url=URL.createObjectURL(new Blob([lines],{type:"text/csv"})),a=document.createElement("a");a.href=url;a.download="STAMP_"+frame+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-document.querySelectorAll("[data-frame]").forEach(button=>button.addEventListener("click",()=>{frame=button.dataset.frame;document.querySelectorAll("[data-frame]").forEach(b=>b.setAttribute("aria-pressed",String(b===button)));renderChart()}));
+document.querySelectorAll("[data-frame]").forEach(button=>button.addEventListener("click",()=>{frame=button.dataset.frame;document.querySelectorAll("[data-frame]").forEach(b=>b.setAttribute("aria-pressed",String(b===button)));if(selectedAsset!=="STAMPUSDT")showSelectedAsset();else renderChart()}));
 el("forecastHorizon").addEventListener("change",event=>{horizon=["1h","4h","24h","7d"].includes(event.target.value)?event.target.value:"1h";renderForecasts();renderChart();renderAssurance();renderInputs()});
 for(const [id,action] of [["zoomIn","in"],["zoomOut","out"],["panEarlier","earlier"],["panLater","later"]])el(id).addEventListener("click",()=>navigateChart(action));
 el("chart").addEventListener("keydown",event=>{const actions={"+":"in","=":"in","-":"out","ArrowLeft":"earlier","ArrowRight":"later"};if(actions[event.key]){event.preventDefault();navigateChart(actions[event.key])}else if(event.key==="Home"){event.preventDefault();resetChartRange()}});
