@@ -6,6 +6,18 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"src"))
 import private_dashboard as app
 class PrivateDashboardTests(unittest.TestCase):
+ def test_ui_renders_real_forecasts_and_chart_on_refresh(self):
+  import shutil,subprocess
+  js=(ROOT/"dashboard"/"private.js").read_text()
+  html=(ROOT/"dashboard"/"private.html").read_text()
+  self.assertIn("renderIntelligence();renderForecasts();renderChart();",js)
+  self.assertIn("const horizons=data.forecasts||{}",js)
+  self.assertIn('candleSeries.setData(displayBars.map',js)
+  self.assertIn('id="chart"',html)
+  self.assertIn('id="forecastCards"',html)
+  if shutil.which("node"):
+   checked=subprocess.run(["node","--check",str(ROOT/"dashboard"/"private.js")],capture_output=True,text=True)
+   self.assertEqual(checked.returncode,0,checked.stderr)
  def test_direct_github_connection_is_not_assumed_from_configured_token(self):
   self.assertEqual(app.github_connection_state(None,True),"not_checked")
   self.assertEqual(app.github_connection_state(None,False),"not_configured")
