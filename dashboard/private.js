@@ -193,10 +193,10 @@ function startStream(){
 }
 function renderIntelligence(){
  if(!data)return;
- const horizons=data.learning?.horizons||{},lab=data.laboratory||{};
+ const horizons=data.forecasts||{},lab=data.laboratory||{};
  const cards=["1h","4h","24h","7d"].map(h=>{
   const row=horizons[h]||{},f=row.forecast||{},v=n(f.predicted_price);
-  const approved=f.approval_passed===true;
+  const approved=data.model_decisions?.[h]?.status==="approved" && data.model_decisions?.[h]?.automatic===true;
   return '<article class="forecast-card"><strong>'+esc(h)+'</strong><p class="forecast-target">'+
    (v===null?'—':v.toFixed(8))+'</p><p>'+esc(approved?'Approved':'Experimental')+'</p>'+
    '<small>'+esc(stamp(f.created_at_utc))+' → '+esc(stamp(f.due_at_utc))+'</small></article>';
