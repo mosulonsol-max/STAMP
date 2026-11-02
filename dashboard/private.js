@@ -284,6 +284,18 @@ async function compareAssets(){
  '<div>'+Object.entries(r.lead_lag_hours||{}).map(([k,v])=>esc(r.secondary)+' قبل '+esc(k)+' ساعة: '+esc(text(v.correlation))+' (n='+esc(v.samples)+')').join(' | ')+'</div><small>'+esc(r.interpretation)+'</small>';
  }catch(e){container.textContent="تعذرت المقارنة: "+e.message}
 }
+async function updateWorkerStatus(){
+ try{
+  const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),9000);
+  let r;try{r=await fetch("https://stamp-autonomous-worker.onrender.com/status",{signal:ctl.signal,cache:"no-store"})}finally{clearTimeout(timer)}
+  if(!r.ok)throw Error("HTTP "+r.status);
+  const d=await r.json();
+  set("workerState",d.healthy?"🟢 يعمل":"🔴 متوقف أو بياناته متأخرة");
+  set("workerCoverage","الأزواج المكتشفة: "+(d.discovered??"—")+" · آخر دفعة ناجحة: "+(d.processed??"—"));
+  set("workerCycle","الدورات منذ آخر تشغيل للخدمة: "+(d.cycles??"—")+" · "+stamp(d.last_cycle_utc));
+  set("workerStorage",d.storage==="postgres"?"تخزين دائم: PostgreSQL":"⚠️ تخزين العامل غير دائم");
+ }catch(e){set("workerState","تعذر التحقق من العامل");set("workerCoverage","قد تكون الخدمة تعمل، لكن المتصفح لا يستطيع قراءة حالة Render: "+e.message)}
+}
 function translate(){document.documentElement.lang=lang;document.documentElement.dir=lang==="ar"?"rtl":"ltr";document.querySelectorAll("[data-i18n]").forEach(node=>node.textContent=t(node.dataset.i18n));el("langSelect").value=lang;el("zoneSelect").value=zone;if(chart){chart.applyOptions({localization:{timeFormatter:time=>formatChartTime(time)},timeScale:{tickMarkFormatter:(time,type)=>formatChartTime(time,type>2)}})}}
 async function request(path){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{const response=await fetch(path,{credentials:"same-origin",cache:"no-store",signal:controller.signal,headers:{Accept:"application/json"}});if(response.status===401){window.location.href="/login";throw Error("AUTH_401")}if(!response.ok)throw Error("HTTP "+response.status);const payload=await response.json();if(!payload?.market)throw Error("Invalid payload");return payload}finally{clearTimeout(timer)}}
 async function refresh(){if(selectedAsset!=="STAMPUSDT"){await selectAsset(selectedAsset);return}if(loading)return;loading=true;el("refresh").disabled=true;try{let result,origin="api";try{result=await request("/api/dashboard")}catch(error){if(error.message==="AUTH_401")throw error;origin="archive";try{result=await request("/api/dashboard-lite")}catch(liteError){if(liteError.message==="AUTH_401")throw liteError;const snapshot=el("stamp-snapshot");if(!snapshot)throw liteError;result=JSON.parse(snapshot.content?snapshot.content.textContent:snapshot.textContent)}}if(result.live_quote?.status!=="fresh"||age(result.live_quote?.retrieved_at_utc)===null||age(result.live_quote?.retrieved_at_utc)>180){
@@ -307,7 +319,7 @@ el("favoriteSelect").addEventListener("change",e=>{if(e.target.value)selectAsset
 el("assetFavorite").addEventListener("click",()=>{if(favorites.includes(selectedAsset))favorites=favorites.filter(v=>v!==selectedAsset);else favorites.push(selectedAsset);
  try{localStorage.setItem("stamp_favorite_pairs",JSON.stringify(favorites))}catch(e){}favoritesUi()});
 el("compareAssets").addEventListener("click",compareAssets);
-favoritesUi();loadAssetUniverse();translate();refresh();startStream();
+favoritesUi();loadAssetUniverse();translate();refresh();startStream();updateWorkerStatus();setInterval(updateWorkerStatus,30000);
 if(window.StampMarket){pollQuote(true);setInterval(()=>{updateFreshness();pollQuote();renderAssurance()},1000)}
 setInterval(()=>{if(!document.hidden)refresh()},15000);
 })();
