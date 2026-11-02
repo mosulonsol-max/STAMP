@@ -1,5 +1,6 @@
 """Authenticated on-demand multi-pair market comparisons; descriptive, not causal."""
 import json,math,re,datetime as dt
+from concurrent.futures import ThreadPoolExecutor
 from urllib.request import Request,urlopen
 from urllib.parse import urlencode
 
@@ -64,6 +65,8 @@ def snapshot(pair):
     pair=symbol(pair)
     quote=fetch("ticker/24hr",{"symbol":pair})
     if not isinstance(quote,dict) or quote.get("symbol")!=pair:raise ValueError("wrong_symbol_quote")
-    result={"symbol":pair,"ticker":quote,"candles":candles(pair,"15m"),"source":"MEXC public REST",
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        frames=dict(zip(("15m","1h","4h","1d"),pool.map(lambda tf:candles(pair,tf),("15m","60m","4h","1d"))))
+    result={"symbol":pair,"ticker":quote,"candles":frames,"source":"MEXC public REST",
       "retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     return result
