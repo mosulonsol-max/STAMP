@@ -80,9 +80,15 @@ def cycle(pairs=None):
         requested=sorted(set(available)|set(data.get("known_pairs") or []))
         data["known_pairs"]=requested
         cursor=int(data.get("cursor",0))%max(len(requested),1)
-        batch=min(12,len(requested))
-        pairs=[requested[(cursor+i)%len(requested)] for i in range(batch)] if requested else []
-        data["cursor"]=(cursor+batch)%max(len(requested),1)
+        batch=min(max(1,int(os.getenv("STAMP_BATCH_SIZE","48"))),len(requested))
+        retry=[p for p in (data.get("retry_pairs") or []) if p in requested][:max(1,batch//4)]
+        pairs=list(retry)
+        scanned=0
+        while requested and len(pairs)<batch and scanned<len(requested):
+            candidate=requested[(cursor+scanned)%len(requested)]
+            if candidate not in pairs:pairs.append(candidate)
+            scanned+=1
+        data["cursor"]=(cursor+scanned)%max(len(requested),1)
         data["coverage"]={"discovered":len(requested),"processed_this_cycle":len(pairs),
                           "next_cursor":data["cursor"],"complete_this_cycle":batch==len(requested)}
     data=reconcile(data)
@@ -103,6 +109,7 @@ def cycle(pairs=None):
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
             issued.add(rid)
+    data["retry_pairs"]=sorted(failed)
     data["cycle_result"]={"processed":processed,"failed":failed,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     if os.getenv("DATABASE_URL"):
         import psycopg
