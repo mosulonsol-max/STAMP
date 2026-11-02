@@ -61,12 +61,44 @@ def compare(primary,secondary):
       "source":"MEXC public 1h closed-candle log returns",
       "interpretation":"Associations are not evidence of causation or predictive skill; overlapping windows and market-wide factors can create spurious correlations.",
       "observed_through_utc":dt.datetime.fromtimestamp(aligned[-1]/1000,dt.timezone.utc).isoformat() if aligned else None}
+
+def forecast_frame(rows,frame):
+    """Leakage-free one-step holdout: compare momentum forecast to no-change baseline."""
+    step={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000}[frame]
+    now=int(dt.datetime.now(dt.timezone.utc).timestamp()*1000)
+    valid=[c for c in rows if c["t"]+step<=now]
+    returns=[math.log(b["c"]/a["c"]) for a,b in zip(valid,valid[1:]) if b["t"]-a["t"]==step]
+    if len(returns)<65 or len(valid)<66:return {"status":"insufficient_evidence","samples":len(returns)}
+    # Prequential validation: each forecast uses only historical returns preceding the target.
+    errors=[];baseline=[]
+    for i in range(40,len(returns)):
+        history=returns[i-20:i]
+        estimate=sum(history[-6:])/6
+        errors.append((returns[i]-estimate)**2)
+        baseline.append(returns[i]**2)
+    improvement=1-sum(errors)/sum(baseline) if sum(baseline)>0 else None
+    last=valid[-1];drift=sum(returns[-6:])/6
+    # Research projection only: strict skill gate and no invented probability.
+    target=last["c"]*math.exp(drift)
+    volatility=math.sqrt(sum((v-sum(returns[-30:])/30)**2 for v in returns[-30:])/29)
+    due=dt.datetime.fromtimestamp((last["t"]+2*step)/1000,dt.timezone.utc).isoformat()
+    return {"status":"research_only","method":"causal_6_return_momentum",
+      "samples":len(errors),"relative_mse_improvement":round(improvement,5) if improvement is not None else None,
+      "reference_price":last["c"],"reference_at_utc":dt.datetime.fromtimestamp((last["t"]+step)/1000,dt.timezone.utc).isoformat(),
+      "predicted_price":target,"due_at_utc":due,"direction":"up" if drift>0 else "down" if drift<0 else "flat",
+      "volatility_1sigma_log":volatility,"lower_1sigma":target*math.exp(-volatility),
+      "upper_1sigma":target*math.exp(volatility),
+      "invalidation_price":last["c"]*math.exp(-volatility if drift>0 else volatility),
+      "warning":"Unapproved experimental projection, NOT a trading signal; no causal proof or validated confidence probability."}
+def forecasts(frames):
+    return {frame:forecast_frame(rows,frame) for frame,rows in frames.items() if frame in ("15m","1h","4h","1d")}
+
 def snapshot(pair):
     pair=symbol(pair)
     quote=fetch("ticker/24hr",{"symbol":pair})
     if not isinstance(quote,dict) or quote.get("symbol")!=pair:raise ValueError("wrong_symbol_quote")
     with ThreadPoolExecutor(max_workers=4) as pool:
         frames=dict(zip(("15m","1h","4h","1d"),pool.map(lambda tf:candles(pair,tf),("15m","60m","4h","1d"))))
-    result={"symbol":pair,"ticker":quote,"candles":frames,"source":"MEXC public REST",
+    result={"symbol":pair,"ticker":quote,"candles":frames,"research_forecasts":forecasts(frames),"source":"MEXC public REST",
       "retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     return result
