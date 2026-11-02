@@ -40,7 +40,10 @@ def reconcile(data,now=None):
                 rec["outcome"]={"actual_price":actual,"measured_at_utc":due.isoformat(),
                     "squared_log_error":math.log(actual/rec["predicted_price"])**2,
                     "baseline_squared_log_error":math.log(actual/rec["reference_price"])**2}
-    # Preserve all pending evaluations; pruning them would silently lose evidence.\n    pending=[r for r in records if not r.get("outcome")]\n    settled_all=[r for r in records if r.get("outcome")]\n    data["records"]=settled_all[-5000:]+pending
+    # Preserve all pending evaluations; pruning them would silently lose evidence.
+    pending=[r for r in records if not r.get("outcome")]
+    settled_all=[r for r in records if r.get("outcome")]
+    data["records"]=settled_all[-5000:]+pending
     approvals={}
     for pair,frame in sorted({(r["pair"],r["frame"]) for r in records}):
         settled=[r for r in records if r["pair"]==pair and r["frame"]==frame and r.get("outcome")]
@@ -89,8 +92,11 @@ def cycle(pairs=None):
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
             issued.add(rid)
-    data["cycle_result"]={"processed":processed,"failed":failed,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}\n    PATH.parent.mkdir(parents=True,exist_ok=True)
-    temp=PATH.with_suffix(".json.tmp")\n    temp.write_text(json.dumps(data,indent=2,allow_nan=False))\n    temp.replace(PATH)
+    data["cycle_result"]={"processed":processed,"failed":failed,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
+    PATH.parent.mkdir(parents=True,exist_ok=True)
+    temp=PATH.with_suffix(".json.tmp")
+    temp.write_text(json.dumps(data,indent=2,allow_nan=False))
+    temp.replace(PATH)
     return data
 if __name__=="__main__":
     d=cycle()
