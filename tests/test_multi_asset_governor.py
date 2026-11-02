@@ -19,4 +19,16 @@ class GovernanceTests(unittest.TestCase):
   self.assertEqual(result["records"][0]["outcome"],None)
   self.assertEqual(result["approvals"]["BTCUSDT|1h"]["status"],"research_only")
   self.assertEqual(result["approvals"]["BTCUSDT|1h"]["prospective_samples"],0)
+ def test_discovery_rotates_without_a_fixed_coin_allowlist(self):
+  import tempfile
+  universe={"pairs":[f"ASSET{i:03}USDT" for i in range(30)]}
+  with tempfile.TemporaryDirectory() as folder:
+   with patch.object(gov,"PATH",pathlib.Path(folder)/"journal.json"),patch.object(gov,"universe",return_value=universe),patch.object(gov,"candles",return_value=[]):
+    first=gov.cycle()
+    second=gov.cycle()
+  self.assertEqual(first["coverage"]["discovered"],30)
+  self.assertEqual(first["coverage"]["processed_this_cycle"],12)
+  self.assertEqual(first["coverage"]["next_cursor"],12)
+  self.assertEqual(second["coverage"]["next_cursor"],24)
+  self.assertEqual(len(second["known_pairs"]),30)
 if __name__=="__main__":unittest.main()
