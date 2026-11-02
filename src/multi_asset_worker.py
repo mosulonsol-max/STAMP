@@ -9,13 +9,13 @@ def stop(*_):
 signal.signal(signal.SIGTERM,stop)
 signal.signal(signal.SIGINT,stop)
 ROOT=pathlib.Path(__file__).resolve().parents[1]
-LAST={"success":None,"error":None,"cycles":0}
+LAST={"success":None,"error":None,"cycles":0,"discovered":0,"processed":0}
 class Health(BaseHTTPRequestHandler):
  def do_GET(self):
   if self.path not in ("/healthz","/status"):return self.respond(404,{"error":"not_found"})
   timestamp=LAST["success"]
   fresh=timestamp is not None and time.time()-timestamp<max(3600,int(os.environ.get("STAMP_WORKER_INTERVAL_SECONDS","1800"))*3)
-  return self.respond(200 if fresh else 503,{"healthy":fresh,"cycles":LAST["cycles"],"last_cycle_utc":dt.datetime.fromtimestamp(timestamp,dt.timezone.utc).isoformat() if timestamp else None,"error":LAST["error"]})
+  return self.respond(200 if fresh else 503,{"healthy":fresh,"cycles":LAST["cycles"],"last_cycle_utc":dt.datetime.fromtimestamp(timestamp,dt.timezone.utc).isoformat() if timestamp else None,"error":LAST["error"],"discovered":LAST["discovered"],"processed":LAST["processed"],"storage":"postgres" if os.getenv("DATABASE_URL") else "ephemeral_filesystem"})
  def respond(self,code,data):
   body=json.dumps(data).encode()
   self.send_response(code);self.send_header("Content-Type","application/json");self.send_header("Content-Length",str(len(body)));self.end_headers();self.wfile.write(body)
@@ -33,6 +33,8 @@ def run(interval=None):
    result=cycle()
    coverage=result.get("coverage") or {}
    logging.info("cycle ok discovered=%s processed=%s record_count=%s",coverage.get("discovered"),coverage.get("processed_this_cycle"),len(result.get("records") or []))
+   if not coverage.get("discovered") or not coverage.get("processed_this_cycle"):raise RuntimeError("asset_universe_empty")
+   LAST.update(discovered=coverage["discovered"],processed=coverage["processed_this_cycle"])
    failures=0
    LAST.update(success=time.time(),error=None,cycles=LAST["cycles"]+1)
   except Exception:
