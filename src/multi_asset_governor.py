@@ -1,6 +1,6 @@
 """Autonomous per-asset prospective validation. Never promote from backtests alone."""
 import datetime as dt,json,math,os,pathlib
-from multi_asset import symbol,forecasts,candles
+from multi_asset import symbol,forecasts,candles,universe
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 PATH=ROOT/"data"/"multi_asset_forecasts.json"
@@ -57,8 +57,26 @@ def reconcile(data,now=None):
     data["approvals"]=approvals
     data["checked_at_utc"]=now.isoformat()
     return data
-def cycle(pairs=("STAMPUSDT","BTCUSDT","ETHUSDT","SOLUSDT")):
-    data=reconcile(load())
+def cycle(pairs=None):
+    data=load()
+    if pairs is None:
+        # Rotate through the entire discovered market universe to respect API quotas.
+        try:
+            available=universe()["pairs"]
+            if not available:raise ValueError("empty_exchange_universe")
+            data["universe"]={"source":"MEXC exchangeInfo","count":len(available)}
+        except (OSError,ValueError,KeyError,TypeError) as exc:
+            available=data.get("known_pairs") or []
+            data["universe_error"]=type(exc).__name__
+        requested=sorted(set(available)|set(data.get("known_pairs") or []))
+        data["known_pairs"]=requested
+        cursor=int(data.get("cursor",0))%max(len(requested),1)
+        batch=min(12,len(requested))
+        pairs=[requested[(cursor+i)%len(requested)] for i in range(batch)] if requested else []
+        data["cursor"]=(cursor+batch)%max(len(requested),1)
+        data["coverage"]={"discovered":len(requested),"processed_this_cycle":len(pairs),
+                          "next_cursor":data["cursor"],"complete_this_cycle":batch==len(requested)}
+    data=reconcile(data)
     issued={r["id"] for r in data["records"]}
     for pair in pairs:
         try:values=forecasts({tf:candles(pair,{"1h":"60m"}.get(tf,tf)) for tf in HORIZONS})
