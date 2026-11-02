@@ -287,7 +287,7 @@ async function compareAssets(){
 async function updateWorkerStatus(){
  try{
   const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),9000);
-  let r;try{r=await fetch("https://stamp-autonomous-worker.onrender.com/status",{signal:ctl.signal,cache:"no-store"})}finally{clearTimeout(timer)}
+  let r;try{r=await fetch("/api/worker-status",{signal:ctl.signal,credentials:"same-origin",cache:"no-store"})}finally{clearTimeout(timer)}
   if(!r.ok)throw Error("HTTP "+r.status);
   const d=await r.json();
   set("workerState",d.healthy?"🟢 يعمل":"🔴 متوقف أو بياناته متأخرة");
