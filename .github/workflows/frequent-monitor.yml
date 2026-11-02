@@ -106,7 +106,7 @@ jobs:
             if [ -f "$path" ]; then git add "$path"; fi
           done
           if ! git diff --cached --quiet; then
-            git commit -m "data: scheduled STAMP market observation"
+            git commit -m "data: scheduled STAMP market observation [skip render]"
             pushed=0
             for attempt in 1 5; do
               # During rebase, 'theirs' is this newly generated data commit.
