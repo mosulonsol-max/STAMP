@@ -10,9 +10,10 @@ INTERVALS={"15m","30m","60m","4h","1d"}
 def fetch(endpoint,params=None):
     url=BASE+endpoint+("?" + urlencode(params) if params else "")
     req=Request(url,headers={"Accept":"application/json","User-Agent":"STAMP-Research/1.0"})
-    with urlopen(req,timeout=8) as res:
-        raw=res.read(700001)
-    if len(raw)>700000:raise ValueError("oversized_response")
+    limit=15000000 if endpoint=="exchangeInfo" else 3000000
+    with urlopen(req,timeout=12) as res:
+        raw=res.read(limit+1)
+    if len(raw)>limit:raise ValueError("oversized_response")
     return json.loads(raw)
 def symbol(value):
     v=str(value or "").upper().strip().replace("/","")
@@ -20,7 +21,7 @@ def symbol(value):
     return v
 def universe():
     info=fetch("exchangeInfo")
-    pairs=sorted({x.get("symbol") for x in info.get("symbols",[]) if isinstance(x,dict) and isinstance(x.get("symbol"),str) and ALLOWED.fullmatch(x["symbol"]) and x.get("status") in ("1","ENABLED","TRADING",None)})
+    pairs=sorted({x.get("symbol") for x in info.get("symbols",[]) if isinstance(x,dict) and isinstance(x.get("symbol"),str) and ALLOWED.fullmatch(x["symbol"]) and str(x.get("status","1")).upper() in ("1","ENABLED","TRADING","TRUE")})
     return {"pairs":pairs,"count":len(pairs),"source":"MEXC exchangeInfo","retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
 def candles(pair,interval="60m",limit=300):
     pair=symbol(pair)
