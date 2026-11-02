@@ -154,6 +154,7 @@ function updateFreshness(){
  if(!fresh&&data){set("status",t("staleData"));el("status").className="stale"}
 }
 function acceptQuote(q){
+ if(selectedAsset!=="STAMPUSDT")return;
  if(q?.status!=="fresh"||n(q.price)===null||q.price<=0)return;
  const incoming=Date.parse(q.provider_at_utc||q.retrieved_at_utc),previous=Date.parse(quoteLive?.provider_at_utc||quoteLive?.retrieved_at_utc);
  if(!Number.isFinite(incoming)||incoming>Date.now()+5000||Date.now()-incoming>15000)return;
@@ -185,7 +186,7 @@ function startStream(){
    const old=liveCandles.get(update.frame),c=update.candle;if(old&&Date.parse(old.observed_utc)>Date.parse(c.observed_utc))return;
    // A final streamed sample is not proof of a completed candle. REST refresh
    // retrieves definitive closed OHLC; forming bars never enter the model archive.
-   liveCandles.set(update.frame,c);if(data&&(frame===update.frame||(["2h","6h","12h"].includes(frame)&&update.frame==="1h")))renderChart();
+   liveCandles.set(update.frame,c);if(selectedAsset==="STAMPUSDT"&&data&&(frame===update.frame||(["2h","6h","12h"].includes(frame)&&update.frame==="1h")))renderChart();
   }
  }});stream.start();
  document.addEventListener("visibilitychange",()=>{if(document.hidden)stream.stop();else{stream.start();pollQuote(true);refresh()}});
@@ -249,12 +250,12 @@ async function loadAssetUniverse(){
 async function selectAsset(symbol){
  if(!/^[A-Z0-9]{2,22}USDT$/.test(symbol))return;
  selectedAsset=symbol;universeUi(el("assetSearch").value);favoritesUi();el("assetCorrelation").textContent="";
- if(symbol==="STAMPUSDT"){set("assetMessage","STAMP · التوقعات من المحرك الداخلي");assetCache=null;await refresh();return}
+ if(symbol==="STAMPUSDT"){set("coinName","STAMP / USDT");set("venueLine","MEXC · Solana");set("assetMessage","STAMP · التوقعات من المحرك الداخلي");assetCache=null;await refresh();return}
  try{
   set("assetMessage","تحميل بيانات "+symbol+"…");
   const r=await fetch("/api/assets/snapshot?symbol="+encodeURIComponent(symbol),{credentials:"same-origin",cache:"no-store"});
   if(!r.ok)throw Error("HTTP "+r.status);
-  assetCache=await r.json();showSelectedAsset();
+  const fetched=await r.json();if(selectedAsset!==symbol)return;assetCache=fetched;showSelectedAsset();
  }catch(e){set("assetMessage","تعذر تحميل "+symbol+": "+e.message)}
 }
 function showSelectedAsset(){
@@ -282,7 +283,7 @@ async function compareAssets(){
 }
 function translate(){document.documentElement.lang=lang;document.documentElement.dir=lang==="ar"?"rtl":"ltr";document.querySelectorAll("[data-i18n]").forEach(node=>node.textContent=t(node.dataset.i18n));el("langSelect").value=lang;el("zoneSelect").value=zone;if(chart){chart.applyOptions({localization:{timeFormatter:time=>formatChartTime(time)},timeScale:{tickMarkFormatter:(time,type)=>formatChartTime(time,type>2)}})}}
 async function request(path){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{const response=await fetch(path,{credentials:"same-origin",cache:"no-store",signal:controller.signal,headers:{Accept:"application/json"}});if(response.status===401){window.location.href="/login";throw Error("AUTH_401")}if(!response.ok)throw Error("HTTP "+response.status);const payload=await response.json();if(!payload?.market)throw Error("Invalid payload");return payload}finally{clearTimeout(timer)}}
-async function refresh(){if(selectedAsset!=="STAMPUSDT"){if(assetCache)showSelectedAsset();return}if(loading)return;loading=true;el("refresh").disabled=true;try{let result,origin="api";try{result=await request("/api/dashboard")}catch(error){if(error.message==="AUTH_401")throw error;origin="archive";try{result=await request("/api/dashboard-lite")}catch(liteError){if(liteError.message==="AUTH_401")throw liteError;const snapshot=el("stamp-snapshot");if(!snapshot)throw liteError;result=JSON.parse(snapshot.content?snapshot.content.textContent:snapshot.textContent)}}if(result.live_quote?.status!=="fresh"||age(result.live_quote?.retrieved_at_utc)===null||age(result.live_quote?.retrieved_at_utc)>180){
+async function refresh(){if(selectedAsset!=="STAMPUSDT"){await selectAsset(selectedAsset);return}if(loading)return;loading=true;el("refresh").disabled=true;try{let result,origin="api";try{result=await request("/api/dashboard")}catch(error){if(error.message==="AUTH_401")throw error;origin="archive";try{result=await request("/api/dashboard-lite")}catch(liteError){if(liteError.message==="AUTH_401")throw liteError;const snapshot=el("stamp-snapshot");if(!snapshot)throw liteError;result=JSON.parse(snapshot.content?snapshot.content.textContent:snapshot.textContent)}}if(result.live_quote?.status!=="fresh"||age(result.live_quote?.retrieved_at_utc)===null||age(result.live_quote?.retrieved_at_utc)>180){
  const quoteController=new AbortController(),quoteTimer=setTimeout(()=>quoteController.abort(),7000);
  try{const response=await fetch("/api/quote",{credentials:"same-origin",cache:"no-store",signal:quoteController.signal});if(response.status===401){window.location.href="/login";throw Error("AUTH_401")}if(response.ok){const body=await response.json();if(body.quote?.status==="fresh")result={...result,live_quote:body.quote}}}catch(quoteError){if(quoteError.message==="AUTH_401")throw quoteError}finally{clearTimeout(quoteTimer)}
 }render(result,origin)}catch(error){set("status","ERROR");el("warning").hidden=false;set("warning",error.message)}finally{loading=false;el("refresh").disabled=false}}
