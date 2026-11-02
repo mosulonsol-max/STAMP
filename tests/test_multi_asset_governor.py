@@ -31,4 +31,10 @@ class GovernanceTests(unittest.TestCase):
   self.assertEqual(first["coverage"]["next_cursor"],12)
   self.assertEqual(second["coverage"]["next_cursor"],24)
   self.assertEqual(len(second["known_pairs"]),30)
+ def test_pending_forecasts_are_not_silently_pruned(self):
+  now=dt.datetime.now(dt.timezone.utc)
+  due=(now+dt.timedelta(days=4)).isoformat()
+  rows=[{"id":f"BTCUSDT|1h|{i}","pair":"BTCUSDT","frame":"1h","due_at_utc":due,"reference_price":1,"predicted_price":1,"outcome":None} for i in range(1600)]
+  result=gov.reconcile({"records":rows},now=now)
+  self.assertEqual(len(result["records"]),1600)
 if __name__=="__main__":unittest.main()
