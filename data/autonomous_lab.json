@@ -1,20 +1,20 @@
 {
-  "generated_at_utc": "2026-11-02T14:25:54.901103+00:00",
+  "generated_at_utc": "2026-11-02T14:49:13.404730+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-02T14:25:54.901103+00:00",
+    "generated_at_utc": "2026-11-02T14:49:13.404730+00:00",
     "state": "healthy",
-    "previous_pipeline_passed": false,
-    "previous_pipeline_at_utc": "2026-11-02T14:17:55.736513+00:00",
+    "previous_pipeline_passed": true,
+    "previous_pipeline_at_utc": "2026-11-02T14:44:31.305960+00:00",
     "failed_checks": [],
     "checks": {
       "pipeline_steps": {
-        "passed": null,
-        "details": "previous cycle; current CI result pending"
+        "passed": true,
+        "details": "Every required stage must report success; a missing stage is a failure."
       },
       "pipeline_outcome": {
-        "passed": null,
-        "details": "previous cycle; current CI result pending"
+        "passed": true,
+        "details": ""
       },
       "exact_contract": {
         "passed": true,
@@ -69,34 +69,34 @@
         "currently_available": true
       },
       "ticker": {
-        "status": "used",
-        "historical_points": 42,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 41,
+        "currently_available": false
       },
       "orderbook": {
-        "status": "used",
-        "historical_points": 42,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 41,
+        "currently_available": false
       },
       "trades": {
-        "status": "used",
-        "historical_points": 41,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 40,
+        "currently_available": false
       },
       "dex": {
-        "status": "used",
-        "historical_points": 117,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 109,
+        "currently_available": false
       },
       "onchain": {
-        "status": "used",
-        "historical_points": 32,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 39,
+        "currently_available": false
       },
       "news": {
-        "status": "used",
-        "historical_points": 32,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 39,
+        "currently_available": false
       },
       "project": {
         "status": "missing",
@@ -104,9 +104,9 @@
         "currently_available": false
       },
       "macro": {
-        "status": "used",
-        "historical_points": 116,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 107,
+        "currently_available": false
       },
       "derivatives": {
         "status": "missing",
@@ -115,7 +115,7 @@
       },
       "feedback": {
         "status": "verified_prospective_journal",
-        "historical_points": 31,
+        "historical_points": 41,
         "currently_available": true
       }
     },
@@ -123,38 +123,38 @@
   },
   "experiments": [
     {
-      "id": "ef16261196f5479f",
+      "id": "34e1f4ff1b574e8f",
       "horizon": "1h",
-      "candidate": "forest_absolute",
-      "action": "revise_in_sandbox",
-      "reason": "failed_no_change_baseline",
-      "replay_consistent": true,
-      "later_samples": 120.0,
-      "skill_vs_zero": -0.03111074665108382,
-      "production_status": "experimental",
-      "promotion_permitted_by_lab": false
-    },
-    {
-      "id": "d9579f651ba22707",
-      "horizon": "4h",
       "candidate": "no_change",
       "action": "revise_in_sandbox",
       "reason": "failed_no_change_baseline",
       "replay_consistent": true,
-      "later_samples": 117.0,
+      "later_samples": 120.0,
       "skill_vs_zero": 0.0,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
     {
-      "id": "bace7209c1d171e3",
+      "id": "d835eed4bec2b570",
+      "horizon": "4h",
+      "candidate": "hist_absolute",
+      "action": "continue_sandbox",
+      "reason": "improvement_below_research_gate",
+      "replay_consistent": true,
+      "later_samples": 119.0,
+      "skill_vs_zero": 0.003380448571190131,
+      "production_status": "experimental",
+      "promotion_permitted_by_lab": false
+    },
+    {
+      "id": "6e1b896b2e2b4087",
       "horizon": "24h",
-      "candidate": "forest_absolute",
+      "candidate": "no_change",
       "action": "continue_sandbox",
       "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 17.0,
-      "skill_vs_zero": -0.08712646853291339,
+      "skill_vs_zero": 0.0,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
