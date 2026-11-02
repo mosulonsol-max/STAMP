@@ -225,9 +225,64 @@ function render(result,origin="api"){
  set("warning",fresh?"":(lang==="ar"?"السعر المباشر غير متاح؛ القيم المعروضة مؤرشفة ومؤقتة.":"Live quote unavailable; displayed values are timestamped archives."));
  renderIntelligence();renderForecasts();renderChart();renderAssurance();renderInputs();if(result.live_quote?.status==="fresh")acceptQuote({...result.live_quote,stats_at_utc:result.live_quote.stats_at_utc||result.live_quote.provider_at_utc||result.live_quote.retrieved_at_utc});if(quoteLive)acceptQuote(quoteLive);
 }
+let selectedAsset="STAMPUSDT",assetPairs=["STAMPUSDT","BTCUSDT","ETHUSDT","SOLUSDT"],assetCache=null;
+let favorites=[];try{favorites=JSON.parse(localStorage.getItem("stamp_favorite_pairs")||"[]").filter(v=>/^[A-Z0-9]{2,22}USDT$/.test(v))}catch(e){}
+function favoritesUi(){
+ const sel=el("favoriteSelect");sel.innerHTML='<option value="">اختر من المفضلة</option>'+favorites.map(v=>'<option value="'+esc(v)+'">'+esc(v.replace(/USDT$/," / USDT"))+'</option>').join("");
+ set("assetFavorite",(favorites.includes(selectedAsset)?"★":"☆")+" المفضلة");
+}
+function universeUi(filter=""){
+ const wanted=filter.toUpperCase().replace(/[^A-Z0-9]/g,""),selected=el("assetSelect");
+ const matches=assetPairs.filter(v=>v.includes(wanted)).slice(0,350);
+ if(!matches.includes(selectedAsset))matches.unshift(selectedAsset);
+ selected.innerHTML=matches.map(v=>'<option value="'+esc(v)+'">'+esc(v.replace(/USDT$/," / USDT"))+'</option>').join("");
+ selected.value=selectedAsset;
+}
+async function loadAssetUniverse(){
+ try{const r=await fetch("/api/assets/universe",{credentials:"same-origin",cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);
+  const result=await r.json();if(!Array.isArray(result.pairs))throw Error("Invalid pairs");
+  assetPairs=[...new Set([...result.pairs,"STAMPUSDT"])].sort();universeUi(el("assetSearch").value);
+  set("assetMessage",assetPairs.length+" MEXC USDT pairs available");
+ }catch(e){set("assetMessage","قائمة السوق غير متاحة: "+e.message)}
+ favoritesUi();
+}
+async function selectAsset(symbol){
+ if(!/^[A-Z0-9]{2,22}USDT$/.test(symbol))return;
+ selectedAsset=symbol;universeUi(el("assetSearch").value);favoritesUi();el("assetCorrelation").textContent="";
+ if(symbol==="STAMPUSDT"){set("assetMessage","STAMP · التوقعات من المحرك الداخلي");assetCache=null;await refresh();return}
+ try{
+  set("assetMessage","تحميل بيانات "+symbol+"…");
+  const r=await fetch("/api/assets/snapshot?symbol="+encodeURIComponent(symbol),{credentials:"same-origin",cache:"no-store"});
+  if(!r.ok)throw Error("HTTP "+r.status);
+  assetCache=await r.json();showSelectedAsset();
+ }catch(e){set("assetMessage","تعذر تحميل "+symbol+": "+e.message)}
+}
+function showSelectedAsset(){
+ if(selectedAsset==="STAMPUSDT"||!assetCache||!data)return;
+ const snapshot=assetCache,q=snapshot.ticker||{};
+ const px=n(q.lastPrice),pct24=n(q.priceChangePercent);
+ const market={...data.market,price:px,change:pct24===null?null:pct24/100,volume:n(q.quoteVolume),high_24h:n(q.highPrice),low_24h:n(q.lowPrice)};
+ const alternate={...data,market,candles:snapshot.candles||{},forecasts:{},forecast_review:{rows:[]},model_decisions:{},
+    learning:{horizons:{}},output_assurance:null,live_quote:{status:"unavailable"},liquidity:{},
+    observed_utc:snapshot.retrieved_at_utc,model_observed_utc:null};
+ render(alternate);
+ set("coinName",selectedAsset.replace(/USDT$/,"")+" / USDT");
+ set("venueLine","MEXC · أبحاث السوق (بدون توقعات معتمدة)");
+ set("assetMessage",selectedAsset+" · "+Object.values(snapshot.candles||{}).reduce((n,arr)=>n+arr.length,0)+" شمعة مسترجعة");
+}
+async function compareAssets(){
+ const other=el("assetCompare").value,container=el("assetCorrelation");container.textContent="جاري مقارنة البيانات…";
+ try{
+ const response=await fetch("/api/assets/compare?primary="+encodeURIComponent(selectedAsset)+"&secondary="+encodeURIComponent(other),{credentials:"same-origin",cache:"no-store"});
+ if(!response.ok)throw Error("HTTP "+response.status);
+ const r=await response.json();const text=(v)=>v===null?"—":String(v);
+ container.innerHTML='<strong>'+esc(r.primary)+" ↔ "+esc(r.secondary)+'</strong> · ارتباط العوائد الساعة نفسها: '+esc(text(r.correlation))+' · عينات '+esc(r.hourly_samples)+
+ '<div>'+Object.entries(r.lead_lag_hours||{}).map(([k,v])=>esc(r.secondary)+' قبل '+esc(k)+' ساعة: '+esc(text(v.correlation))+' (n='+esc(v.samples)+')').join(' | ')+'</div><small>'+esc(r.interpretation)+'</small>';
+ }catch(e){container.textContent="تعذرت المقارنة: "+e.message}
+}
 function translate(){document.documentElement.lang=lang;document.documentElement.dir=lang==="ar"?"rtl":"ltr";document.querySelectorAll("[data-i18n]").forEach(node=>node.textContent=t(node.dataset.i18n));el("langSelect").value=lang;el("zoneSelect").value=zone;if(chart){chart.applyOptions({localization:{timeFormatter:time=>formatChartTime(time)},timeScale:{tickMarkFormatter:(time,type)=>formatChartTime(time,type>2)}})}}
 async function request(path){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{const response=await fetch(path,{credentials:"same-origin",cache:"no-store",signal:controller.signal,headers:{Accept:"application/json"}});if(response.status===401){window.location.href="/login";throw Error("AUTH_401")}if(!response.ok)throw Error("HTTP "+response.status);const payload=await response.json();if(!payload?.market)throw Error("Invalid payload");return payload}finally{clearTimeout(timer)}}
-async function refresh(){if(loading)return;loading=true;el("refresh").disabled=true;try{let result,origin="api";try{result=await request("/api/dashboard")}catch(error){if(error.message==="AUTH_401")throw error;origin="archive";try{result=await request("/api/dashboard-lite")}catch(liteError){if(liteError.message==="AUTH_401")throw liteError;const snapshot=el("stamp-snapshot");if(!snapshot)throw liteError;result=JSON.parse(snapshot.content?snapshot.content.textContent:snapshot.textContent)}}if(result.live_quote?.status!=="fresh"||age(result.live_quote?.retrieved_at_utc)===null||age(result.live_quote?.retrieved_at_utc)>180){
+async function refresh(){if(selectedAsset!=="STAMPUSDT"){if(assetCache)showSelectedAsset();return}if(loading)return;loading=true;el("refresh").disabled=true;try{let result,origin="api";try{result=await request("/api/dashboard")}catch(error){if(error.message==="AUTH_401")throw error;origin="archive";try{result=await request("/api/dashboard-lite")}catch(liteError){if(liteError.message==="AUTH_401")throw liteError;const snapshot=el("stamp-snapshot");if(!snapshot)throw liteError;result=JSON.parse(snapshot.content?snapshot.content.textContent:snapshot.textContent)}}if(result.live_quote?.status!=="fresh"||age(result.live_quote?.retrieved_at_utc)===null||age(result.live_quote?.retrieved_at_utc)>180){
  const quoteController=new AbortController(),quoteTimer=setTimeout(()=>quoteController.abort(),7000);
  try{const response=await fetch("/api/quote",{credentials:"same-origin",cache:"no-store",signal:quoteController.signal});if(response.status===401){window.location.href="/login";throw Error("AUTH_401")}if(response.ok){const body=await response.json();if(body.quote?.status==="fresh")result={...result,live_quote:body.quote}}}catch(quoteError){if(quoteError.message==="AUTH_401")throw quoteError}finally{clearTimeout(quoteTimer)}
 }render(result,origin)}catch(error){set("status","ERROR");el("warning").hidden=false;set("warning",error.message)}finally{loading=false;el("refresh").disabled=false}}
@@ -242,7 +297,13 @@ el("logoutButton").addEventListener("click",async()=>{try{await fetch("/logout",
 el("langSelect").addEventListener("change",event=>{lang=event.target.value==="en"?"en":"ar";try{localStorage.setItem("stamp_language",lang)}catch(e){}translate();if(data)render(data)});
 el("zoneSelect").addEventListener("change",event=>{zone=["UTC","Asia/Baghdad","Asia/Makassar"].includes(event.target.value)?event.target.value:"UTC";try{localStorage.setItem("stamp_timezone",zone)}catch(e){}translate();if(data)render(data)});
 el("diagnose").addEventListener("click",async()=>{try{const response=await fetch("/api/status",{credentials:"same-origin",cache:"no-store"}),s=await response.json();set("diagnosticResult","API: "+s.api+" · "+stamp(s.observation_utc)+" · "+(s.research_fresh?"FRESH":"ARCHIVED"))}catch(error){set("diagnosticResult",error.message)}});
-translate();refresh();startStream();
+el("assetSearch").addEventListener("input",e=>universeUi(e.target.value));
+el("assetSelect").addEventListener("change",e=>selectAsset(e.target.value));
+el("favoriteSelect").addEventListener("change",e=>{if(e.target.value)selectAsset(e.target.value)});
+el("assetFavorite").addEventListener("click",()=>{if(favorites.includes(selectedAsset))favorites=favorites.filter(v=>v!==selectedAsset);else favorites.push(selectedAsset);
+ try{localStorage.setItem("stamp_favorite_pairs",JSON.stringify(favorites))}catch(e){}favoritesUi()});
+el("compareAssets").addEventListener("click",compareAssets);
+favoritesUi();loadAssetUniverse();translate();refresh();startStream();
 if(window.StampMarket){pollQuote(true);setInterval(()=>{updateFreshness();pollQuote();renderAssurance()},1000)}
 setInterval(()=>{if(!document.hidden)refresh()},15000);
 })();
