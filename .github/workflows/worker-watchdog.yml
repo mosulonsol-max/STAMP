@@ -1,0 +1,26 @@
+name: STAMP independent worker health
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check actual independent worker progress
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 --retry-delay 5 --max-time 20 \
+            https://stamp-autonomous-worker.onrender.com/healthz > /tmp/stamp-worker-health.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/stamp-worker-health.json'))
+          print({key:d.get(key) for key in ('healthy','cycles','last_cycle_utc','discovered','processed','storage')})
+          if d.get('healthy') is not True or int(d.get('discovered') or 0)<1 or int(d.get('processed') or 0)<1:
+              raise SystemExit('Independent worker is not collecting usable market data')
+          if d.get('storage')!='postgres':
+              print('WARNING: durable Postgres connection is not configured; worker can lose progress on redeployment')
+          PY
