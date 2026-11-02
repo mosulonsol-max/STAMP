@@ -363,6 +363,20 @@ class Handler(BaseHTTPRequestHandler):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
    return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
+  if path.startswith("/api/assets/"):
+   try:
+    try:from src import multi_asset
+    except ImportError:import multi_asset
+    query=parse_qs(urlsplit(self.path).query)
+    if path=="/api/assets/universe":result=multi_asset.universe()
+    elif path=="/api/assets/snapshot":result=multi_asset.snapshot(query.get("symbol",[""])[0])
+    elif path=="/api/assets/compare":result=multi_asset.compare(query.get("primary",[""])[0],query.get("secondary",[""])[0])
+    else:return self.send(404,b"Not found")
+    return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except (ValueError,TypeError) as exc:
+    return self.send(400,json.dumps({"error":type(exc).__name__,"reason":str(exc)}).encode(),"application/json; charset=utf-8")
+   except Exception as exc:
+    return self.send(503,json.dumps({"error":"asset_source_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/quote":
    # Independently fetched public exchange quote; research can remain archived.
    # Endpoint stays authenticated, like the rest of the private dashboard.
