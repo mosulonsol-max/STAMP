@@ -378,6 +378,17 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(400,json.dumps({"error":type(exc).__name__,"reason":str(exc)}).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"asset_source_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/worker-status":
+   try:
+    request=Request("https://stamp-autonomous-worker.onrender.com/status",headers={"Accept":"application/json","User-Agent":"STAMP-private-dashboard"})
+    with urlopen(request,timeout=8) as upstream:
+     raw=upstream.read(8193)
+    if len(raw)>8192:raise ValueError("oversized_worker_health")
+    health=json.loads(raw)
+    if not isinstance(health,dict) or not isinstance(health.get("healthy"),bool):raise ValueError("invalid_worker_health")
+    return self.send(200,json.dumps(health,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except Exception as exc:
+    return self.send(503,json.dumps({"error":"worker_status_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/quote":
    # Independently fetched public exchange quote; research can remain archived.
    # Endpoint stays authenticated, like the rest of the private dashboard.
