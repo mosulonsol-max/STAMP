@@ -1,73 +1,10 @@
 {
   "history_used": true,
   "previous_variants": 32,
-  "generated_at_utc": "2026-11-02T07:28:46.497902+00:00",
+  "generated_at_utc": "2026-11-02T09:07:48.693807+00:00",
   "source_lab_state": "healthy",
   "generation": "deterministic_single_parameter_mutations_v1",
   "experiments": [
-    {
-      "horizon": "1h",
-      "family": "forest_absolute",
-      "parameters": {
-        "n_estimators": 16,
-        "max_depth": 3,
-        "min_samples_leaf": 12
-      },
-      "changed_parameter": "max_depth",
-      "baseline_value": 4,
-      "candidate_value": 3,
-      "status": "proposed_untrained",
-      "production_eligible": false,
-      "evaluation_required": [
-        "time_purged_walk_forward",
-        "independent_later_holdout",
-        "prospective_outcomes",
-        "runtime_and_dataflow_checks"
-      ],
-      "id": "798377e6321593f2"
-    },
-    {
-      "horizon": "1h",
-      "family": "forest_absolute",
-      "parameters": {
-        "n_estimators": 12,
-        "max_depth": 4,
-        "min_samples_leaf": 12
-      },
-      "changed_parameter": "n_estimators",
-      "baseline_value": 16,
-      "candidate_value": 12,
-      "status": "proposed_untrained",
-      "production_eligible": false,
-      "evaluation_required": [
-        "time_purged_walk_forward",
-        "independent_later_holdout",
-        "prospective_outcomes",
-        "runtime_and_dataflow_checks"
-      ],
-      "id": "75afadb563d2b226"
-    },
-    {
-      "horizon": "24h",
-      "family": "forest_absolute",
-      "parameters": {
-        "n_estimators": 24,
-        "max_depth": 4,
-        "min_samples_leaf": 12
-      },
-      "changed_parameter": "n_estimators",
-      "baseline_value": 16,
-      "candidate_value": 24,
-      "status": "proposed_untrained",
-      "production_eligible": false,
-      "evaluation_required": [
-        "time_purged_walk_forward",
-        "independent_later_holdout",
-        "prospective_outcomes",
-        "runtime_and_dataflow_checks"
-      ],
-      "id": "853100f503132120"
-    },
     {
       "horizon": "24h",
       "family": "forest_absolute",
@@ -240,6 +177,48 @@
       "horizon": "1h",
       "family": "forest_absolute",
       "parameters": {
+        "n_estimators": 12,
+        "max_depth": 4,
+        "min_samples_leaf": 12
+      },
+      "changed_parameter": "n_estimators",
+      "baseline_value": 16,
+      "candidate_value": 12,
+      "status": "proposed_untrained",
+      "production_eligible": false,
+      "evaluation_required": [
+        "time_purged_walk_forward",
+        "independent_later_holdout",
+        "prospective_outcomes",
+        "runtime_and_dataflow_checks"
+      ],
+      "id": "75afadb563d2b226"
+    },
+    {
+      "horizon": "1h",
+      "family": "forest_absolute",
+      "parameters": {
+        "n_estimators": 16,
+        "max_depth": 3,
+        "min_samples_leaf": 12
+      },
+      "changed_parameter": "max_depth",
+      "baseline_value": 4,
+      "candidate_value": 3,
+      "status": "proposed_untrained",
+      "production_eligible": false,
+      "evaluation_required": [
+        "time_purged_walk_forward",
+        "independent_later_holdout",
+        "prospective_outcomes",
+        "runtime_and_dataflow_checks"
+      ],
+      "id": "798377e6321593f2"
+    },
+    {
+      "horizon": "1h",
+      "family": "forest_absolute",
+      "parameters": {
         "n_estimators": 16,
         "max_depth": 4,
         "min_samples_leaf": 8
@@ -256,6 +235,27 @@
         "runtime_and_dataflow_checks"
       ],
       "id": "276c19d3165b9787"
+    },
+    {
+      "horizon": "24h",
+      "family": "forest_absolute",
+      "parameters": {
+        "n_estimators": 24,
+        "max_depth": 4,
+        "min_samples_leaf": 12
+      },
+      "changed_parameter": "n_estimators",
+      "baseline_value": 16,
+      "candidate_value": 24,
+      "status": "proposed_untrained",
+      "production_eligible": false,
+      "evaluation_required": [
+        "time_purged_walk_forward",
+        "independent_later_holdout",
+        "prospective_outcomes",
+        "runtime_and_dataflow_checks"
+      ],
+      "id": "853100f503132120"
     }
   ],
   "warning": "Proposed only; execution/training and out-of-sample results not yet performed."
