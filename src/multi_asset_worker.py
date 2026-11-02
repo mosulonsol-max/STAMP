@@ -33,8 +33,9 @@ def run(interval=None):
    result=cycle()
    coverage=result.get("coverage") or {}
    logging.info("cycle ok discovered=%s processed=%s record_count=%s",coverage.get("discovered"),coverage.get("processed_this_cycle"),len(result.get("records") or []))
-   if not coverage.get("discovered") or not coverage.get("processed_this_cycle"):raise RuntimeError("asset_universe_empty")
-   LAST.update(discovered=coverage["discovered"],processed=coverage["processed_this_cycle"])
+   actual=len((result.get("cycle_result") or {}).get("processed") or [])
+   if not coverage.get("discovered") or actual==0:raise RuntimeError("market_discovery_or_data_collection_failed")
+   LAST.update(discovered=coverage["discovered"],processed=actual)
    failures=0
    LAST.update(success=time.time(),error=None,cycles=LAST["cycles"]+1)
   except Exception:
