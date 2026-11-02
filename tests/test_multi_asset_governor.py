@@ -21,16 +21,16 @@ class GovernanceTests(unittest.TestCase):
   self.assertEqual(result["approvals"]["BTCUSDT|1h"]["prospective_samples"],0)
  def test_discovery_rotates_without_a_fixed_coin_allowlist(self):
   import tempfile
-  universe={"pairs":[f"ASSET{i:03}USDT" for i in range(30)]}
+  universe={"pairs":[f"ASSET{i:03}USDT" for i in range(100)]}
   with tempfile.TemporaryDirectory() as folder:
    with patch.object(gov,"PATH",pathlib.Path(folder)/"journal.json"),patch.object(gov,"universe",return_value=universe),patch.object(gov,"candles",return_value=[]):
     first=gov.cycle()
     second=gov.cycle()
-  self.assertEqual(first["coverage"]["discovered"],30)
-  self.assertEqual(first["coverage"]["processed_this_cycle"],12)
-  self.assertEqual(first["coverage"]["next_cursor"],12)
-  self.assertEqual(second["coverage"]["next_cursor"],24)
-  self.assertEqual(len(second["known_pairs"]),30)
+  self.assertEqual(first["coverage"]["discovered"],100)
+  self.assertEqual(first["coverage"]["processed_this_cycle"],48)
+  self.assertEqual(first["coverage"]["next_cursor"],48)
+  self.assertEqual(second["coverage"]["next_cursor"],96)
+  self.assertEqual(len(second["known_pairs"]),100)
  def test_pending_forecasts_are_not_silently_pruned(self):
   now=dt.datetime.now(dt.timezone.utc)
   due=(now+dt.timedelta(days=4)).isoformat()
