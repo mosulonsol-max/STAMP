@@ -7,7 +7,7 @@ from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit,quote,parse_qs
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
-PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json","autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json")
+PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json","autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json","multi_asset_forecasts.json")
 CACHE={"time":0.0,"payload":None}
 LOCK=threading.Lock()
 def age(stamp):
@@ -149,6 +149,7 @@ def build():
   "errors":{k:errors[k] for k in ("autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json") if k in errors}
  }
 
+ payload["multi_asset_governance"]={"approvals":(items.get("multi_asset_forecasts.json") or {}).get("approvals") or {}, "checked_at_utc":(items.get("multi_asset_forecasts.json") or {}).get("checked_at_utc"),"record_count":len((items.get("multi_asset_forecasts.json") or {}).get("records") or [])}
  payload.update(market_context=a.get("market_context") or {},onchain=a.get("onchain") or {},news=a.get("news") or {},model_observed_utc=learning.get("at_utc"))
  try:
   from src.evidence_brief import compose
