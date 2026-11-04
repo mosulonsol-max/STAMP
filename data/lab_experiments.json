@@ -1,7 +1,7 @@
 {
   "history_used": true,
   "previous_variants": 48,
-  "generated_at_utc": "2026-11-04T06:02:48.534122+00:00",
+  "generated_at_utc": "2026-11-04T07:20:01.416013+00:00",
   "source_lab_state": "healthy",
   "generation": "deterministic_single_parameter_mutations_v1",
   "experiments": [
@@ -9,13 +9,13 @@
       "horizon": "7d",
       "family": "forest_absolute",
       "parameters": {
-        "n_estimators": 16,
+        "n_estimators": 24,
         "max_depth": 4,
-        "min_samples_leaf": 8
+        "min_samples_leaf": 12
       },
-      "changed_parameter": "min_samples_leaf",
-      "baseline_value": 12,
-      "candidate_value": 8,
+      "changed_parameter": "n_estimators",
+      "baseline_value": 16,
+      "candidate_value": 24,
       "status": "proposed_untrained",
       "production_eligible": false,
       "evaluation_required": [
@@ -24,7 +24,7 @@
         "prospective_outcomes",
         "runtime_and_dataflow_checks"
       ],
-      "id": "507f39b104f4cb0f"
+      "id": "cae2835b8c630ce5"
     },
     {
       "horizon": "7d",
@@ -46,6 +46,27 @@
         "runtime_and_dataflow_checks"
       ],
       "id": "00672d40b1379352"
+    },
+    {
+      "horizon": "7d",
+      "family": "forest_absolute",
+      "parameters": {
+        "n_estimators": 16,
+        "max_depth": 5,
+        "min_samples_leaf": 12
+      },
+      "changed_parameter": "max_depth",
+      "baseline_value": 4,
+      "candidate_value": 5,
+      "status": "proposed_untrained",
+      "production_eligible": false,
+      "evaluation_required": [
+        "time_purged_walk_forward",
+        "independent_later_holdout",
+        "prospective_outcomes",
+        "runtime_and_dataflow_checks"
+      ],
+      "id": "73afcfaa485cc998"
     },
     {
       "horizon": "7d",
@@ -93,34 +114,13 @@
       "horizon": "7d",
       "family": "forest_absolute",
       "parameters": {
-        "n_estimators": 24,
-        "max_depth": 4,
-        "min_samples_leaf": 12
-      },
-      "changed_parameter": "n_estimators",
-      "baseline_value": 16,
-      "candidate_value": 24,
-      "status": "proposed_untrained",
-      "production_eligible": false,
-      "evaluation_required": [
-        "time_purged_walk_forward",
-        "independent_later_holdout",
-        "prospective_outcomes",
-        "runtime_and_dataflow_checks"
-      ],
-      "id": "cae2835b8c630ce5"
-    },
-    {
-      "horizon": "7d",
-      "family": "forest_absolute",
-      "parameters": {
         "n_estimators": 16,
-        "max_depth": 5,
-        "min_samples_leaf": 12
+        "max_depth": 4,
+        "min_samples_leaf": 8
       },
-      "changed_parameter": "max_depth",
-      "baseline_value": 4,
-      "candidate_value": 5,
+      "changed_parameter": "min_samples_leaf",
+      "baseline_value": 12,
+      "candidate_value": 8,
       "status": "proposed_untrained",
       "production_eligible": false,
       "evaluation_required": [
@@ -129,7 +129,7 @@
         "prospective_outcomes",
         "runtime_and_dataflow_checks"
       ],
-      "id": "73afcfaa485cc998"
+      "id": "507f39b104f4cb0f"
     },
     {
       "horizon": "24h",
