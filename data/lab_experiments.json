@@ -1,10 +1,52 @@
 {
   "history_used": true,
   "previous_variants": 56,
-  "generated_at_utc": "2026-11-06T11:56:17.105513+00:00",
+  "generated_at_utc": "2026-11-06T13:08:20.528995+00:00",
   "source_lab_state": "healthy",
   "generation": "deterministic_single_parameter_mutations_v1",
   "experiments": [
+    {
+      "horizon": "7d",
+      "family": "forest_absolute",
+      "parameters": {
+        "n_estimators": 16,
+        "max_depth": 3,
+        "min_samples_leaf": 12
+      },
+      "changed_parameter": "max_depth",
+      "baseline_value": 4,
+      "candidate_value": 3,
+      "status": "proposed_untrained",
+      "production_eligible": false,
+      "evaluation_required": [
+        "time_purged_walk_forward",
+        "independent_later_holdout",
+        "prospective_outcomes",
+        "runtime_and_dataflow_checks"
+      ],
+      "id": "5b0688f80fe06eac"
+    },
+    {
+      "horizon": "7d",
+      "family": "forest_absolute",
+      "parameters": {
+        "n_estimators": 16,
+        "max_depth": 4,
+        "min_samples_leaf": 16
+      },
+      "changed_parameter": "min_samples_leaf",
+      "baseline_value": 12,
+      "candidate_value": 16,
+      "status": "proposed_untrained",
+      "production_eligible": false,
+      "evaluation_required": [
+        "time_purged_walk_forward",
+        "independent_later_holdout",
+        "prospective_outcomes",
+        "runtime_and_dataflow_checks"
+      ],
+      "id": "00672d40b1379352"
+    },
     {
       "horizon": "7d",
       "family": "forest_absolute",
@@ -88,48 +130,6 @@
         "runtime_and_dataflow_checks"
       ],
       "id": "e17a8c4aadb9cb72"
-    },
-    {
-      "horizon": "7d",
-      "family": "forest_absolute",
-      "parameters": {
-        "n_estimators": 16,
-        "max_depth": 3,
-        "min_samples_leaf": 12
-      },
-      "changed_parameter": "max_depth",
-      "baseline_value": 4,
-      "candidate_value": 3,
-      "status": "proposed_untrained",
-      "production_eligible": false,
-      "evaluation_required": [
-        "time_purged_walk_forward",
-        "independent_later_holdout",
-        "prospective_outcomes",
-        "runtime_and_dataflow_checks"
-      ],
-      "id": "5b0688f80fe06eac"
-    },
-    {
-      "horizon": "7d",
-      "family": "forest_absolute",
-      "parameters": {
-        "n_estimators": 16,
-        "max_depth": 4,
-        "min_samples_leaf": 16
-      },
-      "changed_parameter": "min_samples_leaf",
-      "baseline_value": 12,
-      "candidate_value": 16,
-      "status": "proposed_untrained",
-      "production_eligible": false,
-      "evaluation_required": [
-        "time_purged_walk_forward",
-        "independent_later_holdout",
-        "prospective_outcomes",
-        "runtime_and_dataflow_checks"
-      ],
-      "id": "00672d40b1379352"
     },
     {
       "horizon": "24h",
