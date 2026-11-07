@@ -1,94 +1,10 @@
 {
   "history_used": true,
   "previous_variants": 56,
-  "generated_at_utc": "2026-11-06T23:43:47.376009+00:00",
+  "generated_at_utc": "2026-11-07T01:00:39.954850+00:00",
   "source_lab_state": "healthy",
   "generation": "deterministic_single_parameter_mutations_v1",
   "experiments": [
-    {
-      "horizon": "7d",
-      "family": "hist_absolute",
-      "parameters": {
-        "max_iter": 20,
-        "max_leaf_nodes": 7,
-        "l2_regularization": 10
-      },
-      "changed_parameter": "max_iter",
-      "baseline_value": 40,
-      "candidate_value": 20,
-      "status": "proposed_untrained",
-      "production_eligible": false,
-      "evaluation_required": [
-        "time_purged_walk_forward",
-        "independent_later_holdout",
-        "prospective_outcomes",
-        "runtime_and_dataflow_checks"
-      ],
-      "id": "718e1e05df180abb"
-    },
-    {
-      "horizon": "24h",
-      "family": "forest_absolute",
-      "parameters": {
-        "n_estimators": 16,
-        "max_depth": 4,
-        "min_samples_leaf": 8
-      },
-      "changed_parameter": "min_samples_leaf",
-      "baseline_value": 12,
-      "candidate_value": 8,
-      "status": "proposed_untrained",
-      "production_eligible": false,
-      "evaluation_required": [
-        "time_purged_walk_forward",
-        "independent_later_holdout",
-        "prospective_outcomes",
-        "runtime_and_dataflow_checks"
-      ],
-      "id": "9c7a16e1d41fd90a"
-    },
-    {
-      "horizon": "24h",
-      "family": "forest_absolute",
-      "parameters": {
-        "n_estimators": 16,
-        "max_depth": 4,
-        "min_samples_leaf": 16
-      },
-      "changed_parameter": "min_samples_leaf",
-      "baseline_value": 12,
-      "candidate_value": 16,
-      "status": "proposed_untrained",
-      "production_eligible": false,
-      "evaluation_required": [
-        "time_purged_walk_forward",
-        "independent_later_holdout",
-        "prospective_outcomes",
-        "runtime_and_dataflow_checks"
-      ],
-      "id": "a857dcdd4fbeaa56"
-    },
-    {
-      "horizon": "24h",
-      "family": "forest_absolute",
-      "parameters": {
-        "n_estimators": 24,
-        "max_depth": 4,
-        "min_samples_leaf": 12
-      },
-      "changed_parameter": "n_estimators",
-      "baseline_value": 16,
-      "candidate_value": 24,
-      "status": "proposed_untrained",
-      "production_eligible": false,
-      "evaluation_required": [
-        "time_purged_walk_forward",
-        "independent_later_holdout",
-        "prospective_outcomes",
-        "runtime_and_dataflow_checks"
-      ],
-      "id": "853100f503132120"
-    },
     {
       "horizon": "24h",
       "family": "forest_absolute",
@@ -233,6 +149,27 @@
       "id": "f8ce356de4992fe8"
     },
     {
+      "horizon": "24h",
+      "family": "forest_absolute",
+      "parameters": {
+        "n_estimators": 16,
+        "max_depth": 4,
+        "min_samples_leaf": 16
+      },
+      "changed_parameter": "min_samples_leaf",
+      "baseline_value": 12,
+      "candidate_value": 16,
+      "status": "proposed_untrained",
+      "production_eligible": false,
+      "evaluation_required": [
+        "time_purged_walk_forward",
+        "independent_later_holdout",
+        "prospective_outcomes",
+        "runtime_and_dataflow_checks"
+      ],
+      "id": "a857dcdd4fbeaa56"
+    },
+    {
       "horizon": "7d",
       "family": "hist_absolute",
       "parameters": {
@@ -252,6 +189,48 @@
         "runtime_and_dataflow_checks"
       ],
       "id": "c5a4a6ad85d0c251"
+    },
+    {
+      "horizon": "24h",
+      "family": "forest_absolute",
+      "parameters": {
+        "n_estimators": 24,
+        "max_depth": 4,
+        "min_samples_leaf": 12
+      },
+      "changed_parameter": "n_estimators",
+      "baseline_value": 16,
+      "candidate_value": 24,
+      "status": "proposed_untrained",
+      "production_eligible": false,
+      "evaluation_required": [
+        "time_purged_walk_forward",
+        "independent_later_holdout",
+        "prospective_outcomes",
+        "runtime_and_dataflow_checks"
+      ],
+      "id": "853100f503132120"
+    },
+    {
+      "horizon": "24h",
+      "family": "forest_absolute",
+      "parameters": {
+        "n_estimators": 16,
+        "max_depth": 4,
+        "min_samples_leaf": 8
+      },
+      "changed_parameter": "min_samples_leaf",
+      "baseline_value": 12,
+      "candidate_value": 8,
+      "status": "proposed_untrained",
+      "production_eligible": false,
+      "evaluation_required": [
+        "time_purged_walk_forward",
+        "independent_later_holdout",
+        "prospective_outcomes",
+        "runtime_and_dataflow_checks"
+      ],
+      "id": "9c7a16e1d41fd90a"
     },
     {
       "horizon": "7d",
@@ -336,6 +315,27 @@
         "runtime_and_dataflow_checks"
       ],
       "id": "8019c84216437a68"
+    },
+    {
+      "horizon": "7d",
+      "family": "hist_absolute",
+      "parameters": {
+        "max_iter": 20,
+        "max_leaf_nodes": 7,
+        "l2_regularization": 10
+      },
+      "changed_parameter": "max_iter",
+      "baseline_value": 40,
+      "candidate_value": 20,
+      "status": "proposed_untrained",
+      "production_eligible": false,
+      "evaluation_required": [
+        "time_purged_walk_forward",
+        "independent_later_holdout",
+        "prospective_outcomes",
+        "runtime_and_dataflow_checks"
+      ],
+      "id": "718e1e05df180abb"
     }
   ],
   "warning": "Proposed only; execution/training and out-of-sample results not yet performed."
