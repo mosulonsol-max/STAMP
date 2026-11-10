@@ -5,6 +5,13 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"src"))
 import multi_asset_governor as gov
 class GovernanceTests(unittest.TestCase):
+ def test_missing_historical_features_are_not_fabricated(self):
+  state=gov.retrain_candidates({"records":[{"pair":"BTCUSDT","frame":"1h","outcome":{"actual_price":100}}]})
+  d=state["model_selection_diagnostics"]
+  self.assertEqual(d["exclusions"]["missing_features"],1)
+  self.assertEqual(d["eligible_samples"],0)
+  self.assertEqual(d["max_eligible_per_group"],0)
+  self.assertEqual(state["model_selections"],{})
  def test_empty_journal_has_no_approval(self):
   result=gov.reconcile({"records":[]})
   self.assertEqual(result["approvals"],{})
