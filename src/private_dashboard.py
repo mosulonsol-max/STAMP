@@ -328,8 +328,8 @@ def session_valid(cookie_header):
 def login_html(error=False):
  message='<p role="alert">اسم المستخدم أو كلمة المرور غير صحيحة. / Invalid credentials.</p>' if error else ''
  return ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
- '<title>STAMP — تسجيل الدخول</title><link rel="stylesheet" href="/assets/style.css"></head><body>'
- '<main><h1>STAMP INTELLIGENCE</h1><p>لوحة التحليل الخاصة · تسجيل الدخول</p>'+message+
+ '<title>STAMP NEXUS — Secure Access</title><link rel="stylesheet" href="/assets/style.css"></head><body>'
+ '<main><h1>STAMP NEXUS</h1><p>الواجهة الجديدة / WebGL + Research Loop</p><p><small>Build: NEXUS-20261110-2</small></p>'+message+
  '<form method="post" action="/login"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
  '<p><label for="password">كلمة المرور</label><input id="password" type="password" name="password" autocomplete="current-password" required></p>'
  '<button type="submit">دخول / Sign in</button></form></main></body></html>').encode("utf-8")
@@ -359,7 +359,7 @@ class Handler(BaseHTTPRequestHandler):
    try:return self.send(200,(ROOT/"dashboard"/"private.css").read_bytes(),"text/css; charset=utf-8")
    except OSError:return self.send(503,b"Asset unavailable")
   if not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
-   if path in ("/","/index.html","/login"):return self.send(200,login_html(),"text/html; charset=utf-8")
+   if path in ("/","/index.html","/nexus","/login"):return self.send(200,login_html(),"text/html; charset=utf-8")
    if path.startswith("/api/"):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
@@ -474,7 +474,7 @@ class Handler(BaseHTTPRequestHandler):
       "utc":dt.datetime.now(dt.timezone.utc).isoformat()}).encode(),"application/json; charset=utf-8")
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
-  paths={"/":"nexus.html","/index.html":"nexus.html","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/style.css":"private.css"}
+  paths={"/":"nexus.html","/index.html":"nexus.html","/nexus":"nexus.html","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:
@@ -519,7 +519,7 @@ class Handler(BaseHTTPRequestHandler):
    good=authorized("Basic "+base64.b64encode((username+":"+password).encode()).decode())
   except (ValueError,UnicodeError,TypeError):good=False
   if not good:return self.send(401,login_html(True),"text/html; charset=utf-8")
-  return self.send(303,b"",extra={"Location":"/","Set-Cookie":"stamp_session="+make_session()+"; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax"})
+  return self.send(303,b"",extra={"Location":"/nexus?build=20261110-2","Set-Cookie":"stamp_session="+make_session()+"; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax"})
 def main():
  if not os.getenv("DASHBOARD_USER") or not os.getenv("DASHBOARD_PASSWORD"):raise SystemExit("Refusing to start without dashboard authentication")
  port=int(os.getenv("PORT","10000"))
