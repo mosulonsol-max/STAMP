@@ -119,7 +119,12 @@ def cycle(pairs=None):
         cursor=int(data.get("cursor",0))%max(len(requested),1)
         batch=min(max(1,int(os.getenv("STAMP_BATCH_SIZE","48"))),len(requested))
         retry=[p for p in (data.get("retry_pairs") or []) if p in requested][:max(1,batch//4)]
-        pairs=list(retry)
+        # Revisit actively monitored liquid pairs each cycle, without bypassing market discovery.
+        priority=[p.strip().upper() for p in os.getenv("STAMP_PRIORITY_PAIRS","BTCUSDT,ETHUSDT,SOLUSDT,STAMPUSDT").split(",")]
+        priority=[p for p in dict.fromkeys(priority) if p in requested]
+        pairs=priority[:batch]
+        for p in retry:
+            if p not in pairs and len(pairs)<batch:pairs.append(p)
         scanned=0
         while requested and len(pairs)<batch and scanned<len(requested):
             candidate=requested[(cursor+scanned)%len(requested)]
