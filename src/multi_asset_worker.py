@@ -14,6 +14,20 @@ LAST={"success":None,"attempt":None,"error":None,"cycles":0,"failures":0,"runnin
 class Health(BaseHTTPRequestHandler):
  def do_GET(self):
   path=urlsplit(self.path).path
+  if path=="/research/measurements":
+   pair=parse_qs(urlsplit(self.path).query).get("symbol",["BTCUSDT"])[0].upper()
+   if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
+   try:
+    archive=load()
+    records=[r for r in archive.get("records",[]) if r.get("pair")==pair]
+    decisions=(archive.get("autonomous_review") or {}).get("decisions") or {}
+    rows=[]
+    for rec in records[-200:]:
+     outcome=rec.get("outcome") or {}
+     decision=decisions.get(rec.get("id")) or {"status":"unreviewed","reason":"no_saved_decision"}
+     rows.append({"id":rec.get("id"),"frame":rec.get("frame"),"reference_at_utc":rec.get("reference_at_utc"),"due_at_utc":rec.get("due_at_utc"),"predicted_price":rec.get("predicted_price"),"reference_price":rec.get("reference_price"),"actual_price":outcome.get("actual_price"),"measured_at_utc":outcome.get("measured_at_utc"),"squared_log_error":outcome.get("squared_log_error"),"baseline_squared_log_error":outcome.get("baseline_squared_log_error"),"decision":decision})
+    return self.respond(200,{"symbol":pair,"total_records":len(records),"recent_measurements":rows,"summary":{k:v for k,v in (archive.get("measurement_summary") or {}).items() if k.startswith(pair+"|")},"archive_updated_at_utc":archive.get("loop_updated_at_utc"),"review_updated_at_utc":(archive.get("autonomous_review") or {}).get("checked_at_utc"),"storage":"postgres" if os.getenv("DATABASE_URL") else "ephemeral_filesystem"})
+   except Exception as exc:return self.respond(503,{"error":"measurements_unavailable","reason":type(exc).__name__})
   if path=="/research/audit":
    pair=parse_qs(urlsplit(self.path).query).get("symbol",["BTCUSDT"])[0].upper()
    if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
