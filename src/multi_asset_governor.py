@@ -114,7 +114,7 @@ def reconcile(data,now=None):
                 prev=indexed.get(int(due.timestamp()*1000)-HORIZONS[frame])
                 if prev is None or int(prev["t"])+HORIZONS[frame]>int(now.timestamp()*1000):continue
                 actual=float(prev["c"])
-                rec["outcome"]={"actual_price":actual,"measured_at_utc":due.isoformat(),
+                rec["outcome"]={"actual_price":actual,"measured_at_utc":now.isoformat(),"target_at_utc":due.isoformat(),
                     "squared_log_error":math.log(actual/rec["predicted_price"])**2,
                     "baseline_squared_log_error":math.log(actual/rec["reference_price"])**2}
     # Preserve all pending evaluations; pruning them would silently lose evidence.
