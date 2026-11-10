@@ -22,9 +22,27 @@ def retrain_candidates(data):
     selections=data.get("model_selections") or {}
     records=data.get("records") or []
     diagnostics={"evaluated_pairs":0,"insufficient_samples":0,"no_holdout_improvement":0,"selected_this_cycle":0,"eligible_samples":0,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
+    diagnostics["exclusions"]={"unsettled":0,"invalid_audit":0,"missing_features":0,"short_returns":0,"eligible":0}
+    valid_settled=[]
+    for rec in records:
+        if not rec.get("outcome"):
+            diagnostics["exclusions"]["unsettled"]+=1
+            continue
+        if not audit_records([rec])["passed"]:
+            diagnostics["exclusions"]["invalid_audit"]+=1
+            continue
+        returns=(rec.get("features") or {}).get("recent_returns")
+        if not isinstance(returns,list):
+            diagnostics["exclusions"]["missing_features"]+=1
+            continue
+        if len(returns)<20:
+            diagnostics["exclusions"]["short_returns"]+=1
+            continue
+        valid_settled.append(rec)
+        diagnostics["exclusions"]["eligible"]+=1
     keys=sorted({(r["pair"],r["frame"]) for r in records if r.get("pair") and r.get("frame")})
     for pair,frame in keys:
-        eligible=[r for r in records if r.get("pair")==pair and r.get("frame")==frame and r.get("outcome") and audit_records([r])["passed"] and len((r.get("features") or {}).get("recent_returns") or [])>=20]
+        eligible=[r for r in valid_settled if r.get("pair")==pair and r.get("frame")==frame]
         eligible=eligible[-160:]
         diagnostics["eligible_samples"]+=len(eligible)
         diagnostics["evaluated_pairs"]+=1
