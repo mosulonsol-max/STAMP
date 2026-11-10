@@ -364,6 +364,24 @@ class Handler(BaseHTTPRequestHandler):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
    return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
+  if path=="/api/assets/learning-loop":
+   try:
+    q=parse_qs(urlsplit(self.path).query)
+    pair=q.get("symbol",[""])[0].upper()
+    if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():raise ValueError("invalid_symbol")
+    archive,error=load("multi_asset_forecasts.json",os.getenv("GITHUB_READ_TOKEN","").strip())
+    if error:raise OSError("archive_"+error)
+    records=[x for x in archive.get("records",[]) if x.get("pair")==pair]
+    result={"symbol":pair,"source":"persisted prospective forecast archive","loop_updated_at_utc":archive.get("loop_updated_at_utc"),
+      "records_total":len(records),"settled_total":sum(bool(x.get("outcome")) for x in records),
+      "recent_outcomes":[{"id":x.get("id"),"frame":x.get("frame"),"reference_price":x.get("reference_price"),"predicted_price":x.get("predicted_price"),"outcome":x.get("outcome"),"due_at_utc":x.get("due_at_utc")} for x in records if x.get("outcome")][-12:],
+      "learning":{k:v for k,v in archive.get("learning",{}).items() if k.startswith(pair+"|")},
+      "feedback":{k:v for k,v in archive.get("feedback",{}).items() if k.startswith(pair+"|")},
+      "validation":{k:v for k,v in archive.get("validation",{}).items() if k.startswith(pair+"|")},
+      "archive_checked_at_utc":archive.get("checked_at_utc"),"model_retraining_active":False}
+    return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except ValueError as exc:return self.send(400,json.dumps({"error":str(exc)}).encode(),"application/json; charset=utf-8")
+   except Exception as exc:return self.send(503,json.dumps({"error":"learning_loop_unavailable","reason":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/assets/microstructure":
    try:
     try:from src import venue_microstructure
