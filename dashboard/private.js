@@ -165,16 +165,18 @@ async function updateVenueNetwork(){
   const response=await fetch("/api/assets/venues?symbol="+encodeURIComponent(symbol),{credentials:"same-origin",cache:"no-store"});
   if(!response.ok)throw Error("HTTP "+response.status);
   payload=await response.json();
+  if(!payload||!payload.venues||typeof payload.available_venues!=="number")throw Error("invalid_venue_payload");
   if(requestId!==venuePollId||symbol!==selectedAsset)return;
- }catch(err){if(requestId===venuePollId){status.textContent="تعذر تحديث الشبكة: "+err.message;metrics.textContent="البيانات غير متاحة؛ لا تُعرض أسعار افتراضية."}return}
+ }catch(err){if(requestId===venuePollId){status.textContent="تعذر تحديث الشبكة: "+err.message;metrics.textContent="فشل اتصال الواجهة بواجهة بيانات المنصات؛ لا توجد بيانات مؤكدة. "+err.message}return}
 
 
  venueTopology=payload;
  drawNeuralScene();
- status.textContent=symbol+" · "+payload.available_venues+"/7 منصات · "+new Date(payload.retrieved_at_utc).toLocaleTimeString();
+ status.textContent=symbol+" · متصل "+payload.available_venues+" / "+Object.keys(payload.venues).length+" · غير متاح "+(Object.keys(payload.venues).length-payload.available_venues)+" · "+new Date(payload.retrieved_at_utc).toLocaleTimeString();
  metrics.replaceChildren();
- for(const [name,v] of Object.entries(payload.venues||{})){const item=document.createElement("span");item.textContent=name+": "+(v.status==="ok"?"Bid "+v.bid+" / Ask "+v.ask+" · "+v.deviation_from_median_pct+"%":"غير متاح ("+v.reason+")");metrics.appendChild(item)}
+ for(const [name,v] of Object.entries(payload.venues||{})){const item=document.createElement("span");item.textContent=name+": "+(v.status==="ok"?"Bid "+v.bid+" / Ask "+v.ask+" · "+(v.deviation_from_median_pct===null?"هوية غير مثبتة":v.deviation_from_median_pct+"%"):"غير متاح ("+v.reason+")");metrics.appendChild(item)}
  const spread=document.createElement("span");spread.textContent="تباعد الأسعار الوسطية: "+(payload.mid_dispersion_pct===null?"غير معتمد: هوية الأصل غير مؤكدة أو بيانات غير كافية":payload.mid_dispersion_pct.toFixed(3)+"%");metrics.appendChild(spread);
+ const identity=document.createElement("span");identity.textContent="هوية الأصل بين المنصات: "+(payload.identity_status==="verified_major_pair"?"زوج رئيسي":"غير مثبتة — لا تعتمد فروقات السعر");metrics.appendChild(identity);
 }
 
 function renderDepth(){
