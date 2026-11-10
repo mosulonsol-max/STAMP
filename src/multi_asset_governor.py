@@ -142,6 +142,8 @@ def reconcile(data,now=None):
         learning[key]={"status":"evaluated" if settled else "awaiting_outcomes","model_version":selected.get("version","causal_6_return_momentum_v1"),"prospective_samples":len(settled),"skill_vs_baseline":skill,"last_outcome_id":outcome_id,"retraining_performed":bool(selected)}
         feedback[key]={"status":"recorded" if settled else "awaiting_outcomes","last_outcome_id":outcome_id,"evidence_samples":len(settled),"validation_status":"eligible_research" if eligible else "research_only","updated_at_utc":now.isoformat()}
         validation[key]={"status":"eligible_research" if eligible else "research_only","evidence_source":"prospective_closed_candles_MEXC","min_samples":MIN_VERIFIED,"observed_samples":len(settled),"skill_threshold":0.05,"observed_skill":skill,"last_evaluated_outcome_id":outcome_id,"trading_approved":False,"model_retrained":bool(selected)}
+    # Forecast decisions are computed by the worker; learning eligibility must use valid outcomes only.
+    data["measurement_summary"]={key:{"settled":entry["prospective_samples"],"skill_vs_baseline":entry["skill_vs_baseline"],"last_outcome_id":entry["last_outcome_id"],"research_eligible":validation[key]["status"]=="eligible_research"} for key,entry in learning.items()}
     data["learning"]=learning
     data["feedback"]=feedback
     data["validation"]=validation
