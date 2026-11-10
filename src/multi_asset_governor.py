@@ -51,6 +51,9 @@ def reconcile(data,now=None):
     settled_all=[r for r in records if r.get("outcome")]
     data["records"]=settled_all[-5000:]+pending
     approvals={}
+    learning={}
+    feedback={}
+    validation={}
     for pair,frame in sorted({(r["pair"],r["frame"]) for r in records}):
         settled=[r for r in records if r["pair"]==pair and r["frame"]==frame and r.get("outcome")]
         settled=settled[-120:]
@@ -63,6 +66,16 @@ def reconcile(data,now=None):
         approvals[pair+"|"+frame]={"status":"validated_research" if eligible else "research_only",
             "prospective_samples":len(settled),"prospective_skill_vs_no_change":skill,
             "reason":"Prospective accuracy threshold passed; not approval to trade" if eligible else "Insufficient verified outcomes or no demonstrated predictive advantage"}
+        key=pair+"|"+frame
+        latest=settled[-1] if settled else None
+        outcome_id=latest.get("id") if latest else None
+        learning[key]={"status":"evaluated" if settled else "awaiting_outcomes","model_version":"causal_6_return_momentum_v1","prospective_samples":len(settled),"skill_vs_baseline":skill,"last_outcome_id":outcome_id,"retraining_performed":False}
+        feedback[key]={"status":"recorded" if settled else "awaiting_outcomes","last_outcome_id":outcome_id,"evidence_samples":len(settled),"validation_status":"eligible_research" if eligible else "research_only","updated_at_utc":now.isoformat()}
+        validation[key]={"status":"eligible_research" if eligible else "research_only","evidence_source":"prospective_closed_candles_MEXC","min_samples":MIN_VERIFIED,"observed_samples":len(settled),"skill_threshold":0.05,"observed_skill":skill,"last_evaluated_outcome_id":outcome_id,"trading_approved":False,"model_retrained":False}
+    data["learning"]=learning
+    data["feedback"]=feedback
+    data["validation"]=validation
+    data["loop_updated_at_utc"]=now.isoformat()
     data["approvals"]=approvals
     data["checked_at_utc"]=now.isoformat()
     return data
