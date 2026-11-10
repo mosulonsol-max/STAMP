@@ -19,8 +19,8 @@ const f=(payload.pending_forecasts||[]).filter(x=>x.frame==="1h").sort((a,b)=>St
 if(f?.id&&f?.reference_at_utc){recordTrace("research:"+f.id,7,8,"Validated inputs → archived research · "+f.id,f.reference_at_utc);recordTrace("forecast:"+f.id,8,9,"Research → issued forecast · "+fmt(f.predicted_price)+" USDT",f.reference_at_utc)}
 for(const o of (payload.recent_outcomes||[]).filter(x=>x.frame==="1h")){if(!o.id||!o.outcome)continue;const stamp=o.outcome.measured_at_utc||o.outcome.checked_at_utc||o.outcome.settled_at_utc||o.due_at_utc;if(stamp)recordTrace("outcome:"+o.id,9,10,"Forecast → measured outcome · "+o.id,stamp)}
 const k=pair+"|1h",learning=payload.learning?.[k],feedback=payload.feedback?.[k],model=payload.model_selections?.[k];
-const learningStamp=learning?.updated_at_utc||learning?.last_updated_utc||feedback?.updated_at_utc;
-if(learningStamp&&payload.settled_total>0)recordTrace("learning:"+k,10,11,"Measured outcomes → learning evaluation",learningStamp);
+const learningStamp=feedback?.updated_at_utc;
+if(learningStamp&&learning?.last_outcome_id&&payload.settled_total>0)recordTrace("learning:"+k+":"+learning.last_outcome_id,10,11,"Measured outcomes → learning evaluation · "+learning.last_outcome_id,learningStamp);
 const modelStamp=model?.selected_at_utc||model?.updated_at_utc;
 if(modelStamp)recordTrace("model:"+k,11,12,"Learning → selected model · "+(model.version||model.model_version||"unknown"),modelStamp)
 }
