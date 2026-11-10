@@ -136,7 +136,7 @@ aiCanvas.addEventListener("pointermove",e=>{if(!aiDrag)return;const dx=e.clientX
 aiCanvas.addEventListener("pointerup",e=>{if(aiDrag&&!aiDrag.moved){const rect=aiCanvas.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;let best=null,dist=70;for(const h of aiHit){const d=Math.hypot(h.x-x,h.y-y);if(d<Math.min(dist,h.r)){dist=d;best=h.i}}if(best!==null){aiSelected=best;aiDetails();if(best<7)inspect(best)}}aiDrag=null});
 aiCanvas.addEventListener("wheel",e=>{e.preventDefault();aiZoom=Math.max(.55,Math.min(2.1,aiZoom*(e.deltaY>0?.91:1.09)))},{passive:false});
 $("aiReset").addEventListener("click",()=>{aiYaw=-.42;aiPitch=.52;aiZoom=1});
-$("aiApply").addEventListener("click",()=>apply($("aiPair").value));$("aiPair").addEventListener("keydown",e=>{if(e.key==="Enter")apply(e.target.value)});
+$("aiApply").addEventListener("click",()=>apply($("aiPair").value));$("aiQuick").addEventListener("change",e=>{if(e.target.value)apply(e.target.value)});$("aiPair").addEventListener("keydown",e=>{if(e.key==="Enter")apply(e.target.value)});
 setInterval(aiRefresh,1500);aiRefresh();requestAnimationFrame(aiRender);
 
 })();
