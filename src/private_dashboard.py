@@ -352,7 +352,7 @@ class Handler(BaseHTTPRequestHandler):
   if path=="/healthz":
    # A 200 response must mean the deployment can actually serve its UI and archived data.
    try:
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","market-stream.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","nexus.html","nexus.js","nexus.css","market-stream.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
    except Exception:healthy=False
    return self.send(200 if healthy else 503,b"ok" if healthy else b"deployment_assets_or_research_missing")
   if path=="/assets/style.css" and not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
@@ -450,7 +450,7 @@ class Handler(BaseHTTPRequestHandler):
       "utc":dt.datetime.now(dt.timezone.utc).isoformat()}).encode(),"application/json; charset=utf-8")
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
-  paths={"/":"private.html","/index.html":"private.html","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/style.css":"private.css"}
+  paths={"/":"nexus.html","/index.html":"nexus.html","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:
