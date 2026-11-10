@@ -179,6 +179,30 @@ async function updateVenueNetwork(){
  const identity=document.createElement("span");identity.textContent="هوية الأصل بين المنصات: "+(payload.identity_status==="verified_major_pair"?"زوج رئيسي":"غير مثبتة — لا تعتمد فروقات السعر");metrics.appendChild(identity);
 }
 
+
+async function auditVenueConnections(){
+ const target=el("connectorAudit"),engine=el("engineAudit"),button=el("auditVenues");
+ if(!target)return;
+ const pair=selectedAsset;target.textContent="جارٍ فحص الاتصال الفعلي بالمنصات…";
+ if(button)button.disabled=true;
+ try{
+  const res=await fetch("/api/assets/diagnostics?symbol="+encodeURIComponent(pair),{credentials:"same-origin",cache:"no-store"});
+  if(!res.ok)throw Error("HTTP "+res.status);
+  const d=await res.json();
+  if(pair!==selectedAsset)return;
+  target.replaceChildren();
+  for(const v of d.connectors||[]){
+   const item=document.createElement("div");item.className="nexus-connector "+(v.connected?"connected":"disconnected");
+   const name=document.createElement("strong");name.textContent=v.venue;
+   const state=document.createElement("span");state.textContent=v.connected?"متصل":"غير متاح";
+   const detail=document.createElement("small");detail.textContent=v.connected?"Bid "+v.bid+" / Ask "+v.ask+" · "+v.retrieved_at_utc:"فشل الاتصال: "+v.error;
+   item.append(name,state,detail);target.appendChild(item);
+  }
+  if(engine)engine.textContent="نجاح الموصلات: "+d.connected+"/"+d.total+" | مصادر الشموع المستخدمة في المحرك: "+d.analysis_source+" | حالة النموذج: "+d.model_status+" | دمج متعدد المنصات: "+(d.cross_venue_ingestion?"مفعّل":"غير منفذ")+" | هوية الأصل: "+d.identity_status;
+ }catch(err){target.textContent="تعذر إتمام اختبار المنصات: "+err.message;if(engine)engine.textContent="لا توجد نتيجة فحص موثقة."}
+ finally{if(button)button.disabled=false}
+}
+
 function renderDepth(){
  const scene=el("depthScene");if(!scene)return;
  const bars=chartCandles(frame).slice(-32).filter(x=>Number.isFinite(x.c)&&x.c>0);
@@ -350,7 +374,7 @@ async function loadAssetUniverse(){
 }
 async function selectAsset(symbol){
  if(!/^[A-Z0-9]{2,22}USDT$/.test(symbol))return;
- const requestId=++assetRequestId;selectedAsset=symbol;updateVenueNetwork();universeUi(el("assetSearch").value);favoritesUi();el("assetCorrelation").textContent="";
+ const requestId=++assetRequestId;selectedAsset=symbol;updateVenueNetwork();auditVenueConnections();universeUi(el("assetSearch").value);favoritesUi();el("assetCorrelation").textContent="";
  if(symbol==="STAMPUSDT"){set("coinName","STAMP / USDT");set("venueLine","MEXC · Solana");set("assetMessage","STAMP · التوقعات من المحرك الداخلي");assetCache=null;await refresh();return}
  try{
   set("assetMessage","تحميل بيانات "+symbol+"…");
@@ -421,7 +445,8 @@ el("favoriteSelect").addEventListener("change",e=>{if(e.target.value)selectAsset
 el("assetFavorite").addEventListener("click",()=>{if(favorites.includes(selectedAsset))favorites=favorites.filter(v=>v!==selectedAsset);else favorites.push(selectedAsset);
  try{localStorage.setItem("stamp_favorite_pairs",JSON.stringify(favorites))}catch(e){}favoritesUi()});
 el("compareAssets").addEventListener("click",compareAssets);
-favoritesUi();initializeSceneControls();loadAssetUniverse();updateVenueNetwork();setInterval(()=>{if(!document.hidden)updateVenueNetwork()},60000);translate();refresh();startStream();updateWorkerStatus();setInterval(updateWorkerStatus,30000);
+el("auditVenues")?.addEventListener("click",auditVenueConnections);
+favoritesUi();initializeSceneControls();loadAssetUniverse();updateVenueNetwork();auditVenueConnections();setInterval(()=>{if(!document.hidden)updateVenueNetwork()},60000);translate();refresh();startStream();updateWorkerStatus();setInterval(updateWorkerStatus,30000);
 if(window.StampMarket){pollQuote(true);setInterval(()=>{updateFreshness();pollQuote();renderAssurance()},1000)}
 setInterval(()=>{if(!document.hidden)refresh()},15000);
 })();
