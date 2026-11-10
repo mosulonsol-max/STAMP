@@ -115,6 +115,8 @@ def venue_comparison(pair):
       "OKX":("https://www.okx.com/api/v5/market/ticker?"+urlencode({"instId":base+"-USDT"}),lambda x:(x["data"][0]["bidPx"],x["data"][0]["askPx"])),
       "Bybit":("https://api.bybit.com/v5/market/tickers?"+urlencode({"category":"spot","symbol":pair}),lambda x:(x["result"]["list"][0]["bid1Price"],x["result"]["list"][0]["ask1Price"])),
       "KuCoin":("https://api.kucoin.com/api/v1/market/orderbook/level1?"+urlencode({"symbol":base+"-USDT"}),lambda x:(x["data"]["bestBid"],x["data"]["bestAsk"])),
+      "Gate":("https://api.gateio.ws/api/v4/spot/order_book?"+urlencode({"currency_pair":base+"_USDT","limit":1}),lambda x:(x["bids"][0][0],x["asks"][0][0])),
+      "Bitget":("https://api.bitget.com/api/v2/spot/market/tickers?"+urlencode({"symbol":pair}),lambda x:(x["data"][0]["bidPr"],x["data"][0]["askPr"])),
     }
     def query(item):
         name,(url,extract)=item
@@ -131,6 +133,8 @@ def venue_comparison(pair):
     valid={k:v for k,v in venues.items() if v["status"]=="ok"}
     mids=sorted(v["mid"] for v in valid.values())
     median=mids[len(mids)//2] if len(mids)%2 else (mids[len(mids)//2-1]+mids[len(mids)//2])/2 if mids else None
-    for v in valid.values():v["deviation_from_median_pct"]=round(100*(v["mid"]/median-1),5) if median else None
-    dispersion=100*(max(mids)/min(mids)-1) if len(mids)>1 else None
-    return {"symbol":pair,"venues":venues,"available_venues":len(valid),"mid_dispersion_pct":dispersion,"median_mid":median,"retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"warning":"Public spot quotes are not executable prices. Venue symbols may refer to different assets; verify contract/network identity before comparing, especially STAMP. No causal flow or cross-exchange transfer is inferred."}
+    for v in valid.values():v["deviation_from_median_pct"]=round(100*(v["mid"]/median-1),5) if median and pair in {"BTCUSDT","ETHUSDT","SOLUSDT"} else None
+    # Symbol equality does not establish token identity, especially on DEX-linked or new listings.
+    identity_verified=pair in {"BTCUSDT","ETHUSDT","SOLUSDT"}
+    dispersion=100*(max(mids)/min(mids)-1) if len(mids)>1 and identity_verified else None
+    return {"symbol":pair,"venues":venues,"available_venues":len(valid),"mid_dispersion_pct":dispersion,"median_mid":median if identity_verified else None,"identity_status":"verified_major_pair" if identity_verified else "unverified_cross_venue_asset_identity","retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"warning":"Public spot quotes are not executable prices. Venue symbols may refer to different assets; verify contract/network identity before comparing, especially STAMP. No causal flow or cross-exchange transfer is inferred."}
