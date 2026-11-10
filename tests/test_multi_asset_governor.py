@@ -13,6 +13,21 @@ class GovernanceTests(unittest.TestCase):
   self.assertEqual(d["eligible_samples"],0)
   self.assertEqual(d["max_eligible_per_group"],0)
   self.assertEqual(state["model_selections"],{})
+ def test_settled_features_are_grouped_without_premature_promotion(self):
+  now=dt.datetime.now(dt.timezone.utc).isoformat()
+  rows=[]
+  for i in range(39):
+   rows.append({"id":str(i),"pair":"BTCUSDT","frame":"1h","reference_at_utc":now,
+    "reference_price":100.0,"features":{"recent_returns":[0.001]*20},
+    "outcome":{"actual_price":101.0,"baseline_squared_log_error":0.0001}})
+  with patch.object(gov,"audit_records",return_value={"passed":True}):
+   result=gov.retrain_candidates({"records":rows})
+  d=result["model_selection_diagnostics"]
+  self.assertEqual(d["eligible_samples"],39)
+  self.assertEqual(d["max_eligible_per_group"],39)
+  self.assertEqual(d["eligible_groups_ge_40"],0)
+  self.assertEqual(d["selected_this_cycle"],0)
+  self.assertEqual(result["model_selections"],{})
  def test_empty_journal_has_no_approval(self):
   result=gov.reconcile({"records":[]})
   self.assertEqual(result["approvals"],{})
