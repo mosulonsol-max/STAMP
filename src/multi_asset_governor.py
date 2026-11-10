@@ -151,6 +151,32 @@ def reconcile(data,now=None):
     data["approvals"]=approvals
     data["checked_at_utc"]=now.isoformat()
     return data
+def autonomous_review(data):
+    """System-owned forecast acceptance decisions. No human approval required."""
+    records=data.get("records") or []
+    audit=audit_records(records)
+    rejected_ids={p["id"] for p in audit["problems_sample"] if p.get("id")}
+    # Audit all records individually; the public audit response samples only 30 problems.
+    reviews={}
+    for rec in records:
+        rid=rec.get("id")
+        if not rid:continue
+        individual=audit_records([rec])
+        outcome=rec.get("outcome")
+        if not individual["passed"] or rid in rejected_ids:
+            status="rejected";reason="integrity_or_chronology_failure"
+        elif not outcome:
+            status="pending";reason="awaiting_verified_target_candle"
+        else:
+            err=float(outcome["squared_log_error"])
+            baseline=float(outcome["baseline_squared_log_error"])
+            status="accepted" if err<baseline else "rejected"
+            reason="outperformed_no_change_baseline" if status=="accepted" else "did_not_outperform_no_change_baseline"
+        reviews[rid]={"status":status,"reason":reason}
+    counts={k:sum(v["status"]==k for v in reviews.values()) for k in ("accepted","rejected","pending")}
+    data["autonomous_review"]={"counts":counts,"decisions":reviews,"checked_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"policy":"per_forecast_integrity_then_error_vs_no_change; model approval separately requires prospective holdout"}
+    return data
+
 def cycle(pairs=None):
     data=load()
     if pairs is None:
@@ -182,6 +208,7 @@ def cycle(pairs=None):
         data["coverage"]={"discovered":len(requested),"processed_this_cycle":len(pairs),
                           "next_cursor":data["cursor"],"complete_this_cycle":batch==len(requested)}
     data=reconcile(data)
+    data=autonomous_review(data)
     data=retrain_candidates(data)
     issued={r["id"] for r in data["records"]}
     processed=[]
