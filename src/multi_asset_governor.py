@@ -155,6 +155,23 @@ def cycle(pairs=None):
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
             issued.add(rid)
+    # Cross-venue microstructure is independently sourced and timestamped.
+    # Only major verified-symbol pairs are eligible for cross-venue comparison.
+    if os.getenv("STAMP_MULTI_VENUE","1")=="1":
+        try:
+            from venue_microstructure import collect
+            from concurrent.futures import ThreadPoolExecutor
+            monitored=[p for p in ("BTCUSDT","ETHUSDT","SOLUSDT") if p in processed]
+            with ThreadPoolExecutor(max_workers=6) as pool:
+                tasks={(p,v):pool.submit(collect,v,p) for p in monitored for v in ("MEXC","Binance","OKX","Bybit","KuCoin","Gate")}
+                multi={}
+                for (p,v),task in tasks.items():
+                    try:
+                        item=task.result(timeout=18)
+                        multi.setdefault(p,{})[v]={"book":item["book"],"candles":item["candles"],"engine_effect":item["engine_effect"]}
+                    except Exception as exc:multi.setdefault(p,{})[v]={"status":"unavailable","reason":type(exc).__name__}
+            data["venue_evidence"]={"retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"pairs":multi,"used_in_forecast":False,"identity_scope":"major_pairs_only"}
+        except Exception as exc:data["venue_evidence_error"]=type(exc).__name__
     data["retry_pairs"]=sorted(failed)
     data["cycle_result"]={"processed":processed,"failed":failed,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     if os.getenv("DATABASE_URL"):
