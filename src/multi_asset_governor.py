@@ -40,6 +40,54 @@ def retrain_candidates(data):
     data["model_selections"]=selections
     return data
 
+def audit_records(records,now=None):
+    """Read-only audit: never silently repair or count unverified forecasts as successes."""
+    now=now or dt.datetime.now(dt.timezone.utc)
+    problems=[]
+    counts={"total":0,"pending":0,"settled":0,"invalid":0,"duplicates":0,"future_issued":0,"early_settlements":0,"metric_mismatches":0}
+    seen=set()
+    by_frame={}
+    for index,r in enumerate(records):
+        counts["total"]+=1
+        errors=[]
+        pair=r.get("pair");frame=r.get("frame");rid=r.get("id")
+        if not isinstance(pair,str) or not pair.endswith("USDT") or frame not in HORIZONS:errors.append("invalid_identity_or_frame")
+        if not isinstance(rid,str) or not rid:errors.append("missing_id")
+        elif rid in seen:counts["duplicates"]+=1;errors.append("duplicate_id")
+        seen.add(rid)
+        try:
+            reference=float(r["reference_price"]);predicted=float(r["predicted_price"])
+            if not all(math.isfinite(x) and x>0 for x in (reference,predicted)):raise ValueError()
+            issued=dt.datetime.fromisoformat(r["reference_at_utc"]);due=dt.datetime.fromisoformat(r["due_at_utc"])
+            if issued.tzinfo is None or due.tzinfo is None:raise ValueError()
+            if frame in HORIZONS and abs((due-issued).total_seconds()*1000-HORIZONS[frame])>1000:errors.append("horizon_mismatch")
+            if issued>now+dt.timedelta(minutes=2):counts["future_issued"]+=1;errors.append("future_reference")
+            outcome=r.get("outcome")
+            if outcome:
+                counts["settled"]+=1
+                actual=float(outcome["actual_price"])
+                if not math.isfinite(actual) or actual<=0:raise ValueError()
+                measured=dt.datetime.fromisoformat(outcome["measured_at_utc"])
+                if measured.tzinfo is None or measured<due-dt.timedelta(seconds=1):counts["early_settlements"]+=1;errors.append("invalid_measurement_time")
+                expected=math.log(actual/predicted)**2
+                baseline=math.log(actual/reference)**2
+                if not math.isclose(expected,float(outcome["squared_log_error"]),rel_tol=1e-7,abs_tol=1e-12) or not math.isclose(baseline,float(outcome["baseline_squared_log_error"]),rel_tol=1e-7,abs_tol=1e-12):
+                    counts["metric_mismatches"]+=1;errors.append("metric_mismatch")
+                if not errors:
+                    x=by_frame.setdefault(frame,{"settled":0,"squared_log_error_sum":0.0,"baseline_squared_log_error_sum":0.0})
+                    x["settled"]+=1;x["squared_log_error_sum"]+=expected;x["baseline_squared_log_error_sum"]+=baseline
+            else:counts["pending"]+=1
+        except (KeyError,ValueError,TypeError,OverflowError,ZeroDivisionError):
+            errors.append("invalid_price_or_timestamp")
+        if errors:
+            counts["invalid"]+=1
+            if len(problems)<30:problems.append({"index":index,"id":rid,"errors":errors})
+    for frame,x in by_frame.items():
+        n=x["settled"];x["mse"]=x["squared_log_error_sum"]/n
+        x["baseline_mse"]=x["baseline_squared_log_error_sum"]/n
+        x["skill_vs_no_change"]=1-x["mse"]/x["baseline_mse"] if x["baseline_mse"]>0 else None
+    return {"passed":counts["invalid"]==0,"counts":counts,"by_frame":by_frame,"problems_sample":problems,"audit_at_utc":now.isoformat(),"note":"Integrity and historical error checks only; not proof of prospective trading performance"}
+
 def reconcile(data,now=None):
     now=now or dt.datetime.now(dt.timezone.utc)
     records=data.get("records") or []
