@@ -6,7 +6,8 @@ sys.path.insert(0,str(ROOT/"src"))
 import multi_asset_governor as gov
 class GovernanceTests(unittest.TestCase):
  def test_missing_historical_features_are_not_fabricated(self):
-  state=gov.retrain_candidates({"records":[{"pair":"BTCUSDT","frame":"1h","outcome":{"actual_price":100}}]})
+  with patch.object(gov,"audit_records",return_value={"passed":True}):
+   state=gov.retrain_candidates({"records":[{"pair":"BTCUSDT","frame":"1h","outcome":{"actual_price":100}}]})
   d=state["model_selection_diagnostics"]
   self.assertEqual(d["exclusions"]["missing_features"],1)
   self.assertEqual(d["eligible_samples"],0)
