@@ -14,6 +14,20 @@ LAST={"success":None,"attempt":None,"error":None,"cycles":0,"failures":0,"runnin
 class Health(BaseHTTPRequestHandler):
  def do_GET(self):
   path=urlsplit(self.path).path
+  if path=="/research/diagnostics":
+   pair=parse_qs(urlsplit(self.path).query).get("symbol",["BTCUSDT"])[0].upper()
+   if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
+   try:
+    archive=load()
+    rows=[r for r in archive.get("records",[]) if r.get("pair")==pair]
+    settled=[r for r in rows if r.get("outcome")]
+    selected={k:v for k,v in (archive.get("model_selections") or {}).items() if k.startswith(pair+"|")}
+    cycle_result=archive.get("cycle_result") or {}
+    failed=(cycle_result.get("failed") or {}).get(pair)
+    last_success=LAST.get("success")
+    stages={"worker":{"ok":bool(last_success),"last_success_utc":dt.datetime.fromtimestamp(last_success,dt.timezone.utc).isoformat() if last_success else None,"error":LAST.get("error")},"collection":{"ok":pair in (cycle_result.get("processed") or []),"last_cycle_utc":cycle_result.get("at_utc"),"last_failure":failed},"research":{"ok":bool(rows),"records":len(rows)},"forecast":{"ok":bool(rows),"pending":len(rows)-len(settled)},"outcome":{"ok":bool(settled),"settled":len(settled)},"learning":{"ok":bool(settled) and bool([v for k,v in (archive.get("learning") or {}).items() if k.startswith(pair+"|") and v.get("last_outcome_id")]),"evaluations":len(settled)},"model":{"ok":bool(selected),"selected":selected,"note":"research_only; no live-trading approval"}}
+    return self.respond(200,{"symbol":pair,"checked_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"archive_updated_at_utc":archive.get("loop_updated_at_utc"),"storage":"postgres" if os.getenv("DATABASE_URL") else "ephemeral_filesystem","stages":stages})
+   except Exception as exc:return self.respond(503,{"error":"diagnostics_unavailable","reason":type(exc).__name__})
   if path=="/research/loop":
    pair=parse_qs(urlsplit(self.path).query).get("symbol",[""])[0].upper()
    if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
