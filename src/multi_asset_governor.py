@@ -45,6 +45,17 @@ def retrain_candidates(data):
             selections[key]={"lookback":best,"version":"momentum_"+str(best),"holdout_samples":len(test),"holdout_mse":candidate_mse,"incumbent_mse":incumbent_mse,"approved_for":"research_only","selected_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
         else:
             diagnostics["no_holdout_improvement"]+=1
+    # Self-governed next action; do not bypass holdout evidence.
+    if diagnostics["selected_this_cycle"]:
+        action="monitor_promoted_models"
+    elif diagnostics["insufficient_samples"]:
+        action="collect_more_prospective_outcomes"
+    else:
+        action="retain_incumbents_and_retest_next_cycle"
+    diagnostics["next_action"]=action
+    diagnostics["automatic_retry"]=True
+    diagnostics["human_approval_required"]=False
+    diagnostics["promotion_requires_holdout"]=True
     data["model_selection_diagnostics"]=diagnostics
     data["model_selections"]=selections
     return data
