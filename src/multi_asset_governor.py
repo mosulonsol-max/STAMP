@@ -21,11 +21,16 @@ def retrain_candidates(data):
     """Prospective research-only model selection with chronological holdout."""
     selections=data.get("model_selections") or {}
     records=data.get("records") or []
+    diagnostics={"evaluated_pairs":0,"insufficient_samples":0,"no_holdout_improvement":0,"selected_this_cycle":0,"eligible_samples":0,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     keys=sorted({(r["pair"],r["frame"]) for r in records if r.get("pair") and r.get("frame")})
     for pair,frame in keys:
         eligible=[r for r in records if r.get("pair")==pair and r.get("frame")==frame and r.get("outcome") and audit_records([r])["passed"] and len((r.get("features") or {}).get("recent_returns") or [])>=20]
         eligible=eligible[-160:]
-        if len(eligible)<40:continue
+        diagnostics["eligible_samples"]+=len(eligible)
+        diagnostics["evaluated_pairs"]+=1
+        if len(eligible)<40:
+            diagnostics["insufficient_samples"]+=1
+            continue
         split=int(len(eligible)*0.7)
         train,test=eligible[:split],eligible[split:]
         def error(rows,n):
@@ -36,7 +41,11 @@ def retrain_candidates(data):
         baseline=sum(r["outcome"]["baseline_squared_log_error"] for r in test)/len(test)
         candidate_mse=error(test,best);incumbent_mse=error(test,incumbent)
         if best!=incumbent and candidate_mse<incumbent_mse*0.95 and candidate_mse<baseline*0.95:
+            diagnostics["selected_this_cycle"]+=1
             selections[key]={"lookback":best,"version":"momentum_"+str(best),"holdout_samples":len(test),"holdout_mse":candidate_mse,"incumbent_mse":incumbent_mse,"approved_for":"research_only","selected_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
+        else:
+            diagnostics["no_holdout_improvement"]+=1
+    data["model_selection_diagnostics"]=diagnostics
     data["model_selections"]=selections
     return data
 
