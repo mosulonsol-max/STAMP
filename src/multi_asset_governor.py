@@ -36,12 +36,10 @@ def reconcile(data,now=None):
             for rec in pending:
                 due=dt.datetime.fromisoformat(rec["due_at_utc"])
                 if due>now:continue
-                candle=indexed.get(int(due.timestamp()*1000))
-                if candle is None or int(candle["t"])+HORIZONS[frame]>int(now.timestamp()*1000):continue
                 # The target is at candle opening, so an already-closed preceding
                 # candle is needed. Its close corresponds to the target boundary.
                 prev=indexed.get(int(due.timestamp()*1000)-HORIZONS[frame])
-                if prev is None:continue
+                if prev is None or int(prev["t"])+HORIZONS[frame]>int(now.timestamp()*1000):continue
                 actual=float(prev["c"])
                 rec["outcome"]={"actual_price":actual,"measured_at_utc":due.isoformat(),
                     "squared_log_error":math.log(actual/rec["predicted_price"])**2,
@@ -109,7 +107,9 @@ def cycle(pairs=None):
     processed=[]
     failed={}
     for pair in pairs:
-        try:values=forecasts({tf:candles(pair,{"1h":"60m"}.get(tf,tf)) for tf in HORIZONS})
+        try:
+            frame_rows={tf:candles(pair,{"1h":"60m"}.get(tf,tf)) for tf in HORIZONS}
+            values=forecasts(frame_rows)
         except (OSError,ValueError,TimeoutError) as exc:
             failed[pair]=type(exc).__name__
             continue
@@ -119,7 +119,8 @@ def cycle(pairs=None):
             rid=pair+"|"+frame+"|"+result["reference_at_utc"]
             if rid in issued:continue
             gate=(data.get("validation") or {}).get(pair+"|"+frame) or {}
-            data["records"].append(dict(validation_at_issue=gate.get("status","research_only"),model_version="causal_6_return_momentum_v1",id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
+            recent=[math.log(b["c"]/a["c"]) for a,b in zip(frame_rows[frame],frame_rows[frame][1:]) if b["t"]-a["t"]==HORIZONS[frame]][-20:]
+            data["records"].append(dict(features={"recent_returns":recent},validation_at_issue=gate.get("status","research_only"),model_version="causal_6_return_momentum_v1",id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
             issued.add(rid)
