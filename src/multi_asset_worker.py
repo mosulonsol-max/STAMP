@@ -1,7 +1,8 @@
 """Resilient independent worker loop. Run under a platform process supervisor."""
 import datetime as dt,json,logging,os,pathlib,signal,time,threading
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
-from multi_asset_governor import cycle
+from urllib.parse import urlsplit,parse_qs
+from multi_asset_governor import cycle,load
 STOP=False
 def stop(*_):
  global STOP
@@ -12,7 +13,16 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 LAST={"success":None,"attempt":None,"error":None,"cycles":0,"failures":0,"running":False,"discovered":0,"processed":0}
 class Health(BaseHTTPRequestHandler):
  def do_GET(self):
-  if self.path not in ("/healthz","/status"):return self.respond(404,{"error":"not_found"})
+  path=urlsplit(self.path).path
+  if path=="/research/loop":
+   pair=parse_qs(urlsplit(self.path).query).get("symbol",[""])[0].upper()
+   if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
+   try:
+    archive=load()
+    records=[r for r in archive.get("records",[]) if r.get("pair")==pair]
+    return self.respond(200,{"symbol":pair,"source":"worker_persistent_research_state","storage":"postgres" if os.getenv("DATABASE_URL") else "ephemeral_filesystem","loop_updated_at_utc":archive.get("loop_updated_at_utc"),"archive_checked_at_utc":archive.get("checked_at_utc"),"records_total":len(records),"settled_total":sum(bool(r.get("outcome")) for r in records),"recent_outcomes":[{"id":r.get("id"),"frame":r.get("frame"),"reference_price":r.get("reference_price"),"predicted_price":r.get("predicted_price"),"outcome":r.get("outcome"),"due_at_utc":r.get("due_at_utc")} for r in records if r.get("outcome")][-12:],"learning":{k:v for k,v in archive.get("learning",{}).items() if k.startswith(pair+"|")},"feedback":{k:v for k,v in archive.get("feedback",{}).items() if k.startswith(pair+"|")},"validation":{k:v for k,v in archive.get("validation",{}).items() if k.startswith(pair+"|")},"model_retraining_active":False})
+   except Exception as exc:return self.respond(503,{"error":"research_state_unavailable","reason":type(exc).__name__})
+  if path not in ("/healthz","/status"):return self.respond(404,{"error":"not_found"})
   timestamp=LAST["success"]
   fresh=timestamp is not None and time.time()-timestamp<max(3600,int(os.environ.get("STAMP_WORKER_INTERVAL_SECONDS","1800"))*3)
   payload={"healthy":fresh,"running":LAST["running"],"cycles":LAST["cycles"],"consecutive_failures":LAST["failures"],"last_attempt_utc":dt.datetime.fromtimestamp(LAST["attempt"],dt.timezone.utc).isoformat() if LAST["attempt"] else None,"last_cycle_utc":dt.datetime.fromtimestamp(timestamp,dt.timezone.utc).isoformat() if timestamp else None,"error":LAST["error"],"discovered":LAST["discovered"],"processed":LAST["processed"],"storage":"postgres" if os.getenv("DATABASE_URL") else "ephemeral_filesystem"}
