@@ -87,7 +87,16 @@ function activeCandle(){
  }
  return c&&age(c.observed_utc)!==null&&age(c.observed_utc)<=15&&c.t<=Date.now()&&c.end>Date.now()?c:null;
 }
+function renderDepth(){
+ const scene=el("depthScene");if(!scene)return;
+ const bars=chartCandles(frame).slice(-32).filter(x=>Number.isFinite(x.c)&&x.c>0);
+ if(!bars.length){scene.replaceChildren();set("depthLabel","لا توجد شموع صالحة");return}
+ const lo=Math.min(...bars.map(x=>x.c)),hi=Math.max(...bars.map(x=>x.c)),range=hi-lo||Math.max(hi*.005,1e-12);
+ const frag=document.createDocumentFragment();for(const bar of bars){const node=document.createElement("div");node.className="depth-column";const rising=bar.c>=bar.o;node.style.setProperty("--height",(14+160*(bar.c-lo)/range).toFixed(1)+"px");node.style.setProperty("--face",rising?"#32a78b":"#cb6479");node.style.setProperty("--side",rising?"#1c6c62":"#81384c");node.style.setProperty("--top",rising?"#6de4c0":"#f29aab");node.title=new Date(bar.t).toISOString()+" | Close: "+bar.c;frag.appendChild(node)}scene.replaceChildren(frag);
+ set("depthLabel",selectedAsset+" · "+frame+" · "+bars.length+" شمعة");
+}
 function renderChart(){
+ renderDepth();
  if(!initChart())return;
  currentBars=chartCandles(frame);const empty=el("chartEmpty");empty.hidden=currentBars.length>=2;
  if(currentBars.length<2){set("chartEmpty",t("insufficientCandles"));candleSeries.setData([]);volumeSeries.setData([]);predictedSeries.setData([]);measuredSeries.setData([]);projectionSeries.setData([]);return}
@@ -313,6 +322,7 @@ el("logoutButton").addEventListener("click",async()=>{try{await fetch("/logout",
 el("langSelect").addEventListener("change",event=>{lang=event.target.value==="en"?"en":"ar";try{localStorage.setItem("stamp_language",lang)}catch(e){}translate();if(data)render(data)});
 el("zoneSelect").addEventListener("change",event=>{zone=["UTC","Asia/Baghdad","Asia/Makassar"].includes(event.target.value)?event.target.value:"UTC";try{localStorage.setItem("stamp_timezone",zone)}catch(e){}translate();if(data)render(data)});
 el("diagnose").addEventListener("click",async()=>{try{const response=await fetch("/api/status",{credentials:"same-origin",cache:"no-store"}),s=await response.json();set("diagnosticResult","API: "+s.api+" · "+stamp(s.observation_utc)+" · "+(s.research_fresh?"FRESH":"ARCHIVED"))}catch(error){set("diagnosticResult",error.message)}});
+el("depthToggle").addEventListener("click",()=>{const scene=el("depthScene"),hidden=scene.hidden;scene.hidden=!hidden;el("depthToggle").setAttribute("aria-pressed",String(hidden));el("depthToggle").textContent=hidden?"إخفاء المنظور":"إظهار المنظور"});
 el("assetSearch").addEventListener("input",e=>universeUi(e.target.value));
 el("assetSelect").addEventListener("change",e=>selectAsset(e.target.value));
 el("favoriteSelect").addEventListener("change",e=>{if(e.target.value)selectAsset(e.target.value)});
