@@ -23,7 +23,7 @@ def retrain_candidates(data):
     records=data.get("records") or []
     keys=sorted({(r["pair"],r["frame"]) for r in records if r.get("pair") and r.get("frame")})
     for pair,frame in keys:
-        eligible=[r for r in records if r.get("pair")==pair and r.get("frame")==frame and r.get("outcome") and len((r.get("features") or {}).get("recent_returns") or [])>=20]
+        eligible=[r for r in records if r.get("pair")==pair and r.get("frame")==frame and r.get("outcome") and audit_records([r])["passed"] and len((r.get("features") or {}).get("recent_returns") or [])>=20]
         eligible=eligible[-160:]
         if len(eligible)<40:continue
         split=int(len(eligible)*0.7)
@@ -126,7 +126,7 @@ def reconcile(data,now=None):
     feedback={}
     validation={}
     for pair,frame in sorted({(r["pair"],r["frame"]) for r in records}):
-        settled=[r for r in records if r["pair"]==pair and r["frame"]==frame and r.get("outcome")]
+        settled=[r for r in records if r["pair"]==pair and r["frame"]==frame and r.get("outcome") and audit_records([r])["passed"]]
         settled=settled[-120:]
         skill=None
         if settled:
