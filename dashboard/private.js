@@ -101,12 +101,44 @@ async function updateVenueNetwork(){
   payload=await response.json();
   if(requestId!==venuePollId||symbol!==selectedAsset)return;
  }catch(err){if(requestId===venuePollId){status.textContent="تعذر تحديث الشبكة: "+err.message;metrics.textContent="البيانات غير متاحة؛ لا تُعرض أسعار افتراضية."}return}
- const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox","0 0 900 300");
- const points=[["MEXC",90,45],["Binance",90,98],["OKX",90,151],["Bybit",90,204],["KuCoin",90,257],["تحقق",390,150],["المحرك",625,150],["الواجهة",825,150]];
- const add=(tag,attrs,text)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));if(text!==undefined)el.textContent=text;svg.appendChild(el);return el};
- for(let i=0;i<5;i++){const [name,x,y]=points[i],ok=payload.venues?.[name]?.status==="ok";add("path",{d:"M "+(x+49)+" "+y+" Q 255 "+y+" 341 150",class:"flow-edge"+(ok?"":" off")})}
- add("path",{d:"M 439 150 L 576 150",class:"flow-edge"});add("path",{d:"M 674 150 L 776 150",class:"flow-edge"});
- for(let i=0;i<points.length;i++){const [name,x,y]=points[i],v=payload.venues?.[name],ok=i>=5||v?.status==="ok";add("circle",{cx:x,cy:y,r:i>=5?45:38,class:"flow-node"+(ok?"":" off")});add("text",{x,y:y-2},name);if(i<5)add("text",{x,y:y+15,"font-size":"10"},ok?"متصل":"غير متاح")}
+
+ const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");
+ svg.setAttribute("viewBox","0 0 1000 500");svg.setAttribute("preserveAspectRatio","xMidYMid meet");
+ const defs=document.createElementNS(ns,"defs");
+ defs.innerHTML='<radialGradient id="vn-core"><stop stop-color="#b7fbff"/><stop offset=".25" stop-color="#29dbf9"/><stop offset="1" stop-color="#06638d" stop-opacity=".12"/></radialGradient><radialGradient id="vn-bg"><stop stop-color="#153b5c" stop-opacity=".6"/><stop offset="1" stop-color="#020a17" stop-opacity="0"/></radialGradient><linearGradient id="vn-beam"><stop stop-color="#12a4dc" stop-opacity=".05"/><stop offset=".5" stop-color="#4eeeff" stop-opacity=".85"/><stop offset="1" stop-color="#b99cff" stop-opacity=".15"/></linearGradient><filter id="vn-glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+ svg.appendChild(defs);
+ const add=(tag,attrs,text,parent=svg)=>{const node=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))node.setAttribute(k,String(v));if(text!==undefined)node.textContent=text;parent.appendChild(node);return node};
+ add("rect",{x:0,y:0,width:1000,height:500,fill:"#040c1b"});
+ add("ellipse",{cx:500,cy:240,rx:465,ry:225,fill:"url(#vn-bg)"});
+ const grid=add("g",{opacity:".3",transform:"translate(500 400) scale(1 .36) rotate(-12)"});
+ for(let i=-9;i<=9;i++){add("line",{x1:i*65,y1:-540,x2:i*65,y2:540,stroke:"#22547d","stroke-width":".7"},undefined,grid);add("line",{x1:-620,y1:i*65,x2:620,y2:i*65,stroke:"#22547d","stroke-width":".7"},undefined,grid)}
+ const locations=[["MEXC",165,75,-80],["Binance",100,168,70],["OKX",145,270,-20],["Bybit",155,375,90],["KuCoin",260,445,-65],["VALIDATION",480,245,25],["AI ENGINE",715,245,-10],["DASHBOARD",905,245,60]];
+ const center=[480,245],engine=[715,245],screen=[905,245];
+ const links=[];
+ for(let i=0;i<5;i++){const p=locations[i],q=center;links.push({a:p,b:q,ok:payload.venues?.[p[0]]?.status==="ok",label:p[0]})}
+ links.push({a:center,b:engine,ok:payload.available_venues>0,label:"verified"});
+ links.push({a:engine,b:screen,ok:payload.available_venues>0,label:"output"});
+ links.forEach((link,i)=>{
+  const [ax,ay]=[link.a[1],link.a[2]],[bx,by]=[link.b[0]===undefined?link.b[1]:link.b[1],link.b[2]];
+  const bend=i<5? (i-2)*20:-22;
+  const d="M "+ax+" "+ay+" Q "+((ax+bx)/2)+" "+((ay+by)/2+bend)+" "+bx+" "+by;
+  const id="vn-path-"+i;
+  add("path",{d,fill:"none",stroke:link.ok?"#2ae7ff":"#4b6177","stroke-width":link.ok?9:2,opacity:link.ok?".13":".28",filter:link.ok?"url(#vn-glow)":"none"});
+  add("path",{id,d,fill:"none",stroke:link.ok?"url(#vn-beam)":"#536579","stroke-width":link.ok?2.4:1,"stroke-dasharray":link.ok?"3 8":"2 9",opacity:link.ok?1:".45"});
+  if(link.ok){for(let k=0;k<3;k++){const dot=add("circle",{r:k===0?4:2.2,fill:k===0?"#f4ffff":"#4ceaff",filter:"url(#vn-glow)"});const anim=add("animateMotion",{dur:(2.2+k*.5+i*.13)+"s",repeatCount:"indefinite",begin:(-k*.9-i*.17)+"s"},undefined,dot);add("mpath",{"href":"#"+id},undefined,anim)}}
+ });
+ locations.forEach((p,i)=>{
+  const [name,x,y,z]=p,ok=i>=5?payload.available_venues>0:payload.venues?.[name]?.status==="ok",radius=i===5?44:i===6?53:i===7?40:26;
+  add("ellipse",{cx:x+z*.11,cy:y+radius*.65,rx:radius*1.7,ry:radius*.37,fill:"none",stroke:ok?"#32c7f1":"#4c6679",opacity:".27",transform:"rotate(-20 "+x+" "+y+")"});
+  add("circle",{cx:x,cy:y,r:radius*1.6,fill:"url(#vn-core)",opacity:ok?".12":".04"});
+  add("circle",{cx:x,cy:y,r:radius,fill:ok?"url(#vn-core)":"#243647",opacity:ok?".85":".5",filter:ok?"url(#vn-glow)":"none"});
+  add("circle",{cx:x,cy:y,r:radius*.65,fill:"#07182c",stroke:ok?"#a5f7ff":"#62758b","stroke-width":1.4});
+  add("circle",{cx:x,cy:y,r:radius*.84,fill:"none",stroke:ok?"#8bf0ff":"#62758b","stroke-width":1,opacity:".7","stroke-dasharray":"6 5",class:"vn-orbit"});
+  add("text",{x,y:y+4,"font-size":i>=5?12:11,"font-weight":"700",fill:"#e9fbff","text-anchor":"middle","letter-spacing":".5"},name);
+  if(i<5)add("text",{x,y:y+radius+18,"font-size":10,fill:ok?"#72e5b9":"#8898aa","text-anchor":"middle"},ok?"LIVE":"OFFLINE");
+ });
+ add("text",{x:28,y:33,fill:"#6be9ff","font-size":13,"letter-spacing":"3"},"MULTI-VENUE INTELLIGENCE // LIVE DATA TOPOLOGY");
+ add("text",{x:28,y:473,fill:"#819fb8","font-size":11},"SOURCE QUOTES → VALIDATION → ANALYSIS → DISPLAY");
  scene.replaceChildren(svg);
  status.textContent=symbol+" · "+payload.available_venues+"/5 منصات · "+new Date(payload.retrieved_at_utc).toLocaleTimeString();
  metrics.replaceChildren();
