@@ -371,6 +371,7 @@ class Handler(BaseHTTPRequestHandler):
     query=parse_qs(urlsplit(self.path).query)
     if path=="/api/assets/universe":result=multi_asset.universe()
     elif path=="/api/assets/snapshot":result=multi_asset.snapshot(query.get("symbol",[""])[0])
+    elif path=="/api/assets/venues":result=multi_asset.venue_comparison(query.get("symbol",[""])[0])
     elif path=="/api/assets/compare":result=multi_asset.compare(query.get("primary",[""])[0],query.get("secondary",[""])[0])
     else:return self.send(404,b"Not found")
     return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
