@@ -37,3 +37,9 @@ button.board-node{cursor:pointer}button.board-node:hover,button.board-node:focus
 @media(max-width:1250px){.board-lanes{grid-template-columns:repeat(2,minmax(0,1fr))}.board-lane:not(:last-child):after{display:none}}
 @media(max-width:650px){.network-board{padding:12px}.board-lanes{grid-template-columns:1fr}.board-guide{display:block}.board-guide span{display:block;margin-top:8px}.board-venues{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.board-node{transition:none!important}}
+
+/* Verified-event spatial trace */
+.trace-hud{position:absolute;left:16px;top:16px;z-index:7;width:min(345px,52%);max-height:53%;overflow:auto;background:#071b2ce8;border:1px solid #39718c;border-radius:12px;padding:13px;box-shadow:0 12px 35px #0009;pointer-events:auto}
+.trace-hud[hidden]{display:none!important}.trace-title{font-size:11px;font-weight:700;color:#b9f7ff;display:flex;justify-content:space-between;gap:8px}.trace-title span{font-weight:400;color:#8fbbcc}.trace-events{margin:10px 0;display:grid;gap:5px}.trace-event{border-left:2px solid #fbd66e;background:#12354a;padding:7px 9px;font-size:10px;line-height:1.5;color:#e6f9ff;overflow-wrap:anywhere}.trace-key{font-size:10px;color:#9bb8c9;line-height:1.7}
+#boardToggle{background:#14374a;color:#e0faff;border:1px solid #40859b;border-radius:7px;padding:8px;cursor:pointer}
+@media(max-width:650px){.trace-hud{left:8px;top:8px;width:65%;max-height:44%;padding:8px}.trace-title{display:block}}
