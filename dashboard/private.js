@@ -93,7 +93,7 @@ let venueTopology=null;
 const camera={yaw:-.28,pitch:.2,zoom:1,auto:false};
 let sceneDrag=null,sceneAnimation=0;
 const nodes3d=[
- ["MEXC",-390,-160,-160],["Binance",-370,-80,140],["OKX",-370,25,-65],["Bybit",-360,145,170],["KuCoin",-380,230,-140],
+ ["MEXC",-390,-160,-160],["Binance",-370,-80,140],["OKX",-370,25,-65],["Bybit",-360,145,170],["KuCoin",-380,230,-140],["Gate",-365,-235,75],["Bitget",-350,305,125],
  ["VALIDATION",-80,0,0],["AI ENGINE",170,0,0],["DASHBOARD",395,0,0]
 ];
 function drawNeuralScene(){
@@ -111,25 +111,36 @@ function drawNeuralScene(){
  const pts=nodes3d.map(project);
  for(let z=-420;z<=420;z+=70){const a=project(["",-490,300,z]),b=project(["",500,300,z]);mk("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:"#204c72",opacity:".38","stroke-width":".8"})}
  for(let x=-490;x<=500;x+=70){const a=project(["",x,300,-420]),b=project(["",x,300,420]);mk("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:"#204c72",opacity:".38","stroke-width":".8"})}
- const links=[...Array.from({length:5},(_,i)=>[i,5]),[5,6],[6,7]];
- links.forEach(([i,j],idx)=>{const a=pts[i],b=pts[j],active=idx<5?venueTopology?.venues?.[nodes3d[i][0]]?.status==="ok":(venueTopology?.available_venues||0)>0;
+ const venueCount=7,validateIndex=7,engineIndex=8,dashboardIndex=9;
+ const links=[...Array.from({length:venueCount},(_,i)=>[i,validateIndex]),[validateIndex,engineIndex],[engineIndex,dashboardIndex]];
+ links.forEach(([i,j],idx)=>{const a=pts[i],b=pts[j],active=idx<venueCount?venueTopology?.venues?.[nodes3d[i][0]]?.status==="ok":(venueTopology?.available_venues||0)>0;
   const d="M"+a.x+" "+a.y+" Q"+((a.x+b.x)/2)+" "+((a.y+b.y)/2-30*camera.zoom)+" "+b.x+" "+b.y;
   mk("path",{d,fill:"none",stroke:active?"#12a5f0":"#64748b","stroke-width":active?7:2,opacity:active?".16":".3",filter:active?"url(#n3-glow)":"none"});
   const id="n3-path-"+idx;mk("path",{id,d,fill:"none",stroke:active?"#64edff":"#566778","stroke-width":active?2.3:1,"stroke-dasharray":"5 9",opacity:active?1:".4"});
   if(active){for(let k=0;k<3;k++){const dot=mk("circle",{r:k===0?4:2,fill:"#e4ffff",filter:"url(#n3-glow)"});const motion=mk("animateMotion",{dur:(2.3+idx*.15+k*.38)+"s",begin:(-idx*.23-k*.8)+"s",repeatCount:"indefinite"},undefined,dot);mk("mpath",{href:"#"+id},undefined,motion)}}
  });
  const order=pts.map((p,i)=>({...p,i})).sort((a,b)=>b.z-a.z);
- order.forEach(p=>{const i=p.i,name=nodes3d[i][0],ok=i<5?venueTopology?.venues?.[name]?.status==="ok":(venueTopology?.available_venues||0)>0;
-  const r=Math.max(11,(i===6?43:i===5?36:i===7?31:23)*p.scale);
+ order.forEach(p=>{const i=p.i,name=nodes3d[i][0],ok=i<venueCount?venueTopology?.venues?.[name]?.status==="ok":(venueTopology?.available_venues||0)>0;
+  const r=Math.max(11,(i===engineIndex?43:i===validateIndex?36:i===dashboardIndex?31:23)*p.scale);
   mk("circle",{cx:p.x,cy:p.y,r:r*1.8,fill:"#1bc5f7",opacity:ok?".065":".018",filter:"url(#n3-glow)"});
   mk("circle",{cx:p.x,cy:p.y,r,fill:ok?"url(#n3-node)":"#23394c",stroke:ok?"#a4f5ff":"#526579","stroke-width":1.5,opacity:".95"});
   mk("ellipse",{cx:p.x,cy:p.y,rx:r*1.5,ry:r*.45,fill:"none",stroke:ok?"#52dcff":"#607588","stroke-width":1,opacity:".65",transform:"rotate("+(-25+camera.yaw*25)+" "+p.x+" "+p.y+")"});
   mk("text",{x:p.x,y:p.y+4,"text-anchor":"middle",fill:"#f2fdff","font-size":Math.max(9,12*p.scale),"font-weight":"700"},name);
-  if(i<5)mk("text",{x:p.x,y:p.y+r+16,"text-anchor":"middle",fill:ok?"#7de9c6":"#98a5b7","font-size":"11"},ok?"ONLINE":"OFFLINE");
+  if(i<venueCount)mk("text",{x:p.x,y:p.y+r+16,"text-anchor":"middle",fill:ok?"#7de9c6":"#98a5b7","font-size":"11"},ok?"ONLINE":"OFFLINE");
  });
  mk("text",{x:28,y:35,fill:"#9cecff","font-size":16,"letter-spacing":2},"STAMP NEXUS // 3D DATA INTELLIGENCE");
  mk("text",{x:28,y:540,fill:"#91b1ce","font-size":12},"ROTATE / DRAG · ZOOM / SCROLL · LIVE EXCHANGE STATUS");
  scene.replaceChildren(svg);
+ // Scene hit targets are derived from the same projected nodes used for rendering.
+ const detail=el("sceneNodeDetail");
+ for(const p of pts.map((q,i)=>({...q,i}))){
+  const node=mk("circle",{cx:p.x,cy:p.y,r:Math.max(20,32*p.scale),fill:"transparent",stroke:"none",tabindex:"0",role:"button","aria-label":"Inspect "+nodes3d[p.i][0]},undefined,svg);
+  const inspect=()=>{const name=nodes3d[p.i][0],v=venueTopology?.venues?.[name];
+   if(detail){detail.textContent=v?name+" · "+(v.status==="ok"?"Bid "+v.bid+" | Ask "+v.ask+" | spread "+v.spread_pct.toFixed(4)+"% | "+v.retrieved_at_utc:"Unavailable · "+v.reason):name+" · internal processing node (data flow visualization, not measured neural activation)";}
+  };
+  node.addEventListener("click",inspect);
+  node.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();inspect()}});
+ }
 }
 function initializeSceneControls(){
  const scene=el("venueNetwork");if(!scene)return;
@@ -160,10 +171,10 @@ async function updateVenueNetwork(){
 
  venueTopology=payload;
  drawNeuralScene();
- status.textContent=symbol+" · "+payload.available_venues+"/5 منصات · "+new Date(payload.retrieved_at_utc).toLocaleTimeString();
+ status.textContent=symbol+" · "+payload.available_venues+"/7 منصات · "+new Date(payload.retrieved_at_utc).toLocaleTimeString();
  metrics.replaceChildren();
  for(const [name,v] of Object.entries(payload.venues||{})){const item=document.createElement("span");item.textContent=name+": "+(v.status==="ok"?"Bid "+v.bid+" / Ask "+v.ask+" · "+v.deviation_from_median_pct+"%":"غير متاح ("+v.reason+")");metrics.appendChild(item)}
- const spread=document.createElement("span");spread.textContent="تباعد الأسعار الوسطية: "+(payload.mid_dispersion_pct===null?"غير كافٍ":payload.mid_dispersion_pct.toFixed(3)+"%");metrics.appendChild(spread);
+ const spread=document.createElement("span");spread.textContent="تباعد الأسعار الوسطية: "+(payload.mid_dispersion_pct===null?"غير معتمد: هوية الأصل غير مؤكدة أو بيانات غير كافية":payload.mid_dispersion_pct.toFixed(3)+"%");metrics.appendChild(spread);
 }
 
 function renderDepth(){
