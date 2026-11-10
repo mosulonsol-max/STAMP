@@ -49,9 +49,11 @@ def reconcile(data,now=None):
         if isinstance(rec,dict) and isinstance(rec.get("id"),str):by_id.setdefault(rec["id"],rec)
     records=list(by_id.values())
     # Never evaluate against a later/future candle without matching the recorded target.
-    for pair in sorted({r.get("pair") for r in records if r.get("pair")}):
+    due_pairs={r.get("pair") for r in records if r.get("pair") and not r.get("outcome") and r.get("due_at_utc") and dt.datetime.fromisoformat(r["due_at_utc"])<=now}
+    for pair in sorted(due_pairs):
         for frame in HORIZONS:
             pending=[r for r in records if r.get("pair")==pair and r.get("frame")==frame and r.get("outcome") is None]
+            pending=[r for r in pending if r.get("due_at_utc") and dt.datetime.fromisoformat(r["due_at_utc"])<=now]
             if not pending:continue
             try:rows=candles(pair,{"1h":"60m"}.get(frame,frame),500)
             except (OSError,ValueError):continue
@@ -90,9 +92,10 @@ def reconcile(data,now=None):
         key=pair+"|"+frame
         latest=settled[-1] if settled else None
         outcome_id=latest.get("id") if latest else None
-        learning[key]={"status":"evaluated" if settled else "awaiting_outcomes","model_version":"causal_6_return_momentum_v1","prospective_samples":len(settled),"skill_vs_baseline":skill,"last_outcome_id":outcome_id,"retraining_performed":False}
+        selected=(data.get("model_selections") or {}).get(key) or {}
+        learning[key]={"status":"evaluated" if settled else "awaiting_outcomes","model_version":selected.get("version","causal_6_return_momentum_v1"),"prospective_samples":len(settled),"skill_vs_baseline":skill,"last_outcome_id":outcome_id,"retraining_performed":bool(selected)}
         feedback[key]={"status":"recorded" if settled else "awaiting_outcomes","last_outcome_id":outcome_id,"evidence_samples":len(settled),"validation_status":"eligible_research" if eligible else "research_only","updated_at_utc":now.isoformat()}
-        validation[key]={"status":"eligible_research" if eligible else "research_only","evidence_source":"prospective_closed_candles_MEXC","min_samples":MIN_VERIFIED,"observed_samples":len(settled),"skill_threshold":0.05,"observed_skill":skill,"last_evaluated_outcome_id":outcome_id,"trading_approved":False,"model_retrained":False}
+        validation[key]={"status":"eligible_research" if eligible else "research_only","evidence_source":"prospective_closed_candles_MEXC","min_samples":MIN_VERIFIED,"observed_samples":len(settled),"skill_threshold":0.05,"observed_skill":skill,"last_evaluated_outcome_id":outcome_id,"trading_approved":False,"model_retrained":bool(selected)}
     data["learning"]=learning
     data["feedback"]=feedback
     data["validation"]=validation
