@@ -103,3 +103,34 @@ def snapshot(pair):
     result={"symbol":pair,"ticker":quote,"candles":frames,"research_forecasts":forecasts(frames),"source":"MEXC public REST",
       "retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     return result
+
+
+def venue_comparison(pair):
+    """Independent public spot quotes. A failed venue is never treated as zero price."""
+    pair=symbol(pair)
+    base=pair[:-4]
+    endpoints={
+      "MEXC":("https://api.mexc.com/api/v3/ticker/bookTicker?"+urlencode({"symbol":pair}),lambda x:(x["bidPrice"],x["askPrice"])),
+      "Binance":("https://api.binance.com/api/v3/ticker/bookTicker?"+urlencode({"symbol":pair}),lambda x:(x["bidPrice"],x["askPrice"])),
+      "OKX":("https://www.okx.com/api/v5/market/ticker?"+urlencode({"instId":base+"-USDT"}),lambda x:(x["data"][0]["bidPx"],x["data"][0]["askPx"])),
+      "Bybit":("https://api.bybit.com/v5/market/tickers?"+urlencode({"category":"spot","symbol":pair}),lambda x:(x["result"]["list"][0]["bid1Price"],x["result"]["list"][0]["ask1Price"])),
+      "KuCoin":("https://api.kucoin.com/api/v1/market/orderbook/level1?"+urlencode({"symbol":base+"-USDT"}),lambda x:(x["data"]["bestBid"],x["data"]["bestAsk"])),
+    }
+    def query(item):
+        name,(url,extract)=item
+        try:
+            req=Request(url,headers={"Accept":"application/json","User-Agent":"STAMP-Research/1.0"})
+            with urlopen(req,timeout=5) as res:raw=res.read(150001)
+            if len(raw)>150000:raise ValueError("oversized_quote")
+            obj=json.loads(raw);bid,ask=map(float,extract(obj))
+            if not all(math.isfinite(v) and v>0 for v in (bid,ask)) or bid>ask:raise ValueError("invalid_bid_ask")
+            return name,{"status":"ok","bid":bid,"ask":ask,"mid":(bid+ask)/2,"spread_pct":100*(ask-bid)/((ask+bid)/2),"retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
+        except Exception as exc:
+            return name,{"status":"unavailable","reason":type(exc).__name__}
+    with ThreadPoolExecutor(max_workers=len(endpoints)) as pool:venues=dict(pool.map(query,endpoints.items()))
+    valid={k:v for k,v in venues.items() if v["status"]=="ok"}
+    mids=sorted(v["mid"] for v in valid.values())
+    median=mids[len(mids)//2] if len(mids)%2 else (mids[len(mids)//2-1]+mids[len(mids)//2])/2 if mids else None
+    for v in valid.values():v["deviation_from_median_pct"]=round(100*(v["mid"]/median-1),5) if median else None
+    dispersion=100*(max(mids)/min(mids)-1) if len(mids)>1 else None
+    return {"symbol":pair,"venues":venues,"available_venues":len(valid),"mid_dispersion_pct":dispersion,"median_mid":median,"retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"warning":"Public spot quotes are not executable prices. Venue symbols may refer to different assets; verify contract/network identity before comparing, especially STAMP. No causal flow or cross-exchange transfer is inferred."}
