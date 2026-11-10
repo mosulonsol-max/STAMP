@@ -94,6 +94,7 @@ def run(interval=None):
    measured_total=sum(int(v.get("settled") or 0) for v in measured.values())
    trained=sum(bool(v) for v in (result.get("model_selections") or {}).values())
    logging.info("measurement evidence accepted=%s rejected=%s pending=%s learning_settled=%s selected_models=%s review_at=%s",review.get("accepted",0),review.get("rejected",0),review.get("pending",0),measured_total,trained,(result.get("autonomous_review") or {}).get("checked_at_utc"))
+   logging.info("model selection diagnostics %s",json.dumps(result.get("model_selection_diagnostics") or {},sort_keys=True))
    actual=len((result.get("cycle_result") or {}).get("processed") or [])
    if not coverage.get("discovered") or actual==0:raise RuntimeError("market_discovery_or_data_collection_failed")
    LAST.update(discovered=coverage["discovered"],processed=actual)
