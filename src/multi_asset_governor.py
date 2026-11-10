@@ -257,6 +257,7 @@ def cycle(pairs=None):
                     except Exception as exc:multi.setdefault(p,{})[v]={"status":"unavailable","reason":type(exc).__name__}
             data["venue_evidence"]={"retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"pairs":multi,"used_in_forecast":False,"identity_scope":"major_pairs_only"}
         except Exception as exc:data["venue_evidence_error"]=type(exc).__name__
+    data=autonomous_review(data)
     data["retry_pairs"]=sorted(failed)
     data["cycle_result"]={"processed":processed,"failed":failed,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     if os.getenv("DATABASE_URL"):
