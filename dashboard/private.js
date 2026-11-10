@@ -119,7 +119,7 @@ async function updateVenueNetwork(){
  links.push({a:center,b:engine,ok:payload.available_venues>0,label:"verified"});
  links.push({a:engine,b:screen,ok:payload.available_venues>0,label:"output"});
  links.forEach((link,i)=>{
-  const [ax,ay]=[link.a[1],link.a[2]],[bx,by]=[link.b[0]===undefined?link.b[1]:link.b[1],link.b[2]];
+  const [ax,ay]=typeof link.a[0]==="string"?[link.a[1],link.a[2]]:link.a,[bx,by]=typeof link.b[0]==="string"?[link.b[1],link.b[2]]:link.b;
   const bend=i<5? (i-2)*20:-22;
   const d="M "+ax+" "+ay+" Q "+((ax+bx)/2)+" "+((ay+by)/2+bend)+" "+bx+" "+by;
   const id="vn-path-"+i;
