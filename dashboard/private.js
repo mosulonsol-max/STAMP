@@ -97,7 +97,7 @@ const nodes3d=[
  ["VALIDATION",-80,0,0],["AI ENGINE",170,0,0],["DASHBOARD",395,0,0]
 ];
 function drawNeuralScene(){
- const scene=el("venueNetwork");if(!scene)return;
+ const scene=el("venueNetwork");if(!scene||typeof document.createElementNS!=="function")return;
  const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");
  svg.setAttribute("viewBox","0 0 1000 570");svg.setAttribute("aria-label","3D interactive data network");
  const mk=(tag,attrs,txt,parent=svg)=>{const e=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));if(txt!==undefined)e.textContent=txt;parent.appendChild(e);return e};
