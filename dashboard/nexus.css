@@ -64,3 +64,26 @@ button.board-node{cursor:pointer}button.board-node:hover,button.board-node:focus
 .audit-forecast{padding:12px;background:#0b2b3b;border-radius:10px;overflow-x:auto}.audit-forecast .board-table{table-layout:auto}.audit-forecast .board-table th{width:38%}
 .audit-outcomes{overflow-x:auto;margin-top:16px}.audit-outcomes h3{font-size:14px;color:#d3f8ff}.audit-outcomes .model-table{min-width:600px}.audit-outcomes .model-table td{font-size:11px;max-width:320px;overflow-wrap:anywhere}
 .audit-disclaimer{margin-top:15px;border-top:1px solid #2c5367;padding-top:12px;font-size:11px;color:#94b5c7;line-height:1.8}
+
+/* Fullscreen digital-twin mode: one immersive perspective canvas, no obstructing legacy panels */
+body.ai-fullscreen{margin:0;overflow:hidden;background:#030a17}
+.ai-fullscreen .shell{display:block!important;min-height:100dvh;width:100vw;max-width:none;padding:0;margin:0}
+.ai-fullscreen .rail,.ai-fullscreen .main>header,.ai-fullscreen .main>section:not(#aiWorld),.ai-fullscreen .main>footer,.ai-fullscreen .main>#error{display:none!important}
+.ai-fullscreen .main{display:block!important;width:100vw!important;max-width:none!important;margin:0!important;padding:0!important}
+.ai-world{position:fixed;inset:0;z-index:100;overflow:hidden;background:#030a17;color:#d9f4ff;font-family:Inter,system-ui,sans-serif}
+#aiCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#aiCanvas:active{cursor:grabbing}
+.ai-top{position:absolute;left:26px;right:26px;top:22px;display:flex;justify-content:space-between;align-items:start;gap:20px;pointer-events:none}
+.ai-top>div{pointer-events:auto}.ai-kicker{color:#5be6d5;letter-spacing:.16em;font-size:11px;font-weight:750}
+.ai-top h1{font-size:clamp(22px,3vw,42px);line-height:1.1;margin:8px 0;color:#e7fbff;letter-spacing:.045em}
+.ai-top p{margin:0;color:#95bbcc;font-size:12px}.ai-top-actions{display:flex;align-items:center;gap:8px;background:#071a2ddf;border:1px solid #2d5a74;border-radius:12px;padding:9px}
+.ai-top-actions label{font-size:10px;color:#8db4c6}.ai-top-actions input{width:115px;background:#0b2d40;border:1px solid #35657b;border-radius:7px;color:#e4faff;padding:9px;font-size:12px}
+.ai-top-actions button{background:#11475b;border:1px solid #368ba0;border-radius:7px;color:#d9fbff;padding:9px;cursor:pointer;font-size:12px}
+.ai-legend{position:absolute;left:26px;top:132px;display:flex;gap:15px;align-items:center;flex-wrap:wrap;max-width:60%;color:#a3c7d5;font-size:11px;background:#051525cc;padding:9px 13px;border-radius:10px;border:1px solid #27485e}
+.ai-light{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}.ai-green{background:#4bf5c5}.ai-gold{background:#f5ca76}.ai-gray{background:#688198}
+.ai-inspector{position:absolute;right:22px;top:132px;bottom:65px;width:min(325px,29vw);background:#071b2ce8;border:1px solid #315c75;border-radius:16px;box-shadow:0 20px 40px #0008;padding:18px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.ai-inspector-head{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#e5fbff;font-weight:750;font-size:13px}.ai-inspector-head span:last-child{color:#9ebfd1;font-size:10px}
+#aiNodeDetails{overflow:auto;min-height:100px;flex:0 1 auto}#aiNodeDetails .board-table{table-layout:auto}#aiNodeDetails .board-table th{width:42%}
+.ai-inspector-footer{min-height:0;display:flex;flex-direction:column;flex:1;border-top:1px solid #305268;padding-top:15px}.ai-inspector-footer strong{font-size:11px;color:#f5d18c;letter-spacing:.08em}
+#aiEventStream{overflow:auto;font-size:11px;line-height:1.6;color:#b6d5df}#aiEventStream p{border-left:2px solid #f5ca76;background:#123249;padding:8px;margin:8px 0;overflow-wrap:anywhere}
+.ai-bottom{position:absolute;bottom:13px;left:22px;right:22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#071a2de8;border:1px solid #2c5068;border-radius:10px;padding:12px 15px;font-size:11px;color:#b3dce6}
+@media(max-width:800px){.ai-top{left:12px;right:12px;top:10px;display:block}.ai-top h1{font-size:22px}.ai-top p{font-size:10px}.ai-top-actions{margin-top:10px;width:max-content;max-width:100%}.ai-legend{left:12px;top:145px;max-width:calc(100% - 24px);font-size:9px;gap:7px}.ai-inspector{top:auto;bottom:56px;right:8px;left:8px;width:auto;height:32%;padding:11px}.ai-bottom{left:8px;right:8px;bottom:6px;padding:8px;font-size:9px;gap:8px}}
