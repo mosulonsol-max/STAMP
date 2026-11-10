@@ -1,0 +1,59 @@
+name: Autonomous safe repair laboratory
+on:
+  schedule:
+    - cron: '41 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: stamp-autorepair
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies and bounded repair tool
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install 'ruff>=0.9,<1'
+      - name: Baseline validation
+        id: baseline
+        continue-on-error: true
+        run: |
+          python -m compileall -q src tests
+          python -m unittest discover -s tests -p 'test_*.py' -q
+      - name: Bounded automated fixes
+        if: steps.baseline.outcome == 'failure'
+        run: |
+          # Only deterministic lint fixes; no LLM-written production changes.
+          ruff check --select F401,F841 --fix src tests || true
+          python -m compileall -q src tests
+          python -m unittest discover -s tests -p 'test_*.py' -q
+      - name: Publish verified repair as a pull request
+        if: steps.baseline.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- src tests; then
+            echo 'No verified deterministic repair available'
+            exit 0
+          fi
+          branch="autonomous-repair/${GITHUB_RUN_ID}"
+          git config user.name "stamp-repair-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add src tests
+          git commit -m "Apply bounded verified Python repairs"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" --title "Verified autonomous repair ${GITHUB_RUN_ID}" --body "Deterministic fixes only. Compilation and full unit tests passed in isolated CI. Review/branch protection controls remain enforced."
+          # Auto-merge only if repository policy permits it; never bypass required checks.
+          gh pr merge "$branch" --auto --squash --delete-branch || echo 'Auto-merge unavailable; PR remains for policy-controlled checks'
