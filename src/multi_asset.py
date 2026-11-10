@@ -138,3 +138,17 @@ def venue_comparison(pair):
     identity_verified=pair in {"BTCUSDT","ETHUSDT","SOLUSDT"}
     dispersion=100*(max(mids)/min(mids)-1) if len(mids)>1 and identity_verified else None
     return {"symbol":pair,"venues":venues,"available_venues":len(valid),"mid_dispersion_pct":dispersion,"median_mid":median if identity_verified else None,"identity_status":"verified_major_pair" if identity_verified else "unverified_cross_venue_asset_identity","retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"warning":"Public spot quotes are not executable prices. Venue symbols may refer to different assets; verify contract/network identity before comparing, especially STAMP. No causal flow or cross-exchange transfer is inferred."}
+
+def venue_diagnostics(pair):
+    """Explicit connector diagnostics. HTTP success is not proof of venue success."""
+    data=venue_comparison(pair)
+    rows=[]
+    for name,v in data["venues"].items():
+        rows.append({"venue":name,"connected":v["status"]=="ok","status":v["status"],
+          "error":v.get("reason"),"retrieved_at_utc":v.get("retrieved_at_utc"),
+          "bid":v.get("bid"),"ask":v.get("ask"),"spread_pct":v.get("spread_pct")})
+    return {"symbol":data["symbol"],"connected":sum(x["connected"] for x in rows),
+      "total":len(rows),"connectors":rows,"identity_status":data["identity_status"],
+      "retrieved_at_utc":data["retrieved_at_utc"],"analysis_source":"MEXC only",
+      "model_status":"research_only","cross_venue_ingestion":False,
+      "warning":"Connector status is measured per request. Multi-venue ingestion and asset identity verification are not implemented."}
