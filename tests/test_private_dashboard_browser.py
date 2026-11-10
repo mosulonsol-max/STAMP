@@ -25,7 +25,7 @@ function createElements(embedded){
   addEventListener(type,callback){this.events??={};this.events[type]=callback},
   getBoundingClientRect(){return {width:700,height:300}},
   getContext(){return {setTransform(){},clearRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},fillText(){},fillRect(){}}},
-  showModal(){},classList:{toggle(){}}
+  showModal(){},replaceChildren(){},classList:{toggle(){}}
  });
  mk('stamp-snapshot').textContent=JSON.stringify(embedded);
  return {ids,mk,document:{documentElement:{},getElementById:mk,querySelectorAll(){return []}}};
