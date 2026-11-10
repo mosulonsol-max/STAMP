@@ -104,7 +104,7 @@ function renderChart(){
  const f=data?.asset_research_forecasts?.[frame]||data?.forecasts?.[horizon]?.forecast;
  const projection=f?uniquePoints([{time:Date.parse(f.reference_at_utc)/1000,value:f.reference_price},{time:Date.parse(f.due_at_utc)/1000,value:f.predicted_price}]):[];
  projectionSeries.setData(projection);
- const q=data?.live_quote||{},fresh=q.status==="fresh"&&age(q.retrieved_at_utc)!==null&&age(q.retrieved_at_utc)<=180&&n(q.price)>0;
+ const q=selectedAsset==="STAMPUSDT"?(data?.live_quote||{}):{},fresh=q.status==="fresh"&&age(q.retrieved_at_utc)!==null&&age(q.retrieved_at_utc)<=180&&n(q.price)>0;
  if(fresh){if(livePriceLine)livePriceLine.applyOptions({price:q.price});else livePriceLine=candleSeries.createPriceLine({price:q.price,color:"#a4bbc9",lineWidth:1,lineStyle:2,axisLabelVisible:true,title:"MEXC"})}
  else if(livePriceLine){candleSeries.removePriceLine(livePriceLine);livePriceLine=null}
  const last=displayBars[displayBars.length-1];set("chartOHLC",formatChartTime(last.t/1000)+" · O "+price(last.o)+" H "+price(last.h)+" L "+price(last.l)+" C "+price(last.c));
@@ -131,14 +131,14 @@ function renderForecasts(){
  el("forecastHistory").innerHTML='<table><thead>'+header+'</thead><tbody>'+rows.slice(0,30).map(r=>{const known=r.actual_price!==null&&n(r.actual_price)>0;const status=r.direction_correct===true?t("correct"):r.direction_correct===false?t("wrong"):known?t("unknown"):Date.parse(r.due_utc)>Date.now()?t("pending"):t("unknown");const measure=known?(r.measurement_offset_seconds===0?t("exact"):t("approximate"))+" · "+stamp(r.measurement_time_utc):"";return '<tr><td>'+esc(stamp(r.due_utc))+'</td><td class="numeric">'+esc(price(r.predicted_price))+'</td><td class="numeric">'+esc(price(r.actual_price))+'</td><td>'+esc(status)+'<br><span class="muted">'+esc(measure)+'</span></td></tr>'}).join("")+'</tbody></table>';
 }
 function renderInputs(){
- const r=data?.forecasts?.[horizon],m=r?.input_manifest;if(!m){set("inputPolicy",t("awaiting"));return}
+ const r=data?.forecasts?.[horizon],m=r?.input_manifest;if(!m){set("inputPolicy",t("awaiting"));el("inputTable").innerHTML="";return}
  set("inputPolicy",(lang==="ar"?"المرجع الزمني للمدخلات: ":"Input time reference: ")+stamp(m.reference_utc)+" · "+m.features+(lang==="ar"?" متغيرًا مع علامات التوفر. البيانات الأحدث تُحفظ للمرجع التالي؛ الإشارة غير الموثقة لا تُعامل كخبر مؤكد.":" features including availability masks. Later observations are archived for the next reference; unverified mentions are not confirmed news."));
  const headers=["inputGroup","inputUsed","inputAccess","inputCoverage"];
  el("inputTable").innerHTML='<table><thead><tr>'+headers.map(k=>'<th>'+esc(t(k))+'</th>').join("")+'</tr></thead><tbody>'+Object.entries(m.groups||{}).map(([g,s])=>{const selected=(r.selected_feature_groups||[]).includes(g),access=r.source_access?.[g],coverage=r.feature_coverage?.[g],reason=s.reason||access?.reason||"";return '<tr><td>'+esc(t(g))+'</td><td>'+esc(!selected?(lang==="ar"?"لم يُختر في المرشح الفائز":"Not selected by winning profile"):s.available_features>0?t("used"):t("missing"))+' · '+esc((s.available_features??0)+" / "+(s.total_features??"—"))+(reason?'<br><span class="muted">'+esc(reason)+'</span>':'')+'</td><td>'+esc(access?(access.status==="available"?t("used"):t("missing")):s.status)+'<br><span class="muted">'+esc(access?.observed_utc?stamp(access.observed_utc):"")+'</span></td><td>'+esc(coverage?coverage.points_with_data+" / "+coverage.evaluation_points:"—")+'</td></tr>'}).join("")+'</tbody></table>';
 }
 function renderAssurance(){
  const a=data?.output_assurance,h=a?.horizons?.[horizon];
- if(!a||!h){set("assuranceSummary",t("awaiting"));return}
+ if(!a||!h){set("assuranceSummary",t("awaiting"));set("assuranceBadge",t("awaiting"));el("assuranceMetrics").innerHTML="";return}
  const due=Date.parse(h.target_at_utc),checked=Date.parse(a.checked_at_utc),current=Number.isFinite(due)&&due>Date.now()&&Number.isFinite(checked)&&Date.now()-checked<30000;
  set("assuranceSummary",t("production")+": "+t(current&&h.production_status==="valid"?"healthy":"degraded")+" · "+t("quality")+": "+t(h.predictive_validity)+" · "+t("overdue")+": "+a.overdue_unverified_in_recent_journal+". "+t("rolloutBlocked"));
  set("assuranceBadge",t("production")+": "+t(current&&h.production_status==="valid"?"healthy":"degraded")+" · "+t("quality")+": "+t(h.predictive_validity)+" · "+(lang==="ar"?"التعميم: غير معتمد":"All-pair rollout: not approved"));
@@ -147,7 +147,7 @@ function renderAssurance(){
  el("assuranceMetrics").innerHTML='<table><thead><tr><th>'+esc(horizon)+'</th><th>'+esc(t("forward"))+'</th><th>'+esc(t("prospective"))+'</th></tr></thead><tbody>'+[["samples",f.samples,v.samples],["skill",n(f.skill_vs_zero)===null?"—":pct(f.skill_vs_zero*100),n(v.skill_vs_zero)===null?"—":pct(v.skill_vs_zero*100)],["direction",n(f.direction_accuracy)===null?"—":pct(f.direction_accuracy*100),n(v.direction_accuracy)===null?"—":pct(v.direction_accuracy*100)],["interval",interval(f.direction_wilson_95),interval(v.direction_wilson_95)]].map(r=>'<tr><th>'+esc(t(r[0]))+'</th><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>').join("")+'</tbody></table>';
 }
 function updateFreshness(){
- const q=data?.live_quote||quoteLive,seconds=age(q?.provider_at_utc||q?.retrieved_at_utc),fresh=q?.status==="fresh"&&seconds!==null&&seconds<=10;
+ const q=selectedAsset==="STAMPUSDT"?(data?.live_quote||quoteLive):data?.live_quote,seconds=age(q?.provider_at_utc||q?.retrieved_at_utc),fresh=q?.status==="fresh"&&seconds!==null&&seconds<=10;
  const statsAge=age(q?.stats_at_utc),dexAge=age(data?.liquidity?.observed_utc);
  set("dataAge",(seconds===null?"—":Math.floor(seconds)+" · "+t("dataSeconds"))+(statsAge===null?"":" · 24H: "+Math.floor(statsAge)+"s")+(dexAge===null?"":" · DEX: "+Math.floor(dexAge)+"s"));
  set("streamStatus",streamState==="live"?t("streamLive"):streamState==="connecting"||streamState==="subscribing"?t("streamConnecting"):t("streamFallback"));el("streamStatus").className=streamState==="live"?"fresh":"stale";
@@ -224,7 +224,7 @@ function render(result,origin="api"){
  set("sourceLine","MEXC / USDT · "+t("candles")+" · "+stamp(result.model_observed_utc||result.observed_utc));set("chartZone",zone);
  el("warning").hidden=fresh;
  set("warning",fresh?"":(lang==="ar"?"السعر المباشر غير متاح؛ القيم المعروضة مؤرشفة ومؤقتة.":"Live quote unavailable; displayed values are timestamped archives."));
- renderIntelligence();renderForecasts();renderChart();renderAssurance();renderInputs();if(result.live_quote?.status==="fresh")acceptQuote({...result.live_quote,stats_at_utc:result.live_quote.stats_at_utc||result.live_quote.provider_at_utc||result.live_quote.retrieved_at_utc});if(quoteLive)acceptQuote(quoteLive);
+ renderIntelligence();renderForecasts();renderChart();renderAssurance();renderInputs();if(result.live_quote?.status==="fresh")acceptQuote({...result.live_quote,stats_at_utc:result.live_quote.stats_at_utc||result.live_quote.provider_at_utc||result.live_quote.retrieved_at_utc});if(selectedAsset==="STAMPUSDT"&&quoteLive)acceptQuote(quoteLive);
 }
 let assetRequestId=0;let selectedAsset="STAMPUSDT",assetPairs=["STAMPUSDT","BTCUSDT","ETHUSDT","SOLUSDT"],assetCache=null;
 let favorites=[];try{favorites=JSON.parse(localStorage.getItem("stamp_favorite_pairs")||"[]").filter(v=>/^[A-Z0-9]{2,22}USDT$/.test(v))}catch(e){}
