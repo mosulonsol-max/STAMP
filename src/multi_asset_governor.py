@@ -40,17 +40,18 @@ def retrain_candidates(data):
             continue
         valid_settled.append(rec)
         diagnostics["exclusions"]["eligible"]+=1
-    group_counts={}
+    grouped={}
     for rec in valid_settled:
         key=(rec["pair"],rec["frame"])
-        group_counts[key]=group_counts.get(key,0)+1
+        grouped.setdefault(key,[]).append(rec)
+    group_counts={key:len(rows) for key,rows in grouped.items()}
     diagnostics["eligible_groups_ge_40"]=sum(n>=40 for n in group_counts.values())
     diagnostics["max_eligible_per_group"]=max(group_counts.values(),default=0)
     diagnostics["groups_with_eligible_data"]=len(group_counts)
     diagnostics["historical_features_unrecoverable"]=diagnostics["exclusions"]["missing_features"]
     keys=sorted({(r["pair"],r["frame"]) for r in records if r.get("pair") and r.get("frame")})
     for pair,frame in keys:
-        eligible=[r for r in valid_settled if r.get("pair")==pair and r.get("frame")==frame]
+        eligible=sorted(grouped.get((pair,frame),[]),key=lambda r:r["reference_at_utc"])
         eligible=eligible[-160:]
         diagnostics["eligible_samples"]+=len(eligible)
         diagnostics["evaluated_pairs"]+=1
