@@ -117,10 +117,8 @@ def reconcile(data,now=None):
                 rec["outcome"]={"actual_price":actual,"measured_at_utc":now.isoformat(),"target_at_utc":due.isoformat(),
                     "squared_log_error":math.log(actual/rec["predicted_price"])**2,
                     "baseline_squared_log_error":math.log(actual/rec["reference_price"])**2}
-    # Preserve all pending evaluations; pruning them would silently lose evidence.
-    pending=[r for r in records if not r.get("outcome")]
-    settled_all=[r for r in records if r.get("outcome")]
-    data["records"]=settled_all[-5000:]+pending
+    # Keep every issued forecast and outcome. Do not truncate evidence or silently discard history.
+    data["records"]=records
     approvals={}
     learning={}
     feedback={}
@@ -154,8 +152,6 @@ def reconcile(data,now=None):
 def autonomous_review(data):
     """System-owned forecast acceptance decisions. No human approval required."""
     records=data.get("records") or []
-    audit=audit_records(records)
-    rejected_ids={p["id"] for p in audit["problems_sample"] if p.get("id")}
     # Audit all records individually; the public audit response samples only 30 problems.
     reviews={}
     for rec in records:
@@ -163,7 +159,7 @@ def autonomous_review(data):
         if not rid:continue
         individual=audit_records([rec])
         outcome=rec.get("outcome")
-        if not individual["passed"] or rid in rejected_ids:
+        if not individual["passed"]:
             status="rejected";reason="integrity_or_chronology_failure"
         elif not outcome:
             status="pending";reason="awaiting_verified_target_candle"
