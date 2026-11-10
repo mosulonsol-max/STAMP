@@ -21,7 +21,7 @@ async function run(mode){
  assert.equal(get('change').textContent,'+1.80%');assert.equal(get('liquidity').textContent,'$123,456');
  assert.match(get('forecastSummary').textContent,/0.0001800/);
  assert.equal(get('modelStatus').textContent,'تجريبي آليًا','UI must read the authoritative model decision, not unrelated scores');
- assert.equal(series[0].points.length,8);assert.equal(series[2].points.length,2);assert.equal(series[3].points[0].time,Date.parse(measured)/1000,'never backdate an approximate outcome to target time');assert.ok(range);
+ assert.ok(series.length>=4,'chart not initialized; UI error: '+get('error').textContent+'; chartEmpty: '+get('chartEmpty').textContent+'; warning: '+get('warning').textContent);assert.equal(series[0].points.length,8);assert.equal(series[2].points.length,2);assert.equal(series[3].points[0].time,Date.parse(measured)/1000,'never backdate an approximate outcome to target time');assert.ok(range);
  assert.equal(get('refresh').disabled,false);
  if(mode!=='primary')assert.ok(urls.includes('/api/dashboard-lite'));
  return {mode,bars:series[0].points.length,predictions:series[2].points.length,measurements:series[3].points.length};
