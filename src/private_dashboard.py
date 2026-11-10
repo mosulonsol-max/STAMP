@@ -369,16 +369,13 @@ class Handler(BaseHTTPRequestHandler):
     q=parse_qs(urlsplit(self.path).query)
     pair=q.get("symbol",[""])[0].upper()
     if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():raise ValueError("invalid_symbol")
-    archive,error=load("multi_asset_forecasts.json",os.getenv("GITHUB_READ_TOKEN","").strip())
-    if error:raise OSError("archive_"+error)
-    records=[x for x in archive.get("records",[]) if x.get("pair")==pair]
-    result={"symbol":pair,"source":"persisted prospective forecast archive","loop_updated_at_utc":archive.get("loop_updated_at_utc"),
-      "records_total":len(records),"settled_total":sum(bool(x.get("outcome")) for x in records),
-      "recent_outcomes":[{"id":x.get("id"),"frame":x.get("frame"),"reference_price":x.get("reference_price"),"predicted_price":x.get("predicted_price"),"outcome":x.get("outcome"),"due_at_utc":x.get("due_at_utc")} for x in records if x.get("outcome")][-12:],
-      "learning":{k:v for k,v in archive.get("learning",{}).items() if k.startswith(pair+"|")},
-      "feedback":{k:v for k,v in archive.get("feedback",{}).items() if k.startswith(pair+"|")},
-      "validation":{k:v for k,v in archive.get("validation",{}).items() if k.startswith(pair+"|")},
-      "archive_checked_at_utc":archive.get("checked_at_utc"),"model_retraining_active":False}
+    upstream="https://stamp-autonomous-worker.onrender.com/research/loop?symbol="+quote(pair)
+    req=Request(upstream,headers={"Accept":"application/json","User-Agent":"STAMP-dashboard-loop-proxy"})
+    with urlopen(req,timeout=8) as response:
+     raw=response.read(150000)
+     if len(raw)>=150000:raise ValueError("oversized_research_response")
+     result=json.loads(raw)
+    if result.get("symbol")!=pair or result.get("source")!="worker_persistent_research_state":raise ValueError("invalid_worker_response")
     return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
    except ValueError as exc:return self.send(400,json.dumps({"error":str(exc)}).encode(),"application/json; charset=utf-8")
    except Exception as exc:return self.send(503,json.dumps({"error":"learning_loop_unavailable","reason":type(exc).__name__}).encode(),"application/json; charset=utf-8")
