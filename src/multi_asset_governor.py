@@ -118,7 +118,8 @@ def cycle(pairs=None):
             if result.get("status")!="research_only":continue
             rid=pair+"|"+frame+"|"+result["reference_at_utc"]
             if rid in issued:continue
-            data["records"].append(dict(id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
+            gate=(data.get("validation") or {}).get(pair+"|"+frame) or {}
+            data["records"].append(dict(validation_at_issue=gate.get("status","research_only"),model_version="causal_6_return_momentum_v1",id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
             issued.add(rid)
