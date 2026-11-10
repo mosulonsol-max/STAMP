@@ -17,6 +17,29 @@ def load():
         d=json.loads(PATH.read_text())
         return d if isinstance(d,dict) else {}
     except (OSError,ValueError):return {}
+def retrain_candidates(data):
+    """Prospective research-only model selection with chronological holdout."""
+    selections=data.get("model_selections") or {}
+    records=data.get("records") or []
+    keys=sorted({(r["pair"],r["frame"]) for r in records if r.get("pair") and r.get("frame")})
+    for pair,frame in keys:
+        eligible=[r for r in records if r.get("pair")==pair and r.get("frame")==frame and r.get("outcome") and len((r.get("features") or {}).get("recent_returns") or [])>=20]
+        eligible=eligible[-160:]
+        if len(eligible)<40:continue
+        split=int(len(eligible)*0.7)
+        train,test=eligible[:split],eligible[split:]
+        def error(rows,n):
+            return sum(math.log(float(r["outcome"]["actual_price"])/(float(r["reference_price"])*math.exp(sum(r["features"]["recent_returns"][-n:])/n)))**2 for r in rows)/len(rows)
+        best=min((3,6,12,20),key=lambda n:error(train,n))
+        key=pair+"|"+frame
+        incumbent=int(selections.get(key,{}).get("lookback",6))
+        baseline=sum(r["outcome"]["baseline_squared_log_error"] for r in test)/len(test)
+        candidate_mse=error(test,best);incumbent_mse=error(test,incumbent)
+        if best!=incumbent and candidate_mse<incumbent_mse*0.95 and candidate_mse<baseline*0.95:
+            selections[key]={"lookback":best,"version":"momentum_"+str(best),"holdout_samples":len(test),"holdout_mse":candidate_mse,"incumbent_mse":incumbent_mse,"approved_for":"research_only","selected_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
+    data["model_selections"]=selections
+    return data
+
 def reconcile(data,now=None):
     now=now or dt.datetime.now(dt.timezone.utc)
     records=data.get("records") or []
@@ -103,6 +126,7 @@ def cycle(pairs=None):
         data["coverage"]={"discovered":len(requested),"processed_this_cycle":len(pairs),
                           "next_cursor":data["cursor"],"complete_this_cycle":batch==len(requested)}
     data=reconcile(data)
+    data=retrain_candidates(data)
     issued={r["id"] for r in data["records"]}
     processed=[]
     failed={}
