@@ -364,6 +364,15 @@ class Handler(BaseHTTPRequestHandler):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
    return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
+  if path=="/api/assets/microstructure":
+   try:
+    try:from src import venue_microstructure
+    except ImportError:import venue_microstructure
+    q=parse_qs(urlsplit(self.path).query)
+    result=venue_microstructure.microstructure(q.get("symbol",[""])[0],q.get("venue",[""])[0])
+    return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except (ValueError,TypeError) as exc:return self.send(400,json.dumps({"error":str(exc)}).encode(),"application/json; charset=utf-8")
+   except Exception as exc:return self.send(503,json.dumps({"error":"microstructure_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path.startswith("/api/assets/"):
    try:
     try:from src import multi_asset
