@@ -2,7 +2,7 @@
 import datetime as dt,json,logging,os,pathlib,signal,time,threading
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import urlsplit,parse_qs
-from multi_asset_governor import cycle,load
+from multi_asset_governor import cycle,load,audit_records
 STOP=False
 def stop(*_):
  global STOP
@@ -14,6 +14,16 @@ LAST={"success":None,"attempt":None,"error":None,"cycles":0,"failures":0,"runnin
 class Health(BaseHTTPRequestHandler):
  def do_GET(self):
   path=urlsplit(self.path).path
+  if path=="/research/audit":
+   pair=parse_qs(urlsplit(self.path).query).get("symbol",["BTCUSDT"])[0].upper()
+   if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
+   try:
+    archive=load()
+    rows=[r for r in archive.get("records",[]) if r.get("pair")==pair]
+    result=audit_records(rows)
+    result.update({"symbol":pair,"archive_updated_at_utc":archive.get("loop_updated_at_utc"),"storage":"postgres" if os.getenv("DATABASE_URL") else "ephemeral_filesystem","has_records":bool(rows)})
+    return self.respond(200,result)
+   except Exception as exc:return self.respond(503,{"error":"forecast_audit_unavailable","reason":type(exc).__name__})
   if path=="/research/diagnostics":
    pair=parse_qs(urlsplit(self.path).query).get("symbol",["BTCUSDT"])[0].upper()
    if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
