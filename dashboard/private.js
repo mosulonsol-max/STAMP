@@ -87,6 +87,33 @@ function activeCandle(){
  }
  return c&&age(c.observed_utc)!==null&&age(c.observed_utc)<=15&&c.t<=Date.now()&&c.end>Date.now()?c:null;
 }
+
+let venuePollId=0;
+async function updateVenueNetwork(){
+ const symbol=selectedAsset,requestId=++venuePollId;
+ const status=el("venueNetworkStatus"),metrics=el("venueMetrics"),scene=el("venueNetwork");
+ if(!status||!scene)return;
+ status.textContent="فحص "+symbol+" عبر المنصات…";
+ let payload;
+ try{
+  const response=await fetch("/api/assets/venues?symbol="+encodeURIComponent(symbol),{credentials:"same-origin",cache:"no-store"});
+  if(!response.ok)throw Error("HTTP "+response.status);
+  payload=await response.json();
+  if(requestId!==venuePollId||symbol!==selectedAsset)return;
+ }catch(err){if(requestId===venuePollId){status.textContent="تعذر تحديث الشبكة: "+err.message;metrics.textContent="البيانات غير متاحة؛ لا تُعرض أسعار افتراضية."}return}
+ const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox","0 0 900 300");
+ const points=[["MEXC",90,45],["Binance",90,98],["OKX",90,151],["Bybit",90,204],["KuCoin",90,257],["تحقق",390,150],["المحرك",625,150],["الواجهة",825,150]];
+ const add=(tag,attrs,text)=>{const el=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));if(text!==undefined)el.textContent=text;svg.appendChild(el);return el};
+ for(let i=0;i<5;i++){const [name,x,y]=points[i],ok=payload.venues?.[name]?.status==="ok";add("path",{d:"M "+(x+49)+" "+y+" Q 255 "+y+" 341 150",class:"flow-edge"+(ok?"":" off")})}
+ add("path",{d:"M 439 150 L 576 150",class:"flow-edge"});add("path",{d:"M 674 150 L 776 150",class:"flow-edge"});
+ for(let i=0;i<points.length;i++){const [name,x,y]=points[i],v=payload.venues?.[name],ok=i>=5||v?.status==="ok";add("circle",{cx:x,cy:y,r:i>=5?45:38,class:"flow-node"+(ok?"":" off")});add("text",{x,y:y-2},name);if(i<5)add("text",{x,y:y+15,"font-size":"10"},ok?"متصل":"غير متاح")}
+ scene.replaceChildren(svg);
+ status.textContent=symbol+" · "+payload.available_venues+"/5 منصات · "+new Date(payload.retrieved_at_utc).toLocaleTimeString();
+ metrics.replaceChildren();
+ for(const [name,v] of Object.entries(payload.venues||{})){const item=document.createElement("span");item.textContent=name+": "+(v.status==="ok"?"Bid "+v.bid+" / Ask "+v.ask+" · "+v.deviation_from_median_pct+"%":"غير متاح ("+v.reason+")");metrics.appendChild(item)}
+ const spread=document.createElement("span");spread.textContent="تباعد الأسعار الوسطية: "+(payload.mid_dispersion_pct===null?"غير كافٍ":payload.mid_dispersion_pct.toFixed(3)+"%");metrics.appendChild(spread);
+}
+
 function renderDepth(){
  const scene=el("depthScene");if(!scene)return;
  const bars=chartCandles(frame).slice(-32).filter(x=>Number.isFinite(x.c)&&x.c>0);
@@ -258,7 +285,7 @@ async function loadAssetUniverse(){
 }
 async function selectAsset(symbol){
  if(!/^[A-Z0-9]{2,22}USDT$/.test(symbol))return;
- const requestId=++assetRequestId;selectedAsset=symbol;universeUi(el("assetSearch").value);favoritesUi();el("assetCorrelation").textContent="";
+ const requestId=++assetRequestId;selectedAsset=symbol;updateVenueNetwork();universeUi(el("assetSearch").value);favoritesUi();el("assetCorrelation").textContent="";
  if(symbol==="STAMPUSDT"){set("coinName","STAMP / USDT");set("venueLine","MEXC · Solana");set("assetMessage","STAMP · التوقعات من المحرك الداخلي");assetCache=null;await refresh();return}
  try{
   set("assetMessage","تحميل بيانات "+symbol+"…");
@@ -329,7 +356,7 @@ el("favoriteSelect").addEventListener("change",e=>{if(e.target.value)selectAsset
 el("assetFavorite").addEventListener("click",()=>{if(favorites.includes(selectedAsset))favorites=favorites.filter(v=>v!==selectedAsset);else favorites.push(selectedAsset);
  try{localStorage.setItem("stamp_favorite_pairs",JSON.stringify(favorites))}catch(e){}favoritesUi()});
 el("compareAssets").addEventListener("click",compareAssets);
-favoritesUi();loadAssetUniverse();translate();refresh();startStream();updateWorkerStatus();setInterval(updateWorkerStatus,30000);
+favoritesUi();loadAssetUniverse();updateVenueNetwork();setInterval(()=>{if(!document.hidden)updateVenueNetwork()},60000);translate();refresh();startStream();updateWorkerStatus();setInterval(updateWorkerStatus,30000);
 if(window.StampMarket){pollQuote(true);setInterval(()=>{updateFreshness();pollQuote();renderAssurance()},1000)}
 setInterval(()=>{if(!document.hidden)refresh()},15000);
 })();
