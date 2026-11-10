@@ -143,14 +143,16 @@ def cycle(pairs=None):
             selected=(data.get("model_selections") or {}).get(pair+"|"+frame) or {}
             lookback=int(selected.get("lookback",6))
             if lookback!=6:
-                rr=[math.log(b["c"]/a["c"]) for a,b in zip(frame_rows[frame],frame_rows[frame][1:]) if b["t"]-a["t"]==HORIZONS[frame]]
+                closed=[bar for bar in frame_rows[frame] if bar["t"]+HORIZONS[frame]<=int(dt.datetime.now(dt.timezone.utc).timestamp()*1000)]
+                rr=[math.log(b["c"]/a["c"]) for a,b in zip(closed,closed[1:]) if b["t"]-a["t"]==HORIZONS[frame]]
                 if len(rr)>=lookback:
                     drift=sum(rr[-lookback:])/lookback
                     result=dict(result,predicted_price=result["reference_price"]*math.exp(drift),method="momentum_"+str(lookback))
             rid=pair+"|"+frame+"|"+result["reference_at_utc"]
             if rid in issued:continue
             gate=(data.get("validation") or {}).get(pair+"|"+frame) or {}
-            recent=[math.log(b["c"]/a["c"]) for a,b in zip(frame_rows[frame],frame_rows[frame][1:]) if b["t"]-a["t"]==HORIZONS[frame]][-20:]
+            closed=[bar for bar in frame_rows[frame] if bar["t"]+HORIZONS[frame]<=int(dt.datetime.now(dt.timezone.utc).timestamp()*1000)]
+            recent=[math.log(b["c"]/a["c"]) for a,b in zip(closed,closed[1:]) if b["t"]-a["t"]==HORIZONS[frame]][-20:]
             data["records"].append(dict(features={"recent_returns":recent},validation_at_issue=gate.get("status","research_only"),model_version=result["method"],id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
