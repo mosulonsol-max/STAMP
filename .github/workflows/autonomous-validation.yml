@@ -1,0 +1,41 @@
+name: Autonomous validation gate
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Verify Python sources compile
+        run: python -m compileall -q src tests
+      - name: Run autonomous governance tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Check autonomous decision contract
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0,'src')
+          from multi_asset_governor import retrain_candidates
+          state=retrain_candidates({'records':[]})
+          d=state['model_selection_diagnostics']
+          assert d['automatic_retry'] is True
+          assert d['human_approval_required'] is False
+          assert d['promotion_requires_holdout'] is True
+          assert d['next_action']=='retain_incumbents_and_retest_next_cycle'
+          assert state['model_selections']=={}
+          print('Autonomous selection safety contract passed')
+          PY
