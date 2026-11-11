@@ -342,7 +342,7 @@ class Handler(BaseHTTPRequestHandler):
  server_version="STAMPPrivate"
  def send(self,status,body,kind="text/plain; charset=utf-8",extra=None):
   self.send_response(status)
-  headers={"Content-Type":kind,"Content-Length":str(len(body)),"Cache-Control":"no-store, max-age=0","X-Content-Type-Options":"nosniff","X-Frame-Options":"DENY","Referrer-Policy":"no-referrer","Cross-Origin-Resource-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' wss://wbs-api.mexc.com; frame-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'","Strict-Transport-Security":"max-age=31536000; includeSubDomains"}
+  headers={"Content-Type":kind,"Content-Length":str(len(body)),"Cache-Control":"no-store, max-age=0","X-Content-Type-Options":"nosniff","X-Frame-Options":"SAMEORIGIN","Referrer-Policy":"no-referrer","Cross-Origin-Resource-Policy":"same-origin","Content-Security-Policy":"default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' wss://wbs-api.mexc.com; frame-src 'self'; img-src 'self'; base-uri 'none'; frame-ancestors 'none'","Strict-Transport-Security":"max-age=31536000; includeSubDomains"}
   headers.update(extra or {})
   for k,v in headers.items():self.send_header(k,v)
   self.end_headers();self.wfile.write(body)
