@@ -5,7 +5,10 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit,quote,parse_qs
-from market_flow import market_flow_snapshot
+try:
+ from src.market_flow import market_flow_snapshot
+except ModuleNotFoundError:
+ from market_flow import market_flow_snapshot
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
 PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json","autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json","multi_asset_forecasts.json")
