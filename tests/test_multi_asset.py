@@ -7,7 +7,8 @@ import multi_asset as assets
 class MultiAssetTests(unittest.TestCase):
  def test_validation_rejects_unbounded_or_non_usdt_symbols(self):
   self.assertEqual(assets.symbol("btc/usdt"),"BTCUSDT")
-  for bad in ("BTCUSD","../BTCUSDT","", "BTCUSDT?x=1"):
+  self.assertEqual(assets.symbol("s/usdt"),"SUSDT")
+  for bad in ("BTCUSD","../BTCUSDT","", "BTCUSDT?x=1","USDT"):
    with self.assertRaises(ValueError):assets.symbol(bad)
  def test_exactly_aligned_hourly_returns_do_not_imply_causality(self):
   a=[{"t":i*3600000,"c":100+i,"o":100+i,"h":100+i,"l":100+i,"v":1} for i in range(100)]
@@ -36,4 +37,18 @@ class MultiAssetTests(unittest.TestCase):
    result=assets.snapshot("BTCUSDT")
   self.assertEqual(set(result["candles"]),{"15m","1h","4h","1d"})
   self.assertEqual(result["symbol"],"BTCUSDT")
+ def test_dashboard_catalog_falls_back_to_official_api_symbols(self):
+  with patch.object(assets,"fetch",side_effect=[ValueError("not JSON"),{"code":200,"data":["BTCUSDT","SUSDT","BTCUSDT","XUSDC"]}]):
+   result=assets.dashboard_universe()
+  self.assertEqual(result["pairs"],["BTCUSDT","SUSDT"])
+  self.assertEqual(result["source"],"MEXC defaultSymbols")
+ def test_snapshot_keeps_healthy_periods_when_a_source_fails(self):
+  def frame(_,interval,**kwargs):
+   if interval=="4h":raise OSError("temporary upstream failure")
+   return [{"t":0,"o":1,"h":1,"l":1,"c":1,"v":1}]
+  with patch.object(assets,"fetch",return_value={"symbol":"BTCUSDT","lastPrice":"10"}),patch.object(assets,"candles",side_effect=frame):
+   result=assets.snapshot("SUSDT")
+  self.assertEqual(result["ticker"],{})
+  self.assertEqual(result["candles"]["4h"],[])
+  self.assertEqual(len(result["candles"]["1h"]),1)
 if __name__=="__main__":unittest.main()

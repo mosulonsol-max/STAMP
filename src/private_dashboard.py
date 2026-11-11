@@ -348,7 +348,7 @@ def login_html(error=False):
  message='<p class="warning" role="alert">تحقّق من اسم المستخدم وكلمة المرور.</p>' if error else ''
  return ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
  '<meta name="robots" content="noindex,nofollow"><title>STAMP | تسجيل الدخول</title>'
- '<link rel="stylesheet" href="/assets/style.css?v=chart-live-1"></head><body class="login-page">'
+ '<link rel="stylesheet" href="/assets/style.css?v=workspace-controls-1"></head><body class="login-page">'
  '<main class="panel login-card"><div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></div>'
  '<h1>الدخول إلى لوحة السوق</h1>'+message+
  '<form method="post" action="/login"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
@@ -425,13 +425,15 @@ class Handler(BaseHTTPRequestHandler):
     try:from src import multi_asset
     except ImportError:import multi_asset
     query=parse_qs(urlsplit(self.path).query)
-    if path=="/api/assets/universe":result=multi_asset.universe()
+    if path=="/api/assets/universe":result=multi_asset.dashboard_universe()
     elif path=="/api/assets/snapshot":result=multi_asset.snapshot(query.get("symbol",[""])[0])
     elif path=="/api/assets/venues":result=multi_asset.venue_comparison(query.get("symbol",[""])[0])
     elif path=="/api/assets/diagnostics":result=multi_asset.venue_diagnostics(query.get("symbol",[""])[0])
     elif path=="/api/assets/compare":result=multi_asset.compare(query.get("primary",[""])[0],query.get("secondary",[""])[0])
     else:return self.send(404,b"Not found")
     return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except json.JSONDecodeError:
+    return self.send(503,b'{"error":"asset_source_unavailable"}',"application/json; charset=utf-8")
    except (ValueError,TypeError) as exc:
     return self.send(400,json.dumps({"error":type(exc).__name__,"reason":str(exc)}).encode(),"application/json; charset=utf-8")
    except Exception as exc:

@@ -5,7 +5,7 @@ from urllib.request import Request,urlopen
 from urllib.parse import urlencode
 
 BASE="https://api.mexc.com/api/v3/"
-ALLOWED=re.compile(r"^[A-Z0-9]{2,22}USDT$")
+ALLOWED=re.compile(r"^[A-Z0-9]{1,22}USDT$")
 INTERVALS={"15m","30m","60m","4h","1d"}
 def fetch(endpoint,params=None,timeout=12):
     url=BASE+endpoint+("?" + urlencode(params) if params else "")
@@ -19,21 +19,47 @@ def symbol(value):
     v=str(value or "").upper().strip().replace("/","")
     if not ALLOWED.fullmatch(v):raise ValueError("invalid_usdt_symbol")
     return v
-def universe():
-    info=fetch("exchangeInfo")
-    pairs=sorted({x.get("symbol") for x in info.get("symbols",[]) if isinstance(x,dict) and isinstance(x.get("symbol"),str) and ALLOWED.fullmatch(x["symbol"]) and str(x.get("status","1")).upper() in ("1","ENABLED","TRADING","TRUE")})
-    return {"pairs":pairs,"count":len(pairs),"source":"MEXC exchangeInfo","retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
-def candles(pair,interval="60m",limit=300):
+def pair_catalog(values, source):
+    pairs = sorted({pair for pair in values if isinstance(pair, str) and ALLOWED.fullmatch(pair)})
+    if not pairs:
+        raise OSError("empty_mexc_pair_catalog")
+    return {
+        "pairs": pairs, "count": len(pairs), "source": source,
+        "retrieved_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+    }
+
+def universe(timeout=12):
+    info = fetch("exchangeInfo", timeout=timeout)
+    rows = info.get("symbols") if isinstance(info, dict) else None
+    if not isinstance(rows, list):
+        raise OSError("invalid_mexc_pair_catalog")
+    return pair_catalog((
+        row.get("symbol") for row in rows
+        if isinstance(row, dict) and str(row.get("status", "1")).upper() in ("1", "ENABLED", "TRADING", "TRUE")
+    ), "MEXC exchangeInfo")
+
+def dashboard_universe():
+    try:
+        return universe(timeout=6)
+    except (OSError, ValueError):
+        info = fetch("defaultSymbols", timeout=5)
+        rows = info.get("data") if isinstance(info, dict) and str(info.get("code")) == "200" else None
+        if not isinstance(rows, list):
+            raise OSError("invalid_mexc_api_symbols")
+        return pair_catalog(rows, "MEXC defaultSymbols")
+
+def candles(pair,interval="60m",limit=300,timeout=12):
     pair=symbol(pair)
     if interval not in INTERVALS:raise ValueError("invalid_interval")
-    raw=fetch("klines",{"symbol":pair,"interval":interval,"limit":min(500,max(60,int(limit)))})
+    raw=fetch("klines",{"symbol":pair,"interval":interval,"limit":min(500,max(60,int(limit)))},timeout=timeout)
+    if not isinstance(raw,list):raise OSError("invalid_mexc_candles")
     points=[]
     for row in raw:
         try:
             t=int(row[0]);o,h,l,c=map(float,row[1:5]);v=float(row[5])
             if all(math.isfinite(x) for x in (o,h,l,c,v)) and min(o,h,l,c)>0 and h>=max(o,c) and l<=min(o,c):
                 points.append({"t":t,"o":o,"h":h,"l":l,"c":c,"v":v})
-        except (TypeError,ValueError,IndexError):pass
+        except (TypeError,ValueError,IndexError,KeyError):pass
     points.sort(key=lambda x:x["t"])
     return points
 def corr(xs,ys):
@@ -95,14 +121,31 @@ def forecasts(frames):
     return {frame:forecast_frame(rows,frame) for frame,rows in frames.items() if frame in ("15m","1h","4h","1d")}
 
 def snapshot(pair):
-    pair=symbol(pair)
-    quote=fetch("ticker/24hr",{"symbol":pair})
-    if not isinstance(quote,dict) or quote.get("symbol")!=pair:raise ValueError("wrong_symbol_quote")
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        frames=dict(zip(("15m","1h","4h","1d"),pool.map(lambda tf:candles(pair,tf),("15m","60m","4h","1d"))))
-    result={"symbol":pair,"ticker":quote,"candles":frames,"research_forecasts":forecasts(frames),"source":"MEXC public REST",
-      "retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
-    return result
+    pair = symbol(pair)
+    intervals = {"15m": "15m", "1h": "60m", "4h": "4h", "1d": "1d"}
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        ticker_task = pool.submit(fetch, "ticker/24hr", {"symbol": pair}, timeout=6)
+        tasks = {frame: pool.submit(candles, pair, interval, timeout=6) for frame, interval in intervals.items()}
+        try:
+            ticker = ticker_task.result()
+        except (OSError, ValueError):
+            ticker = None
+        frames = {}
+        for frame, task in tasks.items():
+            try:
+                frames[frame] = task.result()
+            except (OSError, ValueError):
+                frames[frame] = []
+
+    if not isinstance(ticker, dict) or ticker.get("symbol") != pair:
+        ticker = {}
+    if not ticker and not any(frames.values()):
+        raise OSError("mexc_pair_data_unavailable")
+    return {
+        "symbol": pair, "ticker": ticker, "candles": frames,
+        "research_forecasts": forecasts(frames), "source": "MEXC public REST",
+        "retrieved_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+    }
 
 
 def venue_comparison(pair):

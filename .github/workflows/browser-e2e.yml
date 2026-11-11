@@ -60,6 +60,7 @@ jobs:
       - name: Verify login and data in real Chromium browser
         env:
           STAMP_CHROME_CHANNEL: chrome
+          STAMP_REAL_PAIR_CHECK: '1'
         run: npx playwright test browser-tests/stamp.spec.cjs --workers=1 --reporter=line
       - name: Upload browser verification evidence
         if: always()

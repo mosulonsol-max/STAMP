@@ -6,18 +6,18 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=chart-live-1">
+  <link rel="stylesheet" href="/assets/style.css?v=workspace-controls-1">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="#overview" aria-label="STAMP"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></a>
-      <nav class="page-nav" aria-label="أقسام لوحة السوق">
-        <a href="#trading" data-copy="Trading">التداول</a>
-        <a href="#globalMarketFlow" data-copy="Market flows">تدفقات السوق</a>
-        <a href="#venuesSection" data-copy="Exchanges">المنصات</a>
-        <a href="#labCenter" data-copy="Research">المختبر</a>
+      <nav class="page-nav" role="tablist" aria-label="أقسام لوحة السوق">
+        <a id="tradeTab" href="#trading" role="tab" aria-controls="trading" aria-selected="true" data-copy="Trading">التداول</a>
+        <a id="flowTab" href="#globalMarketFlow" role="tab" aria-controls="globalMarketFlow" aria-selected="false" data-copy="Market flows">تدفقات السوق</a>
+        <a id="venuesTab" href="#venuesSection" role="tab" aria-controls="venuesSection" aria-selected="false" data-copy="Exchanges">المنصات</a>
+        <a id="labTab" href="#labCenter" role="tab" aria-controls="labCenter" aria-selected="false" data-copy="Research">المختبر</a>
       </nav>
       <div class="toolbar-actions">
         <span id="status" role="status">جاري الاتصال</span>
@@ -42,10 +42,9 @@
         </div>
         <div class="market-tools">
           <div class="asset-controls">
-            <label class="sr-only" for="assetSearch" data-copy="Search trading pairs">ابحث عن زوج</label>
-            <input id="assetSearch" type="search" placeholder="ابحث عن زوج" data-placeholder="Search pairs" autocomplete="off">
-            <label class="sr-only" for="assetSelect" data-copy="Trading pair">زوج التداول</label>
-            <select id="assetSelect" dir="ltr"><option value="STAMPUSDT">STAMP / USDT</option><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select>
+            <button class="pair-picker-button" id="assetPickerButton" type="button" aria-haspopup="dialog" aria-controls="assetPicker">
+              <span data-copy="Choose coin">اختر العملة</span><bdi id="assetSelected">STAMP / USDT</bdi><span aria-hidden="true">⌄</span>
+            </button>
             <button class="favorite-button" type="button" id="assetFavorite" aria-label="المفضلة" aria-pressed="false">☆</button>
           </div>
           <div class="asset-tools-meta">
@@ -71,7 +70,7 @@
     </section>
     <div id="warning" class="warning" role="alert" hidden></div>
 
-    <div class="trade-grid" id="trading">
+    <div class="trade-grid" id="trading" role="tabpanel" aria-labelledby="tradeTab">
       <section class="panel chart-panel" aria-labelledby="chartTitle">
         <header class="panel-header chart-header">
           <h2 id="chartTitle" data-copy="Price chart">الرسم السعري</h2>
@@ -158,7 +157,7 @@
       </aside>
     </div>
 
-    <section class="market-section" id="globalMarketFlow" aria-labelledby="flowTitle">
+    <section class="market-section" id="globalMarketFlow" role="tabpanel" aria-labelledby="flowTab">
       <header class="section-header">
         <div>
           <h2 id="flowTitle" data-copy="Global market flows">تدفقات السوق العالمية</h2>
@@ -209,7 +208,7 @@
       </div>
     </section>
 
-    <section class="market-section" id="venuesSection" aria-labelledby="venuesTitle">
+    <section class="market-section" id="venuesSection" role="tabpanel" aria-labelledby="venuesTab">
       <header class="section-header">
         <div><h2 id="venuesTitle" data-copy="Exchanges and liquidity">المنصات والسيولة</h2><p id="venueNetworkStatus" role="status">جارٍ جلب بيانات المنصات</p></div>
         <div class="scene-toolbar">
@@ -259,7 +258,7 @@
       </div>
     </section>
 
-    <section class="market-section" id="labCenter" aria-labelledby="labTitle">
+    <section class="market-section" id="labCenter" role="tabpanel" aria-labelledby="labTab">
       <header class="section-header">
         <div><h2 id="labTitle" data-copy="Research lab">مختبر النماذج</h2><p data-copy="Experiment outcomes and background engine status">نتائج التجارب وحالة المحرك في الخلفية</p></div>
       </header>
@@ -291,6 +290,23 @@
     </footer>
   </main>
 
+  <dialog id="assetPicker" class="pair-picker" aria-labelledby="assetPickerTitle">
+    <header class="pair-picker-header">
+      <h2 id="assetPickerTitle" data-copy="Choose a trading pair">اختيار العملة</h2>
+      <form method="dialog"><button type="submit" class="quiet-button" aria-label="إغلاق">×</button></form>
+    </header>
+    <form id="assetSearchForm" class="pair-search" role="search">
+      <label for="assetSearch" class="sr-only" data-copy="Search by pair or coin symbol">ابحث برمز العملة أو الزوج</label>
+      <input id="assetSearch" type="search" dir="auto" placeholder="ابحث برمز العملة" data-placeholder="Search by coin symbol" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="search">
+    </form>
+    <p id="assetCatalogStatus" class="pair-picker-status muted" role="status"></p>
+    <div id="assetResultScroll" class="pair-result-scroll">
+      <ul id="assetResults" class="pair-results" role="list" aria-label="أزواج USDT"></ul>
+      <p id="assetNoResults" class="pair-picker-status muted" hidden></p>
+      <button id="assetMore" type="button" class="pair-more" data-copy="Show more pairs" hidden>عرض المزيد</button>
+    </div>
+  </dialog>
+
   <dialog id="settings" aria-labelledby="settingsTitle">
     <form method="dialog">
       <header class="dialog-header"><h2 id="settingsTitle" data-i18n="settings">الإعدادات</h2><button type="submit" aria-label="إغلاق">×</button></header>
@@ -308,7 +324,7 @@
   <script src="/assets/chart.js?v=5.0.9" defer></script>
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
-  <script src="/assets/app.js?v=chart-live-1" defer></script>
+  <script src="/assets/app.js?v=workspace-controls-1" defer></script>
   <script src="/assets/market-flow.js?v=market-workspace-1" defer></script>
 </body>
 </html>

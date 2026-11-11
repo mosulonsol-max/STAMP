@@ -704,34 +704,90 @@ function render(result){
  paintQuote();
 }
 
-let assetRequestId=0;
-let selectedAsset="STAMPUSDT",assetPairs=["STAMPUSDT","BTCUSDT","ETHUSDT","SOLUSDT"],assetCache=null,assetPending=null,lastLaboratory={};
-let favorites=[];try{favorites=JSON.parse(localStorage.getItem("stamp_favorite_pairs")||"[]").filter(v=>/^[A-Z0-9]{2,22}USDT$/.test(v))}catch(e){}
+const PAIR_SYMBOL=/^[A-Z0-9]{1,22}USDT$/;
+const starterPairs=["STAMPUSDT","BTCUSDT","ETHUSDT","SOLUSDT"];
+const pairLabel=pair=>pair.replace(/USDT$/," / USDT");
+let selectedAsset="STAMPUSDT",assetCache=null,assetPending=null,lastLaboratory={};
+let assetPairs=starterPairs,catalogState="loading",catalogPending=false,catalogObserved=null,visiblePairs=60;
+const pairCatalog=values=>Array.isArray(values)?[...new Set(values.filter(value=>typeof value==="string"&&PAIR_SYMBOL.test(value)))].sort():[];
+let favorites=[];
+try{
+ favorites=pairCatalog(JSON.parse(localStorage.getItem("stamp_favorite_pairs")||"[]"));
+ const saved=JSON.parse(localStorage.getItem("stamp_asset_catalog")||"null");
+ const savedPairs=pairCatalog(saved?.pairs);
+ if(savedPairs.length){
+  assetPairs=pairCatalog([...starterPairs,...savedPairs]);
+  catalogState="cached";
+  catalogObserved=saved.observed;
+ }
+}catch{}
 function favoritesUi(){
  const select=el("favoriteSelect"),button=el("assetFavorite"),favorite=favorites.includes(selectedAsset);
- select.innerHTML='<option value="">'+copy("المفضلة","Favorites")+'</option>'+favorites.map(v=>'<option value="'+esc(v)+'">'+esc(v.replace(/USDT$/," / USDT"))+'</option>').join("");
+ select.innerHTML='<option value="">'+copy("المفضلة","Favorites")+'</option>'+favorites.map(v=>'<option value="'+esc(v)+'">'+esc(pairLabel(v))+'</option>').join("");
  select.value=favorite?selectedAsset:"";
  button.textContent=favorite?"★":"☆";
  button.setAttribute("aria-pressed",String(favorite));
  button.setAttribute("aria-label",copy("الأزواج المفضلة","Favorite pairs"));
 }
-function universeUi(filter=""){
- const wanted=filter.toUpperCase().replace(/[^A-Z0-9]/g,""),selected=el("assetSelect");
- const matches=assetPairs.filter(v=>v.includes(wanted)).slice(0,350);
- if(!matches.includes(selectedAsset))matches.unshift(selectedAsset);
- selected.innerHTML=matches.map(v=>'<option value="'+esc(v)+'">'+esc(v.replace(/USDT$/," / USDT"))+'</option>').join("");
- selected.value=selectedAsset;
+function searchPairs(){
+ const query=el("assetSearch").value.trim().toUpperCase().replace(/[\s/-]/g,"");
+ if(!query)return {query,exact:null,matches:[...new Set([...starterPairs,...favorites,...assetPairs])]};
+ if(!/^[A-Z0-9]{1,26}$/.test(query))return {query,exact:null,matches:[]};
+ const exact=query.endsWith("USDT")?query:query+"USDT";
+ const fullPair=query.endsWith("USDT");
+ const matches=assetPairs.filter(pair=>(fullPair?pair:pair.slice(0,-4)).includes(query));
+ matches.sort((a,b)=>Number(b===exact)-Number(a===exact)||Number(b.startsWith(query))-Number(a.startsWith(query))||a.localeCompare(b));
+ return {query,exact:PAIR_SYMBOL.test(exact)?exact:null,matches};
+}
+function renderAssetPicker(){
+ const {query,exact,matches}=searchPairs();
+ const direct=exact&&matches.length===0;
+ const choices=matches.slice(0,visiblePairs);
+ if(direct)choices.push(exact);
+ el("assetResults").innerHTML=choices.map(pair=>'<li><button type="button" data-pair="'+esc(pair)+'"'+
+  (pair===selectedAsset?' aria-current="true"':'')+'><bdi>'+esc(pairLabel(pair))+'</bdi>'+
+  (direct?'<small>'+copy("جلب بيانات الزوج","Load pair data")+'</small>':pair===selectedAsset?'<small>'+copy("محدد","Selected")+'</small>':'')+
+  '</button></li>').join("");
+ el("assetMore").hidden=matches.length<=visiblePairs;
+ el("assetNoResults").hidden=choices.length>0;
+ set("assetNoResults",query?copy("لم يُعثر على زوج بهذا الرمز","No pair matches this symbol"):"");
+ const state=catalogState==="ready"
+  ? (query?matches.length:assetPairs.length)+copy(" زوج"," pairs")
+  : catalogState==="cached"?copy("القائمة المحفوظة · ","Saved catalog · ")+stamp(catalogObserved)
+  : catalogState==="loading"?copy("جارٍ تحميل قائمة الأزواج","Loading pair catalog")
+  : copy("تعذّر تحديث القائمة. يمكنك إدخال رمز الزوج.","Catalog unavailable. Enter a pair symbol to load it.");
+ set("assetCatalogStatus",state);
 }
 async function loadAssetUniverse(){
- try{const r=await fetch("/api/assets/universe",{credentials:"same-origin",cache:"no-store"});if(!r.ok)throw Error("HTTP "+r.status);
-  const result=await r.json();if(!Array.isArray(result.pairs))throw Error("Invalid pairs");
-  assetPairs=[...new Set([...result.pairs,"STAMPUSDT"])].sort();universeUi(el("assetSearch").value);
-  if(selectedAsset==="STAMPUSDT")set("assetMessage",assetPairs.length+copy(" زوج USDT"," USDT pairs"));
- }catch{if(selectedAsset==="STAMPUSDT")set("assetMessage",copy("تعذّر تحديث قائمة الأزواج","Pair list could not refresh"))}
- favoritesUi();
+ if(offline||catalogPending)return;
+ catalogPending=true;
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),14000);
+ try{
+  const response=await fetch("/api/assets/universe",{credentials:"same-origin",cache:"no-store",signal:controller.signal});
+  if(response.status===401){window.location.href="/login";return}
+  if(!response.ok)throw Error("catalog");
+  const result=await response.json(),pairs=pairCatalog(result.pairs);
+  if(!pairs.length)throw Error("empty catalog");
+  assetPairs=pairCatalog([...starterPairs,...pairs]);
+  catalogState="ready";
+  catalogObserved=result.retrieved_at_utc;
+  try{localStorage.setItem("stamp_asset_catalog",JSON.stringify({pairs,observed:catalogObserved}))}catch{}
+ }catch{
+  if(catalogState!=="cached")catalogState="unavailable";
+ }finally{
+  clearTimeout(timer);
+  catalogPending=false;
+  if(el("assetPicker")?.open)renderAssetPicker();
+ }
 }
+function choosePair(pair){
+ if(!PAIR_SYMBOL.test(pair))return;
+ el("assetPicker").close();
+ selectAsset(pair);
+}
+
 async function selectAsset(symbol){
- if(!/^[A-Z0-9]{2,22}USDT$/.test(symbol)||symbol===selectedAsset)return;
+ if(!PAIR_SYMBOL.test(symbol)||symbol===selectedAsset||offline)return;
  selectedAsset=symbol;
  data=null;
  assetCache=null;
@@ -742,9 +798,10 @@ async function selectAsset(symbol){
  inspectingChart=false;
  venueTopology=null;
  microRequest++;
- assetRequestId++;
+ assetPending?.abort();
  assetPending=null;
- set("coinName",symbol.replace(/USDT$/,"")+" / USDT");
+ set("coinName",pairLabel(symbol));
+ set("assetSelected",pairLabel(symbol));
  set("venueLine",symbol==="STAMPUSDT"?"MEXC · Solana":"MEXC");
  for(const id of ["price","change","volume","high24","low24","liquidity","marketCap","forecastSummary"])set(id,"—");
  for(const id of ["observed","liquidityTime","dataAge","streamStatus","forecastCards","assetCorrelation","sceneNodeDetail","venueMetrics","connectorAudit","engineAudit","microStatus","microMetrics"])set(id,"");
@@ -753,37 +810,40 @@ async function selectAsset(symbol){
  set("status",copy("جارٍ التحميل","Loading"));
  set("assetMessage",copy("جارٍ تحميل البيانات","Loading data"));
  el("forecastHorizon").disabled=symbol!=="STAMPUSDT";
+ startStream();
+ pollMarket(true);
+ const loadingPair=refresh();
  renderForecasts();renderChart();renderAssurance();renderInputs();
- universeUi(el("assetSearch").value);
  favoritesUi();
  drawNeuralScene();
  updateVenueNetwork();
- startStream();
- pollMarket(true);
- await refresh();
+ await loadingPair;
 }
 async function loadSelectedAsset(){
  const symbol=selectedAsset;
- if(assetPending===symbol)return;
- const requestId=++assetRequestId;
- assetPending=symbol;
+ if(assetPending)return;
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+ assetPending=controller;
  try{
-  const r=await fetch("/api/assets/snapshot?symbol="+encodeURIComponent(symbol),{credentials:"same-origin",cache:"no-store"});
+  const r=await fetch("/api/assets/snapshot?symbol="+encodeURIComponent(symbol),{credentials:"same-origin",cache:"no-store",signal:controller.signal});
+  if(assetPending!==controller)return;
+  if(r.status===401){window.location.href="/login";return}
   if(!r.ok)throw Error("HTTP "+r.status);
   const fetched=await r.json();
-  if(selectedAsset!==symbol||requestId!==assetRequestId)return;
+  if(selectedAsset!==symbol||assetPending!==controller)return;
   if(fetched.symbol!==symbol||!fetched.ticker)throw Error("Invalid pair snapshot");
   assetCache=fetched;
   showSelectedAsset();
- }catch(error){
-  if(requestId!==assetRequestId||symbol!==selectedAsset)return;
-  set("assetMessage",copy("تعذّر تحديث بيانات الزوج","Could not refresh pair")+" · "+error.message);
+ }catch{
+  if(assetPending!==controller||symbol!==selectedAsset)return;
+  set("assetMessage",copy("تعذّر تحميل سجل الزوج","Pair history could not be loaded"));
   if(!quoteLive){
    set("status",assetCache?t("staleData"):t("unavailable"));
    el("status").className="stale";
   }
  }finally{
-  if(requestId===assetRequestId)assetPending=null;
+  clearTimeout(timer);
+  if(assetPending===controller)assetPending=null;
  }
 }
 function showSelectedAsset(){
@@ -893,12 +953,12 @@ function setFrame(value){
  const previousSource=FRAME_SOURCE[frame]||frame;
  frame=value;
  inspectingChart=false;
- for(const button of document.querySelectorAll("[data-frame]"))button.setAttribute("aria-pressed",String(button.dataset.frame===value));
+ for(const button of document.querySelectorAll("#frames button[data-frame]"))button.setAttribute("aria-pressed",String(button.dataset.frame===value));
  renderForecasts();
  renderChart();
  if(previousSource!==(FRAME_SOURCE[frame]||frame)&&window.StampMarket){resetMarketPoll();pollMarket(true)}
 }
-for(const button of document.querySelectorAll("[data-frame]"))button.addEventListener("click",()=>setFrame(button.dataset.frame));
+for(const button of document.querySelectorAll("#frames button[data-frame]"))button.addEventListener("click",()=>setFrame(button.dataset.frame));
 for(const button of document.querySelectorAll("[data-layer]")){
  const key=button.dataset.layer;
  button.setAttribute("aria-pressed",String(enabledLayers.has(key)));
@@ -932,8 +992,38 @@ el("logoutButton").addEventListener("click",async()=>{try{await fetch("/logout",
 el("langSelect").addEventListener("change",event=>{lang=event.target.value==="en"?"en":"ar";try{localStorage.setItem("stamp_language",lang)}catch(e){}translate();if(data)render(data)});
 el("zoneSelect").addEventListener("change",event=>{zone=["UTC","Asia/Baghdad","Asia/Makassar"].includes(event.target.value)?event.target.value:"UTC";try{localStorage.setItem("stamp_timezone",zone)}catch(e){}translate();if(data)render(data)});
 el("diagnose").addEventListener("click",async()=>{try{const response=await fetch("/api/status",{credentials:"same-origin",cache:"no-store"}),s=await response.json();set("diagnosticResult","API: "+s.api+" · "+stamp(s.observation_utc)+" · "+(s.research_fresh?"FRESH":"ARCHIVED"))}catch(error){set("diagnosticResult",error.message)}});
-el("assetSearch").addEventListener("input",e=>universeUi(e.target.value));
-el("assetSelect").addEventListener("change",e=>selectAsset(e.target.value));
+el("assetPickerButton").disabled=offline;
+el("assetPickerButton").addEventListener("click",()=>{
+ const picker=el("assetPicker");
+ if(picker.open)return;
+ el("assetSearch").value="";
+ visiblePairs=60;
+ renderAssetPicker();
+ picker.showModal();
+ el("assetResultScroll").scrollTop=0;
+ if(catalogState!=="ready")loadAssetUniverse();
+});
+el("assetSearch").addEventListener("input",()=>{
+ visiblePairs=60;
+ renderAssetPicker();
+ el("assetResultScroll").scrollTop=0;
+});
+el("assetSearchForm").addEventListener("submit",event=>{
+ event.preventDefault();
+ const {exact,matches}=searchPairs();
+ if(exact&&(matches.includes(exact)||matches.length===0))choosePair(exact);
+ else if(matches.length===1)choosePair(matches[0]);
+});
+el("assetResults").addEventListener("click",event=>{
+ const button=event.target.closest("button[data-pair]");
+ if(button)choosePair(button.dataset.pair);
+});
+el("assetMore").addEventListener("click",()=>{
+ const scroller=el("assetResultScroll"),position=scroller.scrollTop;
+ visiblePairs+=60;
+ renderAssetPicker();
+ scroller.scrollTop=position;
+});
 el("favoriteSelect").addEventListener("change",e=>{if(e.target.value)selectAsset(e.target.value)});
 el("assetFavorite").addEventListener("click",()=>{if(favorites.includes(selectedAsset))favorites=favorites.filter(v=>v!==selectedAsset);else favorites.push(selectedAsset);
  try{localStorage.setItem("stamp_favorite_pairs",JSON.stringify(favorites))}catch(e){}favoritesUi()});
@@ -943,15 +1033,50 @@ el("venueForm")?.addEventListener("submit",event=>{
  event.preventDefault();
  loadMicrostructure(el("venueSelect").value);
 });
-function markCurrentSection(){
- const active=window.location.hash||"#trading";
- document.querySelectorAll(".page-nav a").forEach(link=>{
-  if(link.hash===active)link.setAttribute("aria-current","location");
-  else link.removeAttribute("aria-current");
+const workspaceTabs=[...document.querySelectorAll('.page-nav [role="tab"]')];
+function openWorkspaceTab(id,{writeHistory=false,scroll=false}={}){
+ const tab=workspaceTabs.find(link=>link.getAttribute("aria-controls")===id)||workspaceTabs[0];
+ if(!tab)return;
+ for(const link of workspaceTabs){
+  const active=link===tab;
+  link.setAttribute("aria-selected",String(active));
+  link.tabIndex=active?0:-1;
+  el(link.getAttribute("aria-controls")).hidden=!active;
+ }
+ if(writeHistory&&window.location.hash!==tab.hash)window.history.pushState(null,"",tab.hash);
+ if(scroll){
+  if(tab.hash==="#trading")window.scrollTo(0,0);
+  else window.requestAnimationFrame(()=>{
+   if(tab.getAttribute("aria-selected")==="true")el(tab.getAttribute("aria-controls")).scrollIntoView({block:"start"});
+  });
+ }
+}
+for(const [index,tab] of workspaceTabs.entries()){
+ tab.addEventListener("click",event=>{
+  if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();
+  openWorkspaceTab(tab.getAttribute("aria-controls"),{writeHistory:true,scroll:true});
+ });
+ tab.addEventListener("keydown",event=>{
+  let next;
+  if(event.key==="Home")next=0;
+  else if(event.key==="End")next=workspaceTabs.length-1;
+  else if(event.key==="ArrowLeft"||event.key==="ArrowRight"){
+   const step=(event.key==="ArrowRight")===(lang==="en")?1:-1;
+   next=(index+step+workspaceTabs.length)%workspaceTabs.length;
+  }else return;
+  event.preventDefault();
+  const target=workspaceTabs[next];
+  openWorkspaceTab(target.getAttribute("aria-controls"),{writeHistory:true,scroll:true});
+  target.focus({preventScroll:true});
  });
 }
-window.addEventListener?.("hashchange",markCurrentSection);
-markCurrentSection();
+function openTabFromLocation(){
+ const hash=window.location.hash||"";
+ openWorkspaceTab(hash.slice(1),{scroll:hash.length>1});
+}
+window.addEventListener?.("hashchange",openTabFromLocation);
+openTabFromLocation();
 translate();initializeSceneControls();refresh();
 if(!offline){
  loadAssetUniverse();updateVenueNetwork();startStream();updateWorkerStatus();
