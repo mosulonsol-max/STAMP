@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit,quote,parse_qs
+from market_flow import market_flow_snapshot
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
 PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json","autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json","multi_asset_forecasts.json")
@@ -359,11 +360,17 @@ class Handler(BaseHTTPRequestHandler):
    try:return self.send(200,(ROOT/"dashboard"/"private.css").read_bytes(),"text/css; charset=utf-8")
    except OSError:return self.send(503,b"Asset unavailable")
   if not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
-   if path in ("/","/index.html","/nexus","/login"):return self.send(200,login_html(),"text/html; charset=utf-8")
+   if path in ("/","/index.html","/nexus","/market-flow","/login"):return self.send(200,login_html(),"text/html; charset=utf-8")
    if path.startswith("/api/"):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
    return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
+  if path=="/api/market-flow":
+   try:
+    body=json.dumps(market_flow_snapshot(),ensure_ascii=False,allow_nan=False).encode("utf-8")
+    return self.send(200,body,"application/json; charset=utf-8")
+   except Exception as exc:
+    return self.send(503,json.dumps({"error":"market_data_unavailable","detail":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/assets/learning-loop":
    try:
     q=parse_qs(urlsplit(self.path).query)
@@ -474,7 +481,7 @@ class Handler(BaseHTTPRequestHandler):
       "utc":dt.datetime.now(dt.timezone.utc).isoformat()}).encode(),"application/json; charset=utf-8")
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
-  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/style.css":"private.css"}
+  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/market-flow":"market-flow.html","/assets/market-flow.js":"market-flow.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:
