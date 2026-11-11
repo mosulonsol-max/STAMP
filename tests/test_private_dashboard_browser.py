@@ -22,6 +22,7 @@ function createElements(embedded){
  const ids={};
  const mk=id=>ids[id]||(ids[id]={
   id,value:'',dataset:{},textContent:'',innerHTML:'',hidden:false,disabled:false,style:{},
+  setAttribute(name,value){this[name]=value},
   addEventListener(type,callback){this.events??={};this.events[type]=callback},
   getBoundingClientRect(){return {width:700,height:300}},
   getContext(){return {setTransform(){},clearRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},fillText(){},fillRect(){}}},

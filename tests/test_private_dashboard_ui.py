@@ -30,4 +30,10 @@ class PrivateUIRegressionTests(unittest.TestCase):
   for key in ('langSelect','zoneSelect','settings','logoutButton','changePassword','diagnose'):self.assertIn('id="'+key+'"',HTML)
   self.assertIn('lang="ar"',HTML);self.assertIn('dir="rtl"',HTML)
   self.assertNotIn('type="password"',HTML)
+ def test_global_flow_is_rendered_in_the_dashboard_document(self):
+  parsed=Elements();parsed.feed(HTML)
+  self.assertEqual(parsed.tags['globalMarketFlow'],'section')
+  self.assertEqual(parsed.tags['flowScene'],'canvas')
+  self.assertEqual(parsed.tags['flowHistory'],'canvas')
+  self.assertNotIn('<iframe',HTML)
 if __name__=='__main__':unittest.main()

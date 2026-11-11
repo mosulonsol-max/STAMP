@@ -53,6 +53,39 @@ test('data stays private while the open-source chart asset is reachable',async({
  const asset=await request.get(HOST+'/assets/chart.js');expect(asset.status()).toBe(200);expect(await asset.text()).toContain('TradingView Lightweight Charts');
 });
 
+test('global market flow and history share the authenticated workspace',async({page})=>{
+ const day=86400,latest=Math.floor(Date.now()/1000/day)*day;
+ const points=Array.from({length:32},(_,i)=>({t:latest-(31-i)*day,v:290e9+i*1e9-(i%3)*2e9}));
+ await page.route('**/api/market-flow',route=>route.fulfill({json:{
+  market_cap_usd:3e12,volume_24h_usd:100e9,stablecoin_supply_usd:points.at(-1).v,
+  market_observed_at_utc:new Date().toISOString(),stablecoin_supply_observed_at_utc:new Date(latest*1000).toISOString(),
+  stablecoin_history:points,sources:{market:'CoinGecko',stablecoins:'DefiLlama'}
+ }}));
+ await page.goto(HOST+'/');
+ await page.locator('#user').fill('test-user');
+ await page.locator('#password').fill('long-test-password');
+ await page.locator('form[action="/login"] button').click();
+ await page.locator('.page-nav a[href="#globalMarketFlow"]').click();
+ await expect(page.locator('#globalMarketFlow canvas')).toHaveCount(2);
+ await expect(page.locator('iframe')).toHaveCount(0);
+ await expect(page.locator('#flowCap')).toHaveText('$3T');
+ await expect(page.locator('#flowRange')).toContainText('31');
+ const scene=page.locator('#flowScene');
+ const initial=await scene.evaluate(canvas=>canvas.toDataURL());
+ await page.locator('[data-days="7"]').click();
+ await expect(page.locator('[data-days="7"]')).toHaveAttribute('aria-pressed','true');
+ await expect(page.locator('#flowRange')).toContainText('8');
+ const short=await scene.evaluate(canvas=>canvas.toDataURL());
+ expect(short).not.toBe(initial);
+ await scene.press('ArrowRight');
+ expect(await scene.evaluate(canvas=>canvas.toDataURL())).not.toBe(short);
+ await page.setViewportSize({width:390,height:844});
+ await expect(scene).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
+ await page.goto(HOST+'/market-flow');
+ await expect(page).toHaveURL(HOST+'/#globalMarketFlow');
+});
+
 test('stream changes price, 24h metrics and forming candle without reload; disconnect falls back automatically',async({page})=>{
  const {field,message,ticker}=require('../tests/market_stream.cjs');
  let socket,restPrice=.0001111,quoteRequests=0;

@@ -330,13 +330,15 @@ def session_valid(cookie_header):
   return bool(os.getenv("DASHBOARD_USER") and os.getenv("DASHBOARD_PASSWORD")) and hmac.compare_digest(sig,expected)
  except (ValueError,TypeError):return False
 def login_html(error=False):
- message='<p role="alert">اسم المستخدم أو كلمة المرور غير صحيحة. / Invalid credentials.</p>' if error else ''
+ message='<p class="warning" role="alert">تحقّق من اسم المستخدم وكلمة المرور.</p>' if error else ''
  return ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
- '<title>STAMP NEXUS — Secure Access</title><link rel="stylesheet" href="/assets/style.css"></head><body>'
- '<main><h1>STAMP NEXUS</h1><p>الواجهة الجديدة / WebGL + Research Loop</p><p><small>Build: NEXUS-20261110-2</small></p>'+message+
+ '<meta name="robots" content="noindex,nofollow"><title>STAMP | تسجيل الدخول</title>'
+ '<link rel="stylesheet" href="/assets/style.css?v=market-workspace-1"></head><body class="login-page">'
+ '<main class="panel login-card"><div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></div>'
+ '<h1>الدخول إلى لوحة السوق</h1>'+message+
  '<form method="post" action="/login"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
  '<p><label for="password">كلمة المرور</label><input id="password" type="password" name="password" autocomplete="current-password" required></p>'
- '<button type="submit">دخول / Sign in</button></form></main></body></html>').encode("utf-8")
+ '<button type="submit">تسجيل الدخول</button></form></main></body></html>').encode("utf-8")
 
 class Handler(BaseHTTPRequestHandler):
  server_version="STAMPPrivate"
@@ -356,7 +358,7 @@ class Handler(BaseHTTPRequestHandler):
   if path=="/healthz":
    # A 200 response must mean the deployment can actually serve its UI and archived data.
    try:
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","nexus.html","nexus.js","nexus.css","market-stream.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
    except Exception:healthy=False
    return self.send(200 if healthy else 503,b"ok" if healthy else b"deployment_assets_or_research_missing")
   if path=="/assets/style.css" and not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
@@ -484,7 +486,8 @@ class Handler(BaseHTTPRequestHandler):
       "utc":dt.datetime.now(dt.timezone.utc).isoformat()}).encode(),"application/json; charset=utf-8")
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
-  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/market-flow":"market-flow.html","/assets/market-flow.js":"market-flow.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/style.css":"private.css"}
+  if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
+  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/assets/market-flow.js":"market-flow.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:
@@ -511,8 +514,7 @@ class Handler(BaseHTTPRequestHandler):
       dash="—".encode("utf-8")
       content=content.replace(b'id="price">'+dash+b'</div>',b'id="price">'+display+b'</div>',1)
       content=content.replace(b'id="observed">'+dash+b'</div>',b'id="observed">ARCHIVED UTC: '+timestamp+b'</div>',1)
-      content=content.replace('id="status" role="status">جاري الاتصال</span>'.encode("utf-8"),b'id="status" role="status">ARCHIVED</span>',1)
-      content=content.replace(b'id="sourceLine" aria-live="polite">'+dash+b'</div>',b'id="sourceLine" aria-live="polite">Archived research: '+timestamp+b' UTC. Not a live quote.</div>',1)
+      content=content.replace('id="status" role="status">جاري الاتصال</span>'.encode("utf-8"),'id="status" class="archived" role="status">سعر مؤرشف</span>'.encode("utf-8"),1)
    return self.send(200,content,kind+"; charset=utf-8")
   except OSError:return self.send(503,b"Asset unavailable")
  def do_POST(self):

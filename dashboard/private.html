@@ -1,55 +1,306 @@
 <!doctype html>
-<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="theme-color" content="#0b1220"><title>STAMP NEXUS | Intelligence Command Center</title><link rel="stylesheet" href="/assets/style.css?v=command-audit-20261110"></head>
-<body><main class="terminal">
-<header class="toolbar"><div class="brand"><span class="brand-mark">S</span><span>STAMP <small>NEXUS / INTELLIGENCE OS</small></span></div><div class="toolbar-actions"><span id="status" role="status">جاري الاتصال</span><button id="refresh" type="button" data-i18n="refresh">تحديث</button><button id="settingsButton" type="button" data-i18n="settings" aria-haspopup="dialog" aria-controls="settings">الإعدادات</button></div></header>
-<nav style="padding:12px 18px"><a href="#globalMarketFlow" style="color:#74dcff;font-weight:700;text-decoration:none">◈ مرصد التدفقات العالمية 3D · ضمن هذه الصفحة</a></nav>\n<div class="stream-health"><span id="streamStatus" role="status">جارٍ الاتصال بالبث</span><span id="dataAge">—</span></div>
-<div id="warning" class="warning" role="alert" hidden></div>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="theme-color" content="#0d1117">
+  <title>STAMP | لوحة السوق</title>
+  <link rel="stylesheet" href="/assets/style.css?v=market-workspace-1">
+</head>
+<body class="dashboard-page">
+  <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#overview" aria-label="STAMP"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></a>
+      <nav class="page-nav" aria-label="أقسام لوحة السوق">
+        <a href="#trading" data-copy="Trading">التداول</a>
+        <a href="#globalMarketFlow" data-copy="Market flows">تدفقات السوق</a>
+        <a href="#venuesSection" data-copy="Exchanges">المنصات</a>
+        <a href="#labCenter" data-copy="Research">المختبر</a>
+      </nav>
+      <div class="toolbar-actions">
+        <span id="status" role="status">جاري الاتصال</span>
+        <button class="quiet-button" id="refresh" type="button" data-i18n="refresh">تحديث</button>
+        <button class="quiet-button" id="settingsButton" type="button" data-i18n="settings" aria-haspopup="dialog" aria-controls="settings">الإعدادات</button>
+      </div>
+    </div>
+  </header>
 
-<div class="nexus-heading"><div><span class="nexus-kicker">MARKET INTELLIGENCE / LIVE RESEARCH</span><h1>سوق واحد. مصادر متعددة. رؤية أعمق.</h1><p>استكشف الشبكة، افحص اختلاف المنصات، وانتقل من البيانات إلى الأدلة والتوقعات.</p></div><div class="nexus-heading-status"><span class="pulse-light"></span><span>MARKET TOPOLOGY</span><small>Public API telemetry</small></div></div>
-<div class="nexus-workspace"><aside class="nexus-rail"><div class="nexus-rail-heading">01 / MARKET EXPLORER</div><section class="asset-selector" aria-label="Multi-asset market research">
- <label for="assetSearch">العملة / البحث</label><input id="assetSearch" type="search" placeholder="BTC, ETH, SOL, STAMP…" autocomplete="off">
- <select id="assetSelect" aria-label="اختيار العملة" style="min-width:220px;min-height:42px"><option value="STAMPUSDT">STAMP / USDT</option></select>
- <button type="button" id="assetFavorite" aria-label="إضافة للمفضلة">☆ المفضلة</button>
- <label for="favoriteSelect">المفضلة</label><select id="favoriteSelect"><option value="">اختر من المفضلة</option></select>
- <label for="assetCompare">قارن مع</label><select id="assetCompare"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select>
- <button id="compareAssets" type="button">تحليل الارتباط والتأخر</button>
- <div id="assetMessage" role="status" aria-live="polite"></div><div id="assetCorrelation" role="region" aria-label="Cross-asset correlation"></div>
- <small>الارتباط الإحصائي لا يثبت التأثير السببي. توقعات STAMP لا تنطبق على العملات الأخرى.</small>
-</section><section class="market-overview" aria-label="STAMP market summary">
- <div class="coin-row"><div><h1 id="coinName">STAMP <span>/ USDT</span></h1><p class="muted" id="venueLine">MEXC · Solana</p></div><div class="quote-block"><div class="hero-price" id="price">—</div><div class="price-caption"><span id="change">—</span><span class="muted" data-i18n="change24">خلال 24 ساعة</span></div></div></div>
- <div class="market-metrics">
-  <div><span data-i18n="liquidity">السيولة المرصودة · DEX</span><strong id="liquidity">—</strong></div>
-  <div><span data-i18n="marketCap">القيمة السوقية · DEX</span><strong id="marketCap">—</strong></div>
-  <div><span data-i18n="volume24">حجم التداول 24 ساعة · USDT</span><strong id="volume">—</strong></div>
-  <div><span data-i18n="high24">أعلى سعر 24 ساعة · USDT</span><strong id="high24">—</strong></div>
-  <div><span data-i18n="low24">أدنى سعر 24 ساعة · USDT</span><strong id="low24">—</strong></div>
- </div>
- <div class="source-row"><div id="observed">—</div><div id="liquidityTime">—</div></div>
-</section><section class="worker-panel" aria-label="Autonomous market engine status"><strong>المحرك المستقل · 24/7</strong><span id="workerState">جارٍ التحقق…</span><span id="workerCoverage">—</span><span id="workerCycle">—</span><span id="workerStorage">—</span><small>تشغيل Render مستقل عن فتح الصفحة. حالة التخزين والتحديث تُعرض من المصدر.</small></section></aside><div class="nexus-stage"><div class="nexus-stage-top"><span>02 / LIVE DATA TOPOLOGY</span><span>DRAG · ROTATE · ZOOM</span></div><section class="venue-network" aria-label="شبكة تدفق بيانات المنصات"><div class="depth-head"><strong>NEURAL MARKET NETWORK · شبكة تدفق البيانات الحية</strong><span id="venueNetworkStatus">جاري جلب بيانات المنصات</span></div><div class="scene-toolbar"><button type="button" id="sceneReset">إعادة ضبط الكاميرا</button><button type="button" id="sceneAuto" aria-pressed="false">دوران تلقائي</button><span>اسحب للتدوير · عجلة الفأرة للتقريب · المس للتفاعل</span></div><div id="venueNetwork" class="venue-network-scene" role="application" tabindex="0" aria-label="مشهد ثلاثي الأبعاد تفاعلي لتدفق بيانات المنصات"></div><div id="sceneNodeDetail" class="nexus-node-detail" role="status" aria-live="polite">اختر عقدة من الشبكة لفحص بياناتها ومصدرها.</div><div id="venueMetrics" class="venue-metrics" aria-live="polite"></div><small>الأسهم تمثل تدفق بيانات API إلى محرك التحليل، ولا تدل على انتقال أموال أو تداولات بين المنصات. مقارنة STAMP مشروطة بتطابق العقد والشبكة.</small></section><div class="nexus-diagnostics"><div class="nexus-diagnostics-title"><span>LIVE CONNECTOR AUDIT</span><button id="auditVenues" type="button">فحص المنصات الآن</button></div><div id="connectorAudit" class="nexus-connector-grid" role="status" aria-live="polite">لم يُجرَ الفحص بعد.</div><div id="engineAudit" class="nexus-engine-audit"></div></div><div class="nexus-scene-footer"><span>EXCHANGE INPUTS</span><span>DATA VALIDATION</span><span>MODEL ENGINE</span><span>OBSERVABILITY</span></div></div>
+  <main class="workspace" id="overview">
+    <section class="market-overview" aria-labelledby="coinName">
+      <div class="market-top">
+        <div class="market-identity">
+          <div class="market-title">
+            <h1 id="coinName" dir="ltr">STAMP / USDT</h1>
+            <span class="venue-label" id="venueLine" dir="auto">MEXC · Solana</span>
+          </div>
+          <div class="quote-block">
+            <div class="hero-price" id="price">—</div>
+            <div class="price-caption"><span id="change" dir="ltr">—</span><small data-i18n="change24">خلال 24 ساعة</small></div>
+          </div>
+        </div>
+        <div class="market-tools">
+          <div class="asset-controls">
+            <label class="sr-only" for="assetSearch" data-copy="Search trading pairs">ابحث عن زوج</label>
+            <input id="assetSearch" type="search" placeholder="ابحث عن زوج" data-placeholder="Search pairs" autocomplete="off">
+            <label class="sr-only" for="assetSelect" data-copy="Trading pair">زوج التداول</label>
+            <select id="assetSelect" dir="ltr"><option value="STAMPUSDT">STAMP / USDT</option><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select>
+            <button class="favorite-button" type="button" id="assetFavorite" aria-label="المفضلة" aria-pressed="false">☆</button>
+          </div>
+          <div class="asset-tools-meta">
+            <label class="sr-only" for="favoriteSelect" data-copy="Favorite pairs">الأزواج المفضلة</label>
+            <select id="favoriteSelect"><option value="">المفضلة</option></select>
+            <div id="assetMessage" class="muted" role="status" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
 
+      <dl class="market-metrics">
+        <div><dt data-i18n="volume24">حجم التداول 24 ساعة · USDT</dt><dd id="volume">—</dd></div>
+        <div><dt data-i18n="high24">أعلى سعر 24 ساعة · USDT</dt><dd id="high24">—</dd></div>
+        <div><dt data-i18n="low24">أدنى سعر 24 ساعة · USDT</dt><dd id="low24">—</dd></div>
+        <div><dt data-i18n="liquidity">السيولة المرصودة · DEX</dt><dd id="liquidity">—</dd></div>
+        <div><dt data-i18n="marketCap">القيمة السوقية · DEX</dt><dd id="marketCap">—</dd></div>
+      </dl>
+      <div class="source-row">
+        <div id="observed">—</div>
+        <div id="liquidityTime">—</div>
+        <div class="stream-health"><span id="streamStatus" role="status">جارٍ الاتصال بالبث</span><span id="dataAge"></span></div>
+      </div>
+    </section>
+    <div id="warning" class="warning" role="alert" hidden></div>
 
+    <div class="trade-grid" id="trading">
+      <section class="panel chart-panel" aria-labelledby="chartTitle">
+        <header class="panel-header chart-header">
+          <h2 id="chartTitle" data-copy="Price chart">الرسم السعري</h2>
+          <div class="frames" id="frames" role="group" aria-label="الفاصل الزمني للشموع">
+            <button type="button" data-frame="15m" aria-pressed="true">15m</button>
+            <button type="button" data-frame="30m" aria-pressed="false">30m</button>
+            <button type="button" data-frame="1h" aria-pressed="false">1h</button>
+            <button type="button" data-frame="2h" aria-pressed="false">2h</button>
+            <button type="button" data-frame="4h" aria-pressed="false">4h</button>
+            <button type="button" data-frame="6h" aria-pressed="false">6h</button>
+            <button type="button" data-frame="12h" aria-pressed="false">12h</button>
+            <button type="button" data-frame="1d" aria-pressed="false">1D</button>
+            <button type="button" data-frame="1w" aria-pressed="false">1W</button>
+          </div>
+        </header>
+        <div class="chart-context">
+          <span id="chartOHLC" dir="ltr">—</span>
+          <span id="chartZone" class="muted" dir="ltr"></span>
+        </div>
+        <div class="chart-wrap">
+          <div id="chart" tabindex="0" role="region" aria-describedby="chartHelp" aria-label="شموع السعر والتوقعات"></div>
+          <div id="chartEmpty" class="chart-empty" data-copy="Loading candles…" role="status">جارٍ تحميل الشموع…</div>
+        </div>
+        <div class="chart-controls" role="group" aria-label="أدوات الرسم">
+          <button id="resetChart" type="button" data-i18n="last24">آخر 24 ساعة</button>
+          <button id="zoomIn" type="button" data-i18n="zoomIn">تكبير +</button>
+          <button id="zoomOut" type="button" data-i18n="zoomOut">تصغير −</button>
+          <button id="panEarlier" type="button" data-i18n="earlier">← أقدم</button>
+          <button id="panLater" type="button" data-i18n="later">أحدث →</button>
+          <button id="exportCandles" type="button" data-i18n="export">تنزيل الشموع CSV</button>
+          <span id="chartHelp" class="sr-only" data-i18n="chartHelp"></span>
+        </div>
+        <div class="chart-legend">
+          <span><i class="legend-key candles"></i><span data-i18n="candles">شموع مغلقة</span></span>
+          <span><i class="legend-key predicted"></i><span data-i18n="predicted">توقع مسجّل</span></span>
+          <span><i class="legend-key measured"></i><span data-i18n="measured">نتيجة مقاسة</span></span>
+          <span><i class="legend-key future"></i><span data-i18n="nextForecast">التوقع القادم</span></span>
+        </div>
+        <p id="activeCandle" class="chart-note muted"></p>
+        <details class="audit-details depth-panel">
+          <summary><span data-copy="3D candle view">منظور الشموع ثلاثي الأبعاد</span><span id="depthLabel" class="muted"></span></summary>
+          <div id="depthScene" class="depth-scene" role="img" aria-label="ارتفاع الأعمدة يعكس سعر الإغلاق"></div>
+        </details>
+      </section>
 
+      <aside class="panel forecast-panel" id="predictionCenter" aria-labelledby="forecastTitle">
+        <header class="panel-header">
+          <h2 id="forecastTitle" data-copy="Model forecasts">توقعات المحرك</h2>
+          <div class="horizon-select">
+            <label class="sr-only" for="forecastHorizon" data-i18n="forecastHorizon">أفق التوقع</label>
+            <select id="forecastHorizon" dir="ltr"><option value="1h">1h</option><option value="4h">4h</option><option value="24h">24h</option><option value="7d">7d</option></select>
+          </div>
+        </header>
+        <div class="forecast-body">
+          <span id="modelStatus" class="model-status" role="status">بانتظار قرار المحرك</span>
+          <div id="forecastSummary" class="forecast-summary" aria-live="polite">—</div>
+          <div id="forecastCards" class="forecast-cards" aria-label="آفاق التوقع"></div>
+          <p id="outcomeSummary" class="outcome-summary muted">—</p>
+        </div>
+        <details class="audit-details">
+          <summary data-i18n="auditDetails">سبب قرار المحرك وسجل التوقعات</summary>
+          <div id="modelReason" class="model-reason"></div>
+          <p id="modelDecisionTime" class="muted small"></p>
+          <div id="forecastHistory" class="history-table"></div>
+        </details>
+        <details class="audit-details" id="inputDetails">
+          <summary data-i18n="inputsTitle">مدخلات المحرك وكيف استُخدمت</summary>
+          <p id="inputPolicy" class="small muted"></p>
+          <div id="inputTable" class="history-table"></div>
+        </details>
+        <details class="audit-details" id="assuranceDetails">
+          <summary data-i18n="assuranceTitle">فحص الإنتاج وصلاحية النتائج والتوسع</summary>
+          <p id="assuranceBadge" class="small" role="status"></p>
+          <div id="assuranceSummary" class="small"></div>
+          <div id="assuranceMetrics" class="history-table"></div>
+        </details>
+      </aside>
+    </div>
 
-</div><div class="nexus-lower"><div class="nexus-section-title"><span>03 / MARKET STRUCTURE</span><h2>الرسوم والتوقعات</h2></div><section class="depth-panel" aria-label="3D market visualization"><div class="depth-head"><strong>منظور السوق ثلاثي الأبعاد · آخر الشموع</strong><span id="depthLabel">بانتظار بيانات الشموع</span><button type="button" id="depthToggle" aria-pressed="true">إخفاء المنظور</button></div><div id="depthScene" class="depth-scene" role="img" aria-label="منظور ثلاثي الأبعاد لأسعار إغلاق الشموع الفعلية"></div><small>عرض هندسي ثلاثي الأبعاد لبيانات الشموع المسترجعة؛ لا يمثل توقعات أو عمق دفتر الأوامر.</small></section>
-<section class="chart-panel" aria-label="Interactive price and forecasts">
- <div class="chart-toolbar"><div class="frames" id="frames" role="group" aria-label="Candle timeframe"><button type="button" data-frame="15m" aria-pressed="true">15m</button><button type="button" data-frame="30m" aria-pressed="false">30m</button><button type="button" data-frame="1h" aria-pressed="false">1h</button><button type="button" data-frame="2h" aria-pressed="false">2h</button><button type="button" data-frame="4h" aria-pressed="false">4h</button><button type="button" data-frame="6h" aria-pressed="false">6h</button><button type="button" data-frame="12h" aria-pressed="false">12h</button><button type="button" data-frame="1d" aria-pressed="false">1D</button><button type="button" data-frame="1w" aria-pressed="false">1W</button></div><div class="chart-options"><label for="forecastHorizon" data-i18n="forecastHorizon">أفق التوقع</label><select id="forecastHorizon"><option value="1h">1h</option><option value="4h">4h</option><option value="24h">24h</option><option value="7d">7d</option></select><button type="button" id="resetChart" data-i18n="last24">آخر 24 ساعة</button></div></div>
- <div class="chart-context"><span id="chartOHLC" aria-live="polite">—</span><span id="modelStatus" class="model-status" role="status">بانتظار قرار المحرك</span></div>
- <div class="chart-controls" role="group" aria-label="Chart navigation"><button id="zoomIn" type="button" data-i18n="zoomIn">تكبير +</button><button id="zoomOut" type="button" data-i18n="zoomOut">تصغير −</button><button id="panEarlier" type="button" data-i18n="earlier">← أقدم</button><button id="panLater" type="button" data-i18n="later">أحدث →</button><span id="chartHelp" data-i18n="chartHelp">اسحب للتنقل، وقرّب بإصبعين أو بعجلة الفأرة. المس الشمعة لعرض تفاصيلها.</span></div>
- <div class="chart-wrap"><div id="chart" tabindex="0" role="region" aria-describedby="chartHelp" aria-label="Interactive STAMP candlesticks, recorded predictions and measured outcomes"></div><div id="chartEmpty" class="chart-empty" hidden></div></div>
- <div class="chart-legend"><span><i class="legend-key candles"></i><span data-i18n="candles">شموع مغلقة</span></span><span><i class="legend-key predicted"></i><span data-i18n="predicted">توقع مسجّل</span></span><span><i class="legend-key measured"></i><span data-i18n="measured">نتيجة مقاسة</span></span><span><i class="legend-key future"></i><span data-i18n="nextForecast">التوقع القادم</span></span><span id="chartZone" class="muted">—</span></div>
- <p id="activeCandle" class="small muted forecast-summary"></p>
- <p id="assuranceBadge" class="forecast-summary small" role="status"></p>
- <div id="forecastSummary" class="forecast-summary" aria-live="polite">—</div>
- <div class="chart-bottom"><span id="outcomeSummary">—</span><button type="button" id="exportCandles" data-i18n="export">تنزيل الشموع CSV</button></div>
- <details class="audit-details" id="inputDetails"><summary data-i18n="inputsTitle">مدخلات المحرك وكيف استُخدمت</summary><p id="inputPolicy" class="small muted"></p><div id="inputTable" class="history-table"></div></details>
- <details class="audit-details" id="assuranceDetails"><summary data-i18n="assuranceTitle">فحص الإنتاج وصلاحية النتائج والتوسع</summary><div id="assuranceSummary" class="small"></div><div id="assuranceMetrics" class="history-table"></div></details>
- <details class="audit-details"><summary data-i18n="auditDetails">سبب قرار المحرك وسجل التوقعات</summary><div id="modelReason" class="model-reason"></div><p id="modelDecisionTime" class="muted small"></p><div id="forecastHistory" class="history-table"></div></details>
-</section>
-</div><section class="intel-grid" aria-label="Research intelligence">
- <article class="intel-panel" id="predictionCenter"><header><div><span class="eyebrow">AI FORECASTS</span><h2>التوقعات الحالية · Research</h2></div><span class="intel-label">1h · 4h · 24h · 7d</span></header><div id="forecastCards" class="forecast-cards" aria-live="polite"><p class="muted">جارٍ تحميل التوقعات الموثقة...</p></div><p class="intel-note">أي توقع تجريبي لا يمثل إشارة تداول معتمدة. تعرض المواعيد والبيانات كما سجلها المحرك.</p></article>
- <article class="intel-panel" id="labCenter"><header><div><span class="eyebrow">AUTONOMOUS RESEARCH</span><h2>المختبر وتقييم التجارب</h2></div><span class="intel-label" id="labStatus">—</span></header><div class="lab-metrics"><div><small>المقترحات</small><strong id="labProposals">—</strong></div><div><small>التجارب المقيمة</small><strong id="labEvaluated">—</strong></div><div><small>القرارات</small><strong id="labDecisionsCount">—</strong></div></div><div id="labRecentDecisions" class="lab-decisions" aria-live="polite"></div><p class="intel-note" id="labEvidence">—</p></article>
-</section>
-<footer><span id="sourceLine">—</span><span><a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView Lightweight Charts™</a> · © 2025 TradingView, Inc. · <a href="/assets/chart-license.txt" target="_blank" rel="noopener noreferrer">Apache 2.0</a></span></footer>
-<section id="globalMarketFlow" aria-label="Global capital flow observatory" style="margin:22px 0;padding:14px;background:#0c1b2b;border:1px solid #29495d;border-radius:18px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><small style="color:#79dfff">04 / GLOBAL CAPITAL INTELLIGENCE</small><h2 style="margin:8px 0">رأس المال والتدفقات العالمية · مجسم 3D</h2><p style="color:#adc9da;margin:6px 0">القيمة السوقية · التداول · إصدار واسترداد العملات المستقرة · مخططات زمنية</p></div><a href="#globalMarketFlow" style="color:#73dfff">عرض موحّد ضمن لوحة التداول</a></div><iframe title="مرصد التدفقات العالمية ثلاثي الأبعاد" src="/market-flow?embedded=1" loading="lazy" style="display:block;width:100%;height:1060px;border:0;border-radius:12px;background:#081322" referrerpolicy="same-origin"></iframe></section></main>
-<dialog id="settings" aria-labelledby="settingsTitle"><form method="dialog"><header class="dialog-header"><h2 id="settingsTitle" data-i18n="settings">الإعدادات</h2><button type="submit" aria-label="Close">×</button></header><label for="langSelect" data-i18n="language">اللغة</label><select id="langSelect"><option value="ar">العربية</option><option value="en">English</option></select><label for="zoneSelect" data-i18n="timezone">توقيت الرسم والبيانات</label><select id="zoneSelect"><option value="Asia/Makassar">Indonesia · UTC+8</option><option value="Asia/Baghdad">Iraq · UTC+3</option><option value="UTC">UTC</option></select><button type="button" id="diagnose" data-i18n="diagnostics">فحص الاتصال</button><p id="diagnosticResult" class="muted small" role="status">—</p><a id="changePassword" href="https://vercel.com/ana-9143/stamp/settings/environment-variables" target="_blank" rel="noopener noreferrer" data-i18n="password">تغيير كلمة المرور في Vercel</a><p class="muted small" data-i18n="passwordHelp">حدّث DASHBOARD_PASSWORD ثم أعد نشر التطبيق.</p><button type="button" id="logoutButton" data-i18n="logout">تسجيل الخروج</button></form></dialog>
-<script src="/assets/chart.js?v=5.0.9" defer></script><script src="/assets/market-stream.js?v=context-20261030" defer></script><script src="/assets/app.js?v=command-audit-20261110" defer></script></body></html>
+    <section class="market-section" id="globalMarketFlow" aria-labelledby="flowTitle">
+      <header class="section-header">
+        <div>
+          <h2 id="flowTitle" data-copy="Global market flows">تدفقات السوق العالمية</h2>
+          <p data-copy="Crypto market size and changes in circulating stablecoin supply">حجم سوق العملات الرقمية وتغيّر المعروض المتداول من العملات المستقرة</p>
+        </div>
+        <div class="section-meta" id="flowStatus" role="status">جارٍ جلب بيانات السوق</div>
+      </header>
+      <dl class="market-metrics flow-totals">
+        <div><dt data-copy="Crypto market cap">القيمة السوقية للعملات الرقمية</dt><dd id="flowCap">—</dd></div>
+        <div><dt data-copy="24h trading volume">حجم التداول خلال 24 ساعة</dt><dd id="flowVolume">—</dd></div>
+        <div><dt data-copy="Circulating stablecoin value">قيمة العملات المستقرة المتداولة</dt><dd id="flowSupply">—</dd></div>
+      </dl>
+      <div id="flowError" class="warning" role="alert" hidden></div>
+      <div class="flow-grid">
+        <section class="panel flow-scene-panel" aria-labelledby="flowSceneTitle">
+          <header class="panel-header">
+            <h3 id="flowSceneTitle" data-copy="Supply change in 3D">تغيّر المعروض · 3D</h3>
+            <button id="flowReset" class="quiet-button" type="button" data-copy="Reset view">إعادة الضبط</button>
+          </header>
+          <canvas id="flowScene" tabindex="0" aria-label="مجسم تغير المعروض" aria-describedby="flowSceneHelp"></canvas>
+          <p id="flowSceneHelp" class="sr-only" data-copy="Drag or use the arrow keys to rotate.">اسحب أو استخدم مفاتيح الأسهم لتدوير المجسم.</p>
+          <dl class="flow-deltas">
+            <div><dt><i class="legend-key expansion"></i><span data-copy="Supply increases">زيادة المعروض</span></dt><dd id="flowExpansion">—</dd></div>
+            <div><dt><i class="legend-key contraction"></i><span data-copy="Supply decreases">نقص المعروض</span></dt><dd id="flowContraction">—</dd></div>
+            <div><dt><i class="legend-key net"></i><span data-copy="Net change">صافي التغيّر</span></dt><dd id="flowNet">—</dd></div>
+          </dl>
+        </section>
+        <section class="panel flow-history-panel" aria-labelledby="flowHistoryTitle">
+          <header class="panel-header">
+            <h3 id="flowHistoryTitle" data-copy="Circulating stablecoins">معروض العملات المستقرة</h3>
+            <div id="flowPeriods" class="frames" role="group" aria-label="فترة الرسم التاريخي" dir="ltr">
+              <button type="button" data-days="7" aria-pressed="false">7D</button>
+              <button type="button" data-days="30" aria-pressed="true">30D</button>
+              <button type="button" data-days="90" aria-pressed="false">90D</button>
+              <button type="button" data-days="180" aria-pressed="false">180D</button>
+              <button type="button" data-days="365" aria-pressed="false">1Y</button>
+            </div>
+          </header>
+          <div class="flow-plot-wrap">
+            <canvas id="flowHistory" tabindex="0" aria-label="مخطط تاريخي لمعروض العملات المستقرة" aria-describedby="flowPoint"></canvas>
+          </div>
+          <div class="flow-plot-info"><span id="flowPoint">—</span><span id="flowRange">—</span></div>
+        </section>
+      </div>
+      <div class="section-foot">
+        <p data-copy="Supply changes use the daily USD value of circulating stablecoins as a liquidity proxy.">تغيّر المعروض يقيس الزيادة والنقص في القيمة اليومية للعملات المستقرة المتداولة، ويُستخدم كمؤشر تقريبي للسيولة.</p>
+        <p id="flowSources"></p>
+      </div>
+    </section>
+
+    <section class="market-section" id="venuesSection" aria-labelledby="venuesTitle">
+      <header class="section-header">
+        <div><h2 id="venuesTitle" data-copy="Exchanges and liquidity">المنصات والسيولة</h2><p id="venueNetworkStatus" role="status">جارٍ جلب بيانات المنصات</p></div>
+        <div class="scene-toolbar">
+          <button id="sceneReset" type="button" data-copy="Reset view">إعادة الضبط</button>
+          <button id="sceneAuto" type="button" aria-pressed="false" data-copy="Auto rotate">دوران تلقائي</button>
+        </div>
+      </header>
+      <div class="venues-grid">
+        <section class="panel venue-network" aria-labelledby="networkTitle">
+          <header class="panel-header"><h3 id="networkTitle" data-copy="Exchange data network">شبكة بيانات المنصات</h3></header>
+          <div id="venueNetwork" class="venue-network-scene" role="group" tabindex="0" aria-label="مشهد ثلاثي الأبعاد لاتصال المنصات"></div>
+          <div id="sceneNodeDetail" class="scene-node-detail" role="status" aria-live="polite" data-copy="Select a node to see its latest quote and source.">اختر منصة لعرض آخر سعر ومصدره.</div>
+          <details class="audit-details">
+            <summary data-copy="Exchange quotes and identity checks">أسعار المنصات والتحقق من الأصل</summary>
+            <div id="venueMetrics" class="venue-metrics"></div>
+          </details>
+          <details class="audit-details">
+            <summary data-copy="Connection diagnostics">فحص الاتصال بالمصادر</summary>
+            <button id="auditVenues" type="button" data-copy="Run checks">افحص المنصات الآن</button>
+            <div id="connectorAudit" class="connector-grid" role="status"></div>
+            <p id="engineAudit" class="small muted"></p>
+          </details>
+        </section>
+        <section class="panel venue-inspector" aria-labelledby="inspectorTitle">
+          <header class="panel-header"><h3 id="inspectorTitle" data-copy="Order book">دفتر الأوامر</h3></header>
+          <div class="inspector-body">
+            <form id="venueForm" class="inline-controls">
+              <label for="venueSelect" data-copy="Exchange">المنصة</label>
+              <select id="venueSelect" dir="ltr">
+                <option>MEXC</option><option>Binance</option><option>OKX</option><option>Bybit</option><option>KuCoin</option><option>Gate</option><option>Bitget</option>
+              </select>
+              <button type="submit" data-copy="Load depth">عرض العمق</button>
+            </form>
+            <p id="microStatus" class="small muted" role="status"></p>
+            <div id="microMetrics" class="micro-metrics"></div>
+          </div>
+          <details class="audit-details">
+            <summary data-copy="Compare trading pairs">مقارنة الأزواج</summary>
+            <div class="inline-controls">
+              <label for="assetCompare" data-copy="Compare with">قارن مع</label>
+              <select id="assetCompare" dir="ltr"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select>
+              <button id="compareAssets" type="button" data-copy="Analyze correlation">تحليل الارتباط</button>
+            </div>
+            <div id="assetCorrelation" role="region" aria-label="ارتباط عوائد الأزواج"></div>
+          </details>
+        </section>
+      </div>
+    </section>
+
+    <section class="market-section" id="labCenter" aria-labelledby="labTitle">
+      <header class="section-header">
+        <div><h2 id="labTitle" data-copy="Research lab">مختبر النماذج</h2><p data-copy="Experiment outcomes and background engine status">نتائج التجارب وحالة المحرك في الخلفية</p></div>
+      </header>
+      <div class="research-grid">
+        <article class="panel lab-panel">
+          <header class="panel-header"><h3 data-copy="Experiment log">سجل التجارب</h3><span class="section-meta" id="labStatus">—</span></header>
+          <div class="inspector-body">
+            <dl class="lab-metrics">
+              <div><dt data-copy="Proposals">المقترحات</dt><dd id="labProposals">—</dd></div>
+              <div><dt data-copy="Evaluated">التجارب المقيمة</dt><dd id="labEvaluated">—</dd></div>
+              <div><dt data-copy="Decisions">القرارات</dt><dd id="labDecisionsCount">—</dd></div>
+            </dl>
+            <div id="labRecentDecisions" class="lab-decisions"></div>
+            <p id="labEvidence" class="small muted"></p>
+          </div>
+        </article>
+        <article class="panel worker-panel">
+          <header class="panel-header"><h3 data-copy="Autonomous engine">المحرك المستقل</h3><span id="workerState" role="status">جارٍ التحقق…</span></header>
+          <div class="inspector-body worker-metrics">
+            <span id="workerCoverage">—</span><span id="workerCycle">—</span><span id="workerStorage">—</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <span id="sourceLine">—</span>
+      <span dir="ltr"><a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView Lightweight Charts™</a> · © 2025 TradingView, Inc. · <a href="/assets/chart-license.txt" target="_blank" rel="noopener noreferrer">Apache 2.0</a></span>
+    </footer>
+  </main>
+
+  <dialog id="settings" aria-labelledby="settingsTitle">
+    <form method="dialog">
+      <header class="dialog-header"><h2 id="settingsTitle" data-i18n="settings">الإعدادات</h2><button type="submit" aria-label="إغلاق">×</button></header>
+      <label for="langSelect" data-i18n="language">اللغة</label>
+      <select id="langSelect"><option value="ar">العربية</option><option value="en">English</option></select>
+      <label for="zoneSelect" data-i18n="timezone">توقيت الرسم والبيانات</label>
+      <select id="zoneSelect" dir="ltr"><option value="Asia/Baghdad">Iraq · UTC+3</option><option value="Asia/Makassar">Indonesia · UTC+8</option><option value="UTC">UTC</option></select>
+      <button type="button" id="diagnose" data-i18n="diagnostics">فحص الاتصال</button>
+      <p id="diagnosticResult" class="muted small" role="status">—</p>
+      <a id="changePassword" href="https://vercel.com/ana-9143/stamp/settings/environment-variables" target="_blank" rel="noopener noreferrer" data-i18n="password">تغيير كلمة المرور في Vercel</a>
+      <p class="muted small" data-i18n="passwordHelp">حدّث DASHBOARD_PASSWORD ثم أعد نشر التطبيق.</p>
+      <button type="button" id="logoutButton" data-i18n="logout">تسجيل الخروج</button>
+    </form>
+  </dialog>
+  <script src="/assets/chart.js?v=5.0.9" defer></script>
+  <script src="/assets/market-stream.js?v=context-20261030" defer></script>
+  <script src="/assets/app.js?v=market-workspace-1" defer></script>
+  <script src="/assets/market-flow.js?v=market-workspace-1" defer></script>
+</body>
+</html>
