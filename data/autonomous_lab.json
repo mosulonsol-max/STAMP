@@ -1,14 +1,12 @@
 {
-  "generated_at_utc": "2026-11-11T09:19:06.328080+00:00",
+  "generated_at_utc": "2026-11-11T17:52:53.623010+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-11T09:19:06.328080+00:00",
-    "state": "degraded",
+    "generated_at_utc": "2026-11-11T17:52:53.623010+00:00",
+    "state": "healthy",
     "previous_pipeline_passed": true,
-    "previous_pipeline_at_utc": "2026-11-11T02:48:04.561221+00:00",
-    "failed_checks": [
-      "fresh_pipeline"
-    ],
+    "previous_pipeline_at_utc": "2026-11-11T17:30:50.617755+00:00",
+    "failed_checks": [],
     "checks": {
       "pipeline_steps": {
         "passed": true,
@@ -27,7 +25,7 @@
         "details": "No missing/future clock"
       },
       "fresh_pipeline": {
-        "passed": false,
+        "passed": true,
         "details": "Scheduled Actions are best effort; 3 hours is a health threshold."
       },
       "horizon_wiring": {
@@ -72,32 +70,32 @@
       },
       "ticker": {
         "status": "missing",
-        "historical_points": 17,
+        "historical_points": 11,
         "currently_available": false
       },
       "orderbook": {
         "status": "missing",
-        "historical_points": 17,
+        "historical_points": 11,
         "currently_available": false
       },
       "trades": {
         "status": "missing",
-        "historical_points": 17,
+        "historical_points": 11,
         "currently_available": false
       },
       "dex": {
-        "status": "missing",
-        "historical_points": 26,
-        "currently_available": false
+        "status": "used",
+        "historical_points": 17,
+        "currently_available": true
       },
       "onchain": {
         "status": "used",
-        "historical_points": 36,
+        "historical_points": 34,
         "currently_available": true
       },
       "news": {
         "status": "used",
-        "historical_points": 36,
+        "historical_points": 34,
         "currently_available": true
       },
       "project": {
@@ -106,9 +104,9 @@
         "currently_available": false
       },
       "macro": {
-        "status": "missing",
-        "historical_points": 25,
-        "currently_available": false
+        "status": "used",
+        "historical_points": 17,
+        "currently_available": true
       },
       "derivatives": {
         "status": "missing",
@@ -128,35 +126,35 @@
       "id": "4b1db79fb44eb9c6",
       "horizon": "1h",
       "candidate": "technical_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "revise_in_sandbox",
+      "reason": "failed_no_change_baseline",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": -0.0016448693431942996,
+      "skill_vs_zero": -0.004224459757363963,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
     {
-      "id": "d232bb57b9faecaa",
+      "id": "78e64496f69a5ab9",
       "horizon": "4h",
-      "candidate": "technical_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "candidate": "forest_absolute",
+      "action": "revise_in_sandbox",
+      "reason": "failed_no_change_baseline",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": 0.0062019952780895116,
+      "skill_vs_zero": -0.0379400577385367,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
     {
-      "id": "bace7209c1d171e3",
+      "id": "6e1b896b2e2b4087",
       "horizon": "24h",
-      "candidate": "forest_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "candidate": "no_change",
+      "action": "continue_sandbox",
+      "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 23.0,
-      "skill_vs_zero": -0.12436432126958041,
+      "skill_vs_zero": 0.0,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -164,11 +162,11 @@
       "id": "1c5b99ed40ec90a5",
       "horizon": "7d",
       "candidate": "hist_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 3.0,
-      "skill_vs_zero": 0.05067009036889025,
+      "skill_vs_zero": 0.002369425138379122,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     }
