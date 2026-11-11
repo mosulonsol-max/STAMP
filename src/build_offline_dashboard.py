@@ -12,12 +12,10 @@ def generate(root=ROOT):
  vendor_path=root/"dashboard"/"vendor"/"lightweight-charts-5.0.9.js"
  vendor=vendor_path.read_text(encoding="utf-8") if vendor_path.exists() else ""
  template=re.sub(r'<script\s+src="/assets/chart\.js(?:\?[^\"]*)?"\s+defer></script>',lambda m:"<script>"+vendor+"</script>",template,count=1)
- stream_path=root/"dashboard"/"market-stream.js"
- stream=stream_path.read_text(encoding="utf-8") if stream_path.exists() else ""
- template=re.sub(r'<script\s+src="/assets/market-stream\.js(?:\?[^\"]*)?"\s+defer></script>',lambda m:"<script>"+stream+"</script>",template,count=1)
- flow_path=root/"dashboard"/"market-flow.js"
- flow=flow_path.read_text(encoding="utf-8") if flow_path.exists() else ""
- template=re.sub(r'<script\s+src="/assets/market-flow\.js(?:\?[^\"]*)?"\s+defer></script>',lambda m:"<script>"+flow+"</script>",template,count=1)
+ for name in ("market-stream.js","market-flow.js","technical-overlays.js"):
+  asset=(root/"dashboard"/name).read_text(encoding="utf-8")
+  template=re.sub(r'<script\s+src="/assets/'+re.escape(name)+r'(?:\?[^"]*)?"\s+defer></script>',
+   lambda m:"<script>"+asset+"</script>",template,count=1)
  data=build()
  data["source"]="offline_snapshot"
  payload=json.dumps(data,allow_nan=False,separators=(",",":")).replace("&","\\u0026").replace("<","\\u003c").replace(">","\\u003e")

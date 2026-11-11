@@ -27,33 +27,76 @@ function decode(buffer,symbol,now=Date.now()){
   const vals=[2,4,5,6,7,8].map(k=>str(m,k));if(vals.some(v=>v===''||!Number.isFinite(Number(v))))return null;
   const [price,rate,high,low,volume,quantity]=vals.map(Number);
   if(price<=0||low<=0||high<low||volume<0||quantity<0)return null;
-  return {kind:'ticker',quote:{...base,price,change_24h_pct:rate*100,high_24h:high,low_24h:low,volume_24h_usdt:volume,base_volume_24h:quantity,stats_at_utc:base.provider_at_utc}};
+  return {kind:'ticker',quote:{...base,symbol,price,price_kind:'ticker',change_24h_pct:rate*100,high_24h:high,low_24h:low,volume_24h_usdt:volume,base_volume_24h:quantity,stats_at_utc:base.provider_at_utc}};
  }
  if(f.has(314)&&channel===`spot@public.aggre.deals.v3.api.pb@100ms@${symbol}`){
   const m=fields(f.get(314)[0]);let latest=null;
   for(const raw of m.get(1)||[]){const d=fields(raw),price=Number(str(d,1)),time=integer(d,4);if(positive(price)&&time&&time<=now+5000&&now-time<=15000&&(!latest||time>=latest.time))latest={price,time}}
-  return latest?{kind:'trade',quote:{...base,price:latest.price,provider_at_utc:new Date(latest.time).toISOString()}}:null;
+  return latest?{kind:'trade',quote:{...base,symbol,price:latest.price,price_kind:'trade',provider_at_utc:new Date(latest.time).toISOString()}}:null;
  }
  if(f.has(308)){
   const m=fields(f.get(308)[0]),interval=str(m,1),frame=intervals[interval];
   if(!frame||channel!==`spot@public.kline.v3.api.pb@${symbol}@${interval}`)return null;
   const t=integer(m,2)*1000,end=integer(m,9)*1000,o=Number(str(m,3)),c=Number(str(m,4)),h=Number(str(m,5)),l=Number(str(m,6)),v=Number(str(m,7));
   if(![t,end,o,c,h,l,v].every(Number.isFinite)||t<=0||t>now+5000||end<=t||l<=0||l>Math.min(o,c)||h<Math.max(o,c)||v<0)return null;
-  return {kind:'candle',frame,candle:{t,o,c,h,l,v,end,observed_utc:base.provider_at_utc}};
+  return {kind:'candle',frame,candle:{t,o,c,h,l,v,end,observed_utc:base.provider_at_utc,transport:'websocket'}};
  }return null;
 }
 class Stream{
  constructor({symbol='STAMPUSDT',onData=()=>{},onState=()=>{},WebSocketClass=root.WebSocket}={}){
-  if(!/^[A-Z0-9]{4,30}$/.test(symbol))throw Error('symbol');Object.assign(this,{symbol,onData,onState,WebSocketClass,stopped:true,attempt:0,lastFrame:0});
+  if(!/^[A-Z0-9]{4,30}$/.test(symbol))throw Error('symbol');Object.assign(this,{symbol,onData,onState,WebSocketClass,stopped:true,attempt:0,lastFrame:0,lastTraffic:0});
  }
- start(){if(!this.stopped)return;this.stopped=false;this.connect();this.watch=setInterval(()=>{if(this.socket?.readyState===1){if(Date.now()-this.lastFrame>20000){this.onState('stale');this.socket.close()}else this.socket.send(JSON.stringify({method:'PING'}))}},10000)}
- connect(){if(this.stopped||!this.WebSocketClass)return;this.onState('connecting');let ws;try{ws=new this.WebSocketClass('wss://wbs-api.mexc.com/ws')}catch(e){this.retry();return}this.socket=ws;ws.binaryType='arraybuffer';
-  ws.onopen=()=>{this.lastFrame=Date.now();ws.send(JSON.stringify({method:'SUBSCRIPTION',params:[`spot@public.aggre.deals.v3.api.pb@100ms@${this.symbol}`,`spot@public.miniTicker.v3.api.pb@${this.symbol}@24H`,...Object.keys(intervals).map(tf=>`spot@public.kline.v3.api.pb@${this.symbol}@${tf}`)]}));this.onState('subscribing')};
-  ws.onmessage=event=>{if(this.stopped||this.socket!==ws)return;try{if(typeof event.data==='string'){const ack=JSON.parse(event.data);if(ack.code&&ack.code!==0)this.onState('subscription_error');return}const update=decode(event.data,this.symbol);if(update){this.lastFrame=Date.now();this.attempt=0;this.onState('live');this.onData(update)}}catch(e){this.onState('invalid_frame')}};
-  ws.onerror=()=>this.onState('reconnecting');ws.onclose=()=>{if(this.socket===ws){this.socket=null;this.retry()}};
+ state(value){if(this.status!==value){this.status=value;this.onState(value)}}
+ start(){
+  if(!this.stopped)return;
+  this.stopped=false;
+  this.connect();
+  this.watch=setInterval(()=>{
+   if(this.socket?.readyState!==1)return;
+   const now=Date.now();
+   if(now-this.lastTraffic>30000){this.state('stale');this.socket.close();return}
+   if(now-(this.lastFrame||this.openedAt)>20000)this.state('idle');
+   this.socket.send(JSON.stringify({method:'PING'}));
+  },10000);
  }
- retry(){if(this.stopped)return;this.onState('reconnecting');clearTimeout(this.retryTimer);this.retryTimer=setTimeout(()=>this.connect(),Math.min(30000,1000*2**Math.min(this.attempt++,5)))}
- stop(){this.stopped=true;clearTimeout(this.retryTimer);clearInterval(this.watch);if(this.socket){const ws=this.socket;this.socket=null;ws.close()}}
+ connect(){
+  if(this.stopped||!this.WebSocketClass)return;
+  this.state('connecting');
+  let ws;
+  try{ws=new this.WebSocketClass('wss://wbs-api.mexc.com/ws')}catch{this.retry();return}
+  this.socket=ws;ws.binaryType='arraybuffer';
+  this.handshake=setTimeout(()=>{if(this.socket===ws&&ws.readyState===0)ws.close()},9000);
+  ws.onopen=()=>{
+   if(this.stopped||this.socket!==ws)return;
+   clearTimeout(this.handshake);
+   this.lastFrame=0;
+   this.lastTraffic=this.openedAt=Date.now();
+   ws.send(JSON.stringify({method:'SUBSCRIPTION',params:[`spot@public.aggre.deals.v3.api.pb@100ms@${this.symbol}`,`spot@public.miniTicker.v3.api.pb@${this.symbol}@24H`,...Object.keys(intervals).map(tf=>`spot@public.kline.v3.api.pb@${this.symbol}@${tf}`)]}));
+   this.state('subscribing');
+  };
+  ws.onmessage=event=>{
+   if(this.stopped||this.socket!==ws)return;
+   try{
+    if(typeof event.data==='string'){
+     const ack=JSON.parse(event.data);
+     if(ack.code===0||ack.msg==='PONG')this.lastTraffic=Date.now();
+     else if(ack.code)this.state('subscription_error');
+     return;
+    }
+    const update=decode(event.data,this.symbol);
+    if(update){
+     this.lastTraffic=this.lastFrame=Date.now();
+     this.attempt=0;
+     this.state('live');
+     this.onData(update);
+    }
+   }catch{this.state('invalid_frame')}
+  };
+  ws.onerror=()=>{if(this.socket===ws)this.state('reconnecting')};
+  ws.onclose=()=>{if(this.socket===ws){clearTimeout(this.handshake);this.socket=null;this.retry()}};
+ }
+ retry(){if(this.stopped)return;this.state('reconnecting');clearTimeout(this.retryTimer);this.retryTimer=setTimeout(()=>this.connect(),Math.min(30000,1000*2**Math.min(this.attempt++,5)))}
+ stop(){this.stopped=true;clearTimeout(this.retryTimer);clearTimeout(this.handshake);clearInterval(this.watch);if(this.socket){const ws=this.socket;this.socket=null;ws.close()}}
 }
 root.StampMarket={decode,Stream};if(typeof module!=='undefined')module.exports=root.StampMarket;
 })(typeof window!=='undefined'?window:globalThis);

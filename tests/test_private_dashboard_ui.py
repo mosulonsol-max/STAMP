@@ -26,6 +26,11 @@ class PrivateUIRegressionTests(unittest.TestCase):
   self.assertIn('/assets/chart.js',HTML)
   self.assertTrue((ROOT/'dashboard/vendor/lightweight-charts-5.0.9.js').exists())
   self.assertIn('www.tradingview.com',HTML)
+ def test_technical_overlay_calculations_and_invalidation(self):
+  node=shutil.which('node')
+  if not node:self.skipTest('Node unavailable')
+  result=subprocess.run([node,str(ROOT/'tests/technical_overlays.cjs')],capture_output=True,text=True,timeout=20)
+  self.assertEqual(result.returncode,0,result.stdout+result.stderr)
  def test_language_and_private_session_controls(self):
   for key in ('langSelect','zoneSelect','settings','logoutButton','changePassword','diagnose'):self.assertIn('id="'+key+'"',HTML)
   self.assertIn('lang="ar"',HTML);self.assertIn('dir="rtl"',HTML)

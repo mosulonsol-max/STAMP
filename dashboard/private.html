@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=market-workspace-1">
+  <link rel="stylesheet" href="/assets/style.css?v=chart-live-1">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
@@ -87,6 +87,12 @@
             <button type="button" data-frame="1w" aria-pressed="false">1W</button>
           </div>
         </header>
+        <div class="technical-toolbar" id="technicalToggles" role="group" aria-label="طبقات الرسم الفني">
+          <span data-copy="Chart layers">طبقات الرسم</span>
+          <button type="button" data-layer="ichimoku" aria-pressed="false" data-copy="Ichimoku">إيشيموكو</button>
+          <button type="button" data-layer="fibonacci" aria-pressed="false" data-copy="Fibonacci">فيبوناتشي</button>
+          <button type="button" data-layer="elliott" aria-pressed="false" data-copy="Elliott waves">موجات إليوت</button>
+        </div>
         <div class="chart-context">
           <span id="chartOHLC" dir="ltr">—</span>
           <span id="chartZone" class="muted" dir="ltr"></span>
@@ -111,6 +117,7 @@
           <span><i class="legend-key future"></i><span data-i18n="nextForecast">التوقع القادم</span></span>
         </div>
         <p id="activeCandle" class="chart-note muted"></p>
+        <div id="technicalDetails" class="technical-details" aria-label="قراءات طبقات الرسم" hidden></div>
         <details class="audit-details depth-panel">
           <summary><span data-copy="3D candle view">منظور الشموع ثلاثي الأبعاد</span><span id="depthLabel" class="muted"></span></summary>
           <div id="depthScene" class="depth-scene" role="img" aria-label="ارتفاع الأعمدة يعكس سعر الإغلاق"></div>
@@ -299,8 +306,9 @@
     </form>
   </dialog>
   <script src="/assets/chart.js?v=5.0.9" defer></script>
-  <script src="/assets/market-stream.js?v=context-20261030" defer></script>
-  <script src="/assets/app.js?v=market-workspace-1" defer></script>
+  <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
+  <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
+  <script src="/assets/app.js?v=chart-live-1" defer></script>
   <script src="/assets/market-flow.js?v=market-workspace-1" defer></script>
 </body>
 </html>

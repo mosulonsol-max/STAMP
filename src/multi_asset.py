@@ -7,11 +7,11 @@ from urllib.parse import urlencode
 BASE="https://api.mexc.com/api/v3/"
 ALLOWED=re.compile(r"^[A-Z0-9]{2,22}USDT$")
 INTERVALS={"15m","30m","60m","4h","1d"}
-def fetch(endpoint,params=None):
+def fetch(endpoint,params=None,timeout=12):
     url=BASE+endpoint+("?" + urlencode(params) if params else "")
     req=Request(url,headers={"Accept":"application/json","User-Agent":"STAMP-Research/1.0"})
     limit=15000000 if endpoint=="exchangeInfo" else 3000000
-    with urlopen(req,timeout=12) as res:
+    with urlopen(req,timeout=timeout) as res:
         raw=res.read(limit+1)
     if len(raw)>limit:raise ValueError("oversized_response")
     return json.loads(raw)

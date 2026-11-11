@@ -1,14 +1,17 @@
 """Private read-only STAMP web dashboard. Optional private GitHub API refresh."""
 import base64,datetime as dt,hmac,json,math,os,pathlib,threading,time,zlib,hashlib,secrets
 from concurrent.futures import ThreadPoolExecutor,as_completed
+from functools import lru_cache
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit,quote,parse_qs
 try:
  from src.market_flow import market_flow_snapshot
+ from src.market_updates import market_update
 except ModuleNotFoundError:
  from market_flow import market_flow_snapshot
+ from market_updates import market_update
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
 PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json","autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json","multi_asset_forecasts.json")
@@ -40,9 +43,9 @@ def load(path,token):
   return ([] if path.endswith(".jsonl") or path.startswith("candles/") else {}),"HTTP_"+str(exc.code)
  except (OSError,URLError,ValueError,UnicodeError) as exc:
   return ([] if path.endswith(".jsonl") or path.startswith("candles/") else {}),type(exc).__name__
-def fetch_mexc_quote():
+def fetch_mexc_quote(symbol="STAMPUSDT"):
  """Independently timestamped public MEXC ticker; never a substitute for archived analytics."""
- url="https://api.mexc.com/api/v3/ticker/24hr?symbol=STAMPUSDT"
+ url="https://api.mexc.com/api/v3/ticker/24hr?symbol="+quote(symbol,safe="")
  try:
   req=Request(url,headers={"Accept":"application/json","User-Agent":"STAMP-private-dashboard/1.0"})
   with urlopen(req,timeout=5) as response:
@@ -50,7 +53,7 @@ def fetch_mexc_quote():
    raw=response.read(16385)
   if len(raw)>16384:raise ValueError("oversized_quote")
   ticker=json.loads(raw)
-  if not isinstance(ticker,dict) or ticker.get("symbol")!="STAMPUSDT":raise ValueError("unexpected_symbol")
+  if not isinstance(ticker,dict) or ticker.get("symbol")!=symbol:raise ValueError("unexpected_symbol")
   price=num(ticker.get("lastPrice"));bid=num(ticker.get("bidPrice"));ask=num(ticker.get("askPrice"))
   if not price or price<=0 or (bid is not None and bid<=0) or (ask is not None and ask<=0):
    raise ValueError("invalid_quote")
@@ -61,15 +64,27 @@ def fetch_mexc_quote():
    try:
     provider=dt.datetime.fromtimestamp(provider_ms/1000,dt.timezone.utc)
     provider_utc=provider.isoformat()
-    if abs((stamp-provider).total_seconds())>600:raise ValueError("stale_provider_timestamp")
+    if not -5<=(stamp-provider).total_seconds()<=600:raise ValueError("stale_provider_timestamp")
    except (OverflowError,OSError) as exc:raise ValueError("invalid_provider_timestamp") from exc
   return dict(status="fresh",source="MEXC public 24h ticker",retrieved_at_utc=stamp.isoformat(),
+   symbol=symbol,transport="rest",price_kind="ticker",stats_at_utc=provider_utc,
    provider_at_utc=provider_utc,price=price,bid=bid,ask=ask,
    change_24h_pct=(num(ticker.get("priceChangePercent"))*100 if num(ticker.get("priceChangePercent")) is not None else None),
    volume_24h_usdt=num(ticker.get("quoteVolume")),base_volume_24h=num(ticker.get("volume")),
    high_24h=num(ticker.get("highPrice")),low_24h=num(ticker.get("lowPrice")))
  except (OSError,HTTPError,URLError,ValueError,TypeError,json.JSONDecodeError) as exc:
   return dict(status="unavailable",source="MEXC public 24h ticker",error=type(exc).__name__)
+
+@lru_cache(maxsize=1)
+def market_source_health(minute):
+ # Public health metadata verifies egress from the deployed runtime. Prices
+ # and candles are served only by the authenticated market update route.
+ result=market_update("STAMPUSDT","15m",fetch_mexc_quote)
+ return {
+  "source":"MEXC REST","symbol":result["symbol"],"checked_utc":result["observed_at_utc"],
+  "quote_status":result["quote"]["status"],"forming_candle":result["forming"] is not None,
+  "closed_candles":bool(result["closed"]),
+ }
 
 def build():
  token=os.getenv("GITHUB_READ_TOKEN","").strip()
@@ -333,7 +348,7 @@ def login_html(error=False):
  message='<p class="warning" role="alert">تحقّق من اسم المستخدم وكلمة المرور.</p>' if error else ''
  return ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
  '<meta name="robots" content="noindex,nofollow"><title>STAMP | تسجيل الدخول</title>'
- '<link rel="stylesheet" href="/assets/style.css?v=market-workspace-1"></head><body class="login-page">'
+ '<link rel="stylesheet" href="/assets/style.css?v=chart-live-1"></head><body class="login-page">'
  '<main class="panel login-card"><div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></div>'
  '<h1>الدخول إلى لوحة السوق</h1>'+message+
  '<form method="post" action="/login"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
@@ -358,8 +373,13 @@ class Handler(BaseHTTPRequestHandler):
   if path=="/healthz":
    # A 200 response must mean the deployment can actually serve its UI and archived data.
    try:
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
    except Exception:healthy=False
+   if healthy and parse_qs(urlsplit(self.path).query).get("market")==["1"]:
+    try:
+     body=json.dumps(market_source_health(int(time.monotonic()//60)),allow_nan=False).encode()
+     return self.send(200,body,"application/json; charset=utf-8")
+    except Exception:return self.send(503,b'{"error":"market_health_unavailable"}',"application/json; charset=utf-8")
    return self.send(200 if healthy else 503,b"ok" if healthy else b"deployment_assets_or_research_missing")
   if path=="/assets/style.css" and not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
    try:return self.send(200,(ROOT/"dashboard"/"private.css").read_bytes(),"text/css; charset=utf-8")
@@ -427,6 +447,15 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(200,json.dumps(health,allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"worker_status_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/market-update":
+   query=parse_qs(urlsplit(self.path).query)
+   try:
+    result=market_update(query.get("symbol",[""])[0],query.get("frame",[""])[0],fetch_mexc_quote)
+    return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except ValueError as exc:
+    return self.send(400,json.dumps({"error":str(exc)}).encode(),"application/json; charset=utf-8")
+   except Exception:
+    return self.send(503,b'{"error":"market_update_unavailable"}',"application/json; charset=utf-8")
   if path=="/api/quote":
    # Independently fetched public exchange quote; research can remain archived.
    # Endpoint stays authenticated, like the rest of the private dashboard.
@@ -487,7 +516,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
-  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/assets/market-flow.js":"market-flow.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/style.css":"private.css"}
+  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/assets/market-flow.js":"market-flow.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:

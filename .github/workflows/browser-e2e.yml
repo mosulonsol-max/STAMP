@@ -6,6 +6,7 @@ on:
       - 'src/**'
       - 'dashboard/private.*'
       - 'dashboard/market-stream.js'
+      - 'dashboard/technical-overlays.js'
       - 'tests/market_stream.cjs'
       - 'scripts/check_market_stream.cjs'
       - 'api/index.py'
@@ -28,10 +29,10 @@ jobs:
           node-version: '22'
       - name: Install Python runtime dependencies
         run: pip install -r requirements.txt
-      - name: Install Chromium test runner
+      - name: Install Playwright and verify runner Chrome
         run: |
           npm install --no-save @playwright/test@1.56.1
-          npx playwright install --with-deps chromium
+          google-chrome --version
       - name: Verify actual MEXC binary market stream
         run: node scripts/check_market_stream.cjs
       - name: Build the current research snapshot and automatic model decisions
@@ -57,6 +58,8 @@ jobs:
           cat /tmp/stamp-server.log
           exit 1
       - name: Verify login and data in real Chromium browser
+        env:
+          STAMP_CHROME_CHANNEL: chrome
         run: npx playwright test browser-tests/stamp.spec.cjs --workers=1 --reporter=line
       - name: Upload browser verification evidence
         if: always()
