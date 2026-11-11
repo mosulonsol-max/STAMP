@@ -1,4 +1,4 @@
-import pathlib,sys,unittest
+import pathlib,sys,unittest,shutil,subprocess
 from unittest.mock import patch
 sys.path.insert(0,str(pathlib.Path(__file__).resolve().parents[1]/"src"))
 import market_flow
@@ -16,6 +16,12 @@ class MarketFlowTests(unittest.TestCase):
   self.assertEqual(data["stablecoin_supply_usd"],160)
   self.assertEqual(len(data["stablecoin_history"]),2)
   self.assertIn("not net inflow",data["definitions"]["volume"])
+ def test_browser_visualization_syntax(self):
+  node=shutil.which("node")
+  if not node:self.skipTest("Node not installed")
+  script=pathlib.Path(__file__).resolve().parents[1]/"dashboard"/"market-flow.js"
+  result=subprocess.run([node,"--check",str(script)],capture_output=True,text=True,timeout=10)
+  self.assertEqual(result.returncode,0,result.stderr)
  def test_bad_upstream_values_rejected(self):
   with patch.object(market_flow,"_fetch",return_value={"data":{}}):
    with self.assertRaises(ValueError):market_flow.market_flow_snapshot()
