@@ -52,6 +52,7 @@ test('compact market, automatic decision, real interactive chart and forecast ou
 test('data stays private while the open-source chart asset is reachable',async({request})=>{
  expect((await request.get(HOST+'/api/dashboard')).status()).toBe(401);
  expect((await request.get(HOST+'/api/market-update?symbol=STAMPUSDT&frame=15m')).status()).toBe(401);
+ expect((await request.get(HOST+'/api/market-events?symbol=STAMPUSDT')).status()).toBe(401);
  const asset=await request.get(HOST+'/assets/chart.js');expect(asset.status()).toBe(200);expect(await asset.text()).toContain('TradingView Lightweight Charts');
 });
 
@@ -268,4 +269,110 @@ test('live catalog and alternate market render real MEXC candles',async({page})=
  await page.locator('button[data-frame="1h"]').click();
  await expect(page.locator('#coinName')).toHaveText('BTC / USDT');
  await expect.poll(async()=>Number(await page.locator('#chart').getAttribute('data-bar-count'))).toBeGreaterThan(10);
+ const eventResponse=await page.request.get(HOST+'/api/market-events?symbol=BTCUSDT');
+ expect(eventResponse.ok()).toBe(true);
+ const executions=await eventResponse.json();
+ expect(executions.trades.status).toBe('ok');
+ expect(executions.trades.sample_count).toBeGreaterThan(10);
+ expect(executions.records.length).toBeGreaterThan(0);
+ expect(executions.records.every(event=>event.symbol==='BTCUSDT'&&event.kind==='trade'&&event.time_ms<=Date.now()+5000)).toBe(true);
+
+});
+
+test('chart event markers follow exact candles and operations preserve source outages',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ const signature='5'.repeat(87), stamp='STAMPUSDT', btc='BTCUSDT';
+ const candle=Math.floor(Date.now()/3600000)*3600000-4*3600000, eventTime=candle+74521;
+ const observed=new Date().toISOString(), prior=new Date(Date.now()-1800000).toISOString();
+ const candles=Array.from({length:72},(_,i)=>({t:candle+(i-64)*900000,o:1,h:1.1,l:.9,c:1.05,v:50}));
+ const operations={checked_utc:observed,sources:{workflow:{status:'ok',observed_utc:observed,last_ok_utc:observed},
+  mexc_trades:{status:'unavailable',observed_utc:observed,last_ok_utc:prior}},incidents:[
+  {source:'mexc_trades',from:'ok',to:'unavailable',observed_utc:observed}
+ ]};
+ const payload={market:{price:1.05},observed_utc:observed,candles:{'15m':candles,'1h':candles.filter((_,i)=>i%4===0)},operations};
+ await page.route('**/api/dashboard',r=>r.fulfill({json:payload}));
+ await page.route('**/api/assets/snapshot?symbol=BTCUSDT',r=>r.fulfill({json:{symbol:btc,candles:payload.candles,ticker:{price:1.05}}}));
+ await page.route('**/api/market-update?**',r=>r.abort());
+ await page.route('**/api/market-events?symbol=*',r=>{
+  const symbol=new URL(r.request().url()).searchParams.get('symbol');
+  const trade={id:'trade-'+symbol,kind:'trade',symbol,time_ms:eventTime,side:'buy',notional:813,source:'MEXC Spot'};
+  const burn={id:'burn',kind:'burn',symbol:stamp,time_ms:eventTime+5000,signature,source:'Solana'};
+  // A deliberately mixed response verifies the chart's pair isolation.
+  return r.fulfill({json:{symbol,records:[trade,burn],trades:{status:'ok',first_ms:eventTime,last_ms:eventTime,sample_count:10,selected_count:1}}});
+ });
+ await page.goto(HOST+'/');
+ await page.locator('#user').fill('test-user');
+ await page.locator('#password').fill('long-test-password');
+ await page.locator('form[action="/login"] button').click();
+ const chart=page.locator('#chart');
+ await expect(chart).toHaveAttribute('data-event-count','2',{timeout:15000});
+ await expect(chart).toHaveAttribute('data-event-markers','2');
+ await expect(page.locator('#chartEventList')).toContainText('813 USDT');
+ await expect(page.locator('#chartEventList a[href="https://solscan.io/tx/'+signature+'"]')).toHaveCount(1);
+ await expect(page.locator('#chartEventList button[data-event-candle="'+candle+'"]')).toHaveCount(2);
+ await page.locator('#chartEventList button').first().click();
+ await expect(chart).toBeFocused();
+ await page.locator('#eventToggle').click();
+ await expect(chart).toHaveAttribute('data-event-markers','0');
+ await expect(page.locator('#chartEvents')).toBeHidden();
+ await page.locator('#eventToggle').click();
+ await page.locator('button[data-frame="1h"]').click();
+ await expect(chart).toHaveAttribute('data-event-markers','2');
+ await page.locator('#assetPickerButton').click();
+ await page.locator('#assetSearch').fill('BTC');
+ await page.locator('[data-pair="BTCUSDT"]').click();
+ await expect(chart).toHaveAttribute('data-event-count','1');
+ await expect(page.locator('#chartEventList')).not.toContainText('حرق توكنات');
+ await expect(page.locator('#chartEventList a')).toHaveAttribute('href','https://www.mexc.com/exchange/BTC_USDT');
+ await page.locator('.page-nav a[href="#labCenter"]').click();
+ await expect(page.locator('#operationsChecked')).toContainText('آخر دورة رصد');
+ const status=page.locator('[data-operation-source="mexc_trades"]');
+ await expect(status).toContainText('غير متاح');
+ await expect(status.locator('td').last()).not.toHaveText('—');
+ await page.locator('.operation-incidents summary').click();
+ await expect(page.locator('#operationsIncidents')).toContainText('متاح → غير متاح');
+ expect(errors).toEqual([]);
+});
+
+test('historical replay advances candle by candle and reveals only recorded information at the cursor',async({page})=>{
+ const step=900000,last=Math.floor(Date.now()/step)*step-step;
+ const bars=Array.from({length:80},(_,i)=>({t:last-(79-i)*step,o:1,h:1.1,l:.9,c:1.05,v:50}));
+ const cutoff=bars[55].t+step;
+ const at=ms=>new Date(ms).toISOString();
+ const rows=[
+  {horizon:'1h',created_utc:at(cutoff-step),reference_price:1,predicted_price:1.23,due_utc:at(cutoff+4*step),actual_price:null},
+  {horizon:'1h',created_utc:at(cutoff+2*step),reference_price:1,predicted_price:1.34,due_utc:at(cutoff+6*step),actual_price:null},
+  {horizon:'1h',created_utc:at(cutoff-6*step),reference_price:1,predicted_price:1.04,due_utc:at(cutoff-step),
+   actual_price:1.05,measurement_time_utc:at(cutoff-step),evaluated_utc:at(cutoff+2*step)}
+ ];
+ await page.route('**/api/dashboard',r=>r.fulfill({json:{market:{price:1.05},candles:{'15m':bars},
+  observed_utc:at(last),forecast_review:{rows}}}));
+ await page.route('**/api/market-update?**',r=>r.abort());
+ await page.route('**/api/market-events?**',r=>r.fulfill({json:{symbol:'STAMPUSDT',records:[]}}));
+ await page.goto(HOST+'/');
+ await page.locator('#user').fill('test-user');
+ await page.locator('#password').fill('long-test-password');
+ await page.locator('form[action="/login"] button').click();
+ const chart=page.locator('#chart'),toggle=page.locator('#replayToggle');
+ await expect(chart).toHaveAttribute('data-bar-count','80',{timeout:15000});
+ await toggle.click();
+ await expect(chart).toHaveAttribute('data-replay-cutoff',String(cutoff));
+ await expect(chart).toHaveAttribute('data-bar-count','56');
+ await expect(chart).toHaveAttribute('data-forming','false');
+ await expect(chart).toHaveAttribute('data-actual-points','0');
+ await expect(page.locator('#replayForecast')).toContainText('1.23');
+ await expect(page.locator('#replayForecast')).not.toContainText('1.34');
+ await page.locator('#replayStep').click();
+ await expect(chart).toHaveAttribute('data-replay-cutoff',String(cutoff+step));
+ await expect(chart).toHaveAttribute('data-actual-points','0');
+ await page.locator('#replayPlay').click();
+ await expect(page.locator('#replayForecast')).toContainText('1.34');
+ await page.locator('#replayPlay').click();
+ await expect(chart).toHaveAttribute('data-actual-points','1');
+ await page.locator('#replayPosition').fill('1');
+ await expect(chart).toHaveAttribute('data-bar-count','2');
+ await expect(chart).toHaveAttribute('data-actual-points','0');
+ await toggle.click();
+ await expect(chart).toHaveAttribute('data-replay','false');
+ await expect(chart).toHaveAttribute('data-bar-count','80');
 });

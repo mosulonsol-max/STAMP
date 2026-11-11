@@ -7,14 +7,18 @@ from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit,quote,parse_qs
 try:
+ from src.market_events import STAMP, dashboard_events, symbol as event_symbol
+ from src.operations import archive_view, worker_status
  from src.market_flow import market_flow_snapshot
  from src.market_updates import market_update
 except ModuleNotFoundError:
+ from market_events import STAMP, dashboard_events, symbol as event_symbol
+ from operations import archive_view, worker_status
  from market_flow import market_flow_snapshot
  from market_updates import market_update
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
-PATHS=("latest.json","workflow_health.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json","autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json","multi_asset_forecasts.json")
+PATHS=("latest.json","workflow_health.json","operations.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json","autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json","multi_asset_forecasts.json")
 CACHE={"time":0.0,"payload":None}
 LOCK=threading.Lock()
 def age(stamp):
@@ -137,7 +141,7 @@ def build():
                        "observed_utc":item.get("retrieved_at_utc"),"error":item.get("error")}
  payload=dict(fetched_utc=dt.datetime.now(dt.timezone.utc).isoformat(),source="private_github_api" if token else "deployment_snapshot",
   observed_utc=observed,age_seconds=seconds,market_status="FRESH" if seconds is not None and seconds<=900 else "STALE",
-  live_quote=live_quote,source_health=source_health,
+  live_quote=live_quote,source_health=source_health,operations=archive_view(items["operations.json"],raw,health),
   market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),base_volume_24h=num(ticker.get("volume")),high_24h=num(ticker.get("highPrice")),low_24h=num(ticker.get("lowPrice")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},book_at_utc=((raw.get("mexc") or {}).get("book") or {}).get("retrieved_at_utc"),trades_at_utc=((raw.get("mexc") or {}).get("trades") or {}).get("retrieved_at_utc"),flags=a.get("flags") or []),
   technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},forecast_history=recent_forecasts(items["forecast_journal.jsonl"]),forecast_review=forecast_review_report(items["forecast_journal.jsonl"]),forecast_activity=activity,candles=frames,dex=pools[:10],learning=learning,scorecard=score,
   health=dict(passed=health.get("pipeline_passed"),production_smoke_passed=health.get("production_smoke_passed"),
@@ -348,7 +352,7 @@ def login_html(error=False):
  message='<p class="warning" role="alert">تحقّق من اسم المستخدم وكلمة المرور.</p>' if error else ''
  return ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
  '<meta name="robots" content="noindex,nofollow"><title>STAMP | تسجيل الدخول</title>'
- '<link rel="stylesheet" href="/assets/style.css?v=workspace-controls-1"></head><body class="login-page">'
+ '<link rel="stylesheet" href="/assets/style.css?v=operations-1"></head><body class="login-page">'
  '<main class="panel login-card"><div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></div>'
  '<h1>الدخول إلى لوحة السوق</h1>'+message+
  '<form method="post" action="/login"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
@@ -373,7 +377,7 @@ class Handler(BaseHTTPRequestHandler):
   if path=="/healthz":
    # A 200 response must mean the deployment can actually serve its UI and archived data.
    try:
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
    except Exception:healthy=False
    if healthy and parse_qs(urlsplit(self.path).query).get("market")==["1"]:
     try:
@@ -440,15 +444,21 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(503,json.dumps({"error":"asset_source_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/worker-status":
    try:
-    request=Request("https://stamp-autonomous-worker.onrender.com/status",headers={"Accept":"application/json","User-Agent":"STAMP-private-dashboard"})
-    with urlopen(request,timeout=8) as upstream:
-     raw=upstream.read(8193)
-    if len(raw)>8192:raise ValueError("oversized_worker_health")
-    health=json.loads(raw)
-    if not isinstance(health,dict) or not isinstance(health.get("healthy"),bool):raise ValueError("invalid_worker_health")
-    return self.send(200,json.dumps(health,allow_nan=False).encode(),"application/json; charset=utf-8")
+    return self.send(200,json.dumps(worker_status(),allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"worker_status_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/market-events":
+   query=parse_qs(urlsplit(self.path).query)
+   try:
+    pair=event_symbol(query.get("symbol",[""])[0])
+   except ValueError as exc:
+    return self.send(400,json.dumps({"error":str(exc)}).encode(),"application/json; charset=utf-8")
+   archive={}
+   if pair==STAMP:
+    current=CACHE.get("payload") or {}
+    archive=current.get("operations") or (read_embedded() or {}).get("operations") or {}
+   result=dashboard_events(pair,archive)
+   return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
   if path=="/api/market-update":
    query=parse_qs(urlsplit(self.path).query)
    try:
@@ -518,7 +528,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
-  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/assets/market-flow.js":"market-flow.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/style.css":"private.css"}
+  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/assets/market-flow.js":"market-flow.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:

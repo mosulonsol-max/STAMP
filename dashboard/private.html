@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=workspace-controls-1">
+  <link rel="stylesheet" href="/assets/style.css?v=operations-1">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
@@ -91,6 +91,7 @@
           <button type="button" data-layer="ichimoku" aria-pressed="false" data-copy="Ichimoku">إيشيموكو</button>
           <button type="button" data-layer="fibonacci" aria-pressed="false" data-copy="Fibonacci">فيبوناتشي</button>
           <button type="button" data-layer="elliott" aria-pressed="false" data-copy="Elliott waves">موجات إليوت</button>
+          <button id="eventToggle" type="button" aria-controls="chartEvents" aria-pressed="true"><span data-copy="Chart events">أحداث الشارت</span><span id="eventCount" class="event-count" dir="ltr"></span></button>
         </div>
         <div class="chart-context">
           <span id="chartOHLC" dir="ltr">—</span>
@@ -106,9 +107,21 @@
           <button id="zoomOut" type="button" data-i18n="zoomOut">تصغير −</button>
           <button id="panEarlier" type="button" data-i18n="earlier">← أقدم</button>
           <button id="panLater" type="button" data-i18n="later">أحدث →</button>
+          <button id="replayToggle" type="button" aria-controls="replayControls" aria-expanded="false" data-copy="Replay candles">إعادة العرض</button>
           <button id="exportCandles" type="button" data-i18n="export">تنزيل الشموع CSV</button>
           <span id="chartHelp" class="sr-only" data-i18n="chartHelp"></span>
         </div>
+        <section id="replayControls" class="replay-controls" aria-label="إعادة عرض الشموع" hidden>
+          <div class="replay-actions">
+            <button id="replayBack" type="button" data-copy="Previous candle">الشمعة السابقة</button>
+            <button id="replayPlay" type="button" aria-pressed="false">تشغيل</button>
+            <button id="replayStep" type="button" data-copy="Next candle">الشمعة التالية</button>
+            <time id="replayTime" dir="ltr"></time>
+          </div>
+          <label for="replayPosition" class="sr-only" data-copy="Position in recorded candles">الموضع في سجل الشموع</label>
+          <input id="replayPosition" type="range" min="1" max="1" value="1" dir="ltr">
+          <p id="replayForecast" class="small muted"></p>
+        </section>
         <div class="chart-legend">
           <span><i class="legend-key candles"></i><span data-i18n="candles">شموع مغلقة</span></span>
           <span><i class="legend-key predicted"></i><span data-i18n="predicted">توقع مسجّل</span></span>
@@ -117,6 +130,15 @@
         </div>
         <p id="activeCandle" class="chart-note muted"></p>
         <div id="technicalDetails" class="technical-details" aria-label="قراءات طبقات الرسم" hidden></div>
+        <section id="chartEvents" class="chart-events" aria-labelledby="chartEventsTitle">
+          <header class="event-heading">
+            <div><h3 id="chartEventsTitle" data-copy="Executed market events">الأحداث السوقية المنفذة</h3><p id="eventCoverage" class="small muted" role="status"></p></div>
+            <button id="eventAll" class="quiet-button" type="button" data-copy="All candles" hidden>كل الشموع</button>
+          </header>
+          <p id="eventSelection" class="small muted" hidden></p>
+          <ul id="chartEventList" class="chart-event-list"></ul>
+          <p id="eventEmpty" class="small muted" hidden></p>
+        </section>
         <details class="audit-details depth-panel">
           <summary><span data-copy="3D candle view">منظور الشموع ثلاثي الأبعاد</span><span id="depthLabel" class="muted"></span></summary>
           <div id="depthScene" class="depth-scene" role="img" aria-label="ارتفاع الأعمدة يعكس سعر الإغلاق"></div>
@@ -275,6 +297,20 @@
             <p id="labEvidence" class="small muted"></p>
           </div>
         </article>
+        <article class="panel operations-panel" aria-labelledby="operationsTitle">
+          <header class="panel-header"><h3 id="operationsTitle" data-copy="Operations health">صحة التشغيل</h3><span id="operationsChecked" class="small muted" role="status">—</span></header>
+          <div class="inspector-body">
+            <div class="operations-table-wrap"><table class="operations-table">
+              <thead><tr><th scope="col" data-copy="Source">المصدر</th><th scope="col" data-copy="Status">الحالة</th><th scope="col" data-copy="Last check">آخر فحص</th><th scope="col" data-copy="Last success">آخر نجاح</th></tr></thead>
+              <tbody id="operationsSources"></tbody>
+            </table></div>
+            <details class="operation-incidents">
+              <summary data-copy="Source status changes · 7 days">تغيّرات حالة المصادر · ٧ أيام</summary>
+              <ul id="operationsIncidents"></ul>
+              <p id="operationsEmpty" class="small muted"></p>
+            </details>
+          </div>
+        </article>
         <article class="panel worker-panel">
           <header class="panel-header"><h3 data-copy="Autonomous engine">المحرك المستقل</h3><span id="workerState" role="status">جارٍ التحقق…</span></header>
           <div class="inspector-body worker-metrics">
@@ -324,7 +360,8 @@
   <script src="/assets/chart.js?v=5.0.9" defer></script>
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
-  <script src="/assets/app.js?v=workspace-controls-1" defer></script>
+  <script src="/assets/chart-events.js?v=operations-1" defer></script>
+  <script src="/assets/app.js?v=operations-1" defer></script>
   <script src="/assets/market-flow.js?v=market-workspace-1" defer></script>
 </body>
 </html>

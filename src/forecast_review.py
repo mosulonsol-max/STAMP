@@ -54,6 +54,7 @@ def review(events, limit=100):
             "baseline_log_error":abs(math.log(actual/reference)) if evaluated else None,
             "direction_correct":((predicted>0)==(actual>reference)) if evaluated and predicted!=0 and actual!=reference else None,
             "measurement_time_utc":o.get("measurement_time_utc"),
+            "evaluated_utc":o.get("evaluated_at_utc"),
             "measurement_offset_seconds":(measured-due).total_seconds() if due and measured else None,
             "evidence_flags":f.get("evidence_flags",[])
         })
