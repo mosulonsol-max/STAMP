@@ -1,5 +1,6 @@
 """Read-only global crypto indicators. Never label volume or market-cap change as cash inflows."""
 import datetime as dt
+from concurrent.futures import ThreadPoolExecutor
 import json
 import threading
 import time
@@ -18,11 +19,14 @@ def market_flow_snapshot():
  with _LOCK:
   if _CACHE["value"] is not None and now-_CACHE["at"]<300:return _CACHE["value"]
  # CoinGecko market-wide spot indicators; DefiLlama circulating stablecoin supply history.
- global_data=_fetch("https://api.coingecko.com/api/v3/global").get("data",{})
+ with ThreadPoolExecutor(max_workers=2) as pool:
+  global_future=pool.submit(_fetch,"https://api.coingecko.com/api/v3/global")
+  chart_future=pool.submit(_fetch,"https://stablecoins.llama.fi/stablecoincharts/all")
+  global_data=global_future.result().get("data",{})
+  chart=chart_future.result()
  cap=global_data.get("total_market_cap",{}).get("usd")
  volume=global_data.get("total_volume",{}).get("usd")
  if not isinstance(cap,(int,float)) or not isinstance(volume,(int,float)) or cap<=0 or volume<0:raise ValueError("invalid global market values")
- chart=_fetch("https://stablecoins.llama.fi/stablecoincharts/all")
  points=[]
  for row in chart:
   try:
