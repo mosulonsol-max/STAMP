@@ -579,6 +579,7 @@ function renderChart(){
   for(const series of [candleSeries,volumeSeries,predictedSeries,measuredSeries,projectionSeries])series.setData([]);
   renderTechnical();
   renderChartEvents([]);
+  paintMarketLens();
   paintReplay();
   viewKey="";
   return;
@@ -609,6 +610,7 @@ function renderChart(){
  paintReplay(historical);
  drawQuoteLine();
  paintCandleContext(displayBars.at(-1),forming);
+ paintMarketLens();
  renderTechnical();
  renderChartEvents(displayBars);
  el("chart").dataset.barCount=String(currentBars.length);el("chart").dataset.forecastPoints=String(predictions.length);el("chart").dataset.actualPoints=String(outcomes.length);el("chart").dataset.frame=frame;
@@ -679,6 +681,13 @@ function drawQuoteLine(){
   else livePriceLine=candleSeries.createPriceLine({price:quoteLive.price,color:"#a4bbc9",lineWidth:1,lineStyle:2,axisLabelVisible:true,title:"MEXC"});
  }else if(livePriceLine){candleSeries.removePriceLine(livePriceLine);livePriceLine=null}
 }
+function paintMarketLens(){
+ window.StampLens?.update({
+  market:data?.market, quote:quoteLive, fresh:isFreshQuote(quoteLive),
+  observed:data?.observed_utc, liquidity:data?.liquidity, bars:currentBars,
+  frame, interval:FRAME_MS[frame], replay:!!replay, stamp, copy
+ });
+}
 function paintQuote(){
  const quote=quoteLive,market=data?.market;
  if(!quote&&!market)return;
@@ -701,6 +710,7 @@ function paintQuote(){
  set("warning",fresh||!usable?"":quote?copy("يظهر آخر سعر متاح مع توقيته.","Showing the last available price and its timestamp."):
   copy("تعذّر جلب السعر المباشر. القراءة المعروضة مؤرشفة.","Live quote unavailable. Showing the latest archive."));
  drawQuoteLine();
+ paintMarketLens();
 }
 function updateFreshness(){
  const q=quoteLive,seconds=age(q?.provider_at_utc||q?.retrieved_at_utc);
@@ -1222,50 +1232,6 @@ el("venueForm")?.addEventListener("submit",event=>{
  event.preventDefault();
  loadMicrostructure(el("venueSelect").value);
 });
-const workspaceTabs=[...document.querySelectorAll('.page-nav [role="tab"]')];
-function openWorkspaceTab(id,{writeHistory=false,scroll=false}={}){
- const tab=workspaceTabs.find(link=>link.getAttribute("aria-controls")===id)||workspaceTabs[0];
- if(!tab)return;
- for(const link of workspaceTabs){
-  const active=link===tab;
-  link.setAttribute("aria-selected",String(active));
-  link.tabIndex=active?0:-1;
-  el(link.getAttribute("aria-controls")).hidden=!active;
- }
- if(writeHistory&&window.location.hash!==tab.hash)window.history.pushState(null,"",tab.hash);
- if(scroll){
-  if(tab.hash==="#trading")window.scrollTo(0,0);
-  else window.requestAnimationFrame(()=>{
-   if(tab.getAttribute("aria-selected")==="true")el(tab.getAttribute("aria-controls")).scrollIntoView({block:"start"});
-  });
- }
-}
-for(const [index,tab] of workspaceTabs.entries()){
- tab.addEventListener("click",event=>{
-  if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
-  event.preventDefault();
-  openWorkspaceTab(tab.getAttribute("aria-controls"),{writeHistory:true,scroll:true});
- });
- tab.addEventListener("keydown",event=>{
-  let next;
-  if(event.key==="Home")next=0;
-  else if(event.key==="End")next=workspaceTabs.length-1;
-  else if(event.key==="ArrowLeft"||event.key==="ArrowRight"){
-   const step=(event.key==="ArrowRight")===(lang==="en")?1:-1;
-   next=(index+step+workspaceTabs.length)%workspaceTabs.length;
-  }else return;
-  event.preventDefault();
-  const target=workspaceTabs[next];
-  openWorkspaceTab(target.getAttribute("aria-controls"),{writeHistory:true,scroll:true});
-  target.focus({preventScroll:true});
- });
-}
-function openTabFromLocation(){
- const hash=window.location.hash||"";
- openWorkspaceTab(hash.slice(1),{scroll:hash.length>1});
-}
-window.addEventListener?.("hashchange",openTabFromLocation);
-openTabFromLocation();
 translate();initializeSceneControls();refresh();
 if(!offline){
  loadAssetUniverse();updateVenueNetwork();startStream();updateWorkerStatus();pollChartEvents(true);

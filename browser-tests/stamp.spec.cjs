@@ -376,3 +376,47 @@ test('historical replay advances candle by candle and reveals only recorded info
  await expect(chart).toHaveAttribute('data-replay','false');
  await expect(chart).toHaveAttribute('data-bar-count','80');
 });
+
+test('workspace navigation works with the market application unavailable',async({page})=>{
+ await page.route('**/assets/app.js?*',route=>route.abort());
+ await page.goto(HOST+'/');
+ await page.locator('#user').fill('test-user');
+ await page.locator('#password').fill('long-test-password');
+ await page.locator('form[action="/login"] button').click();
+ await page.locator('#flowTab').click();
+ await expect(page.locator('#globalMarketFlow')).toBeVisible();
+ await expect(page.locator('#trading')).toBeHidden();
+ await page.locator('#labTab').click();
+ await expect(page.locator('#labCenter')).toBeVisible();
+ await page.goBack();
+ await expect(page.locator('#globalMarketFlow')).toBeVisible();
+ await page.reload();
+ await expect(page.locator('#globalMarketFlow')).toBeVisible();
+ await expect(page.locator('#labCenter')).toBeHidden();
+});
+
+test('market pulse describes the trade sample and draws high density scenes',async({page})=>{
+ const now=Date.now(), start=Math.floor(now/900000)*900000;
+ const candles=Array.from({length:20},(_,i)=>({t:start-(20-i)*900000,o:2,c:2.1,h:2.2,l:1.9,v:20}));
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.route('**/api/dashboard',route=>route.fulfill({json:{
+  observed_utc:new Date(now).toISOString(),candles:{'15m':candles},
+  market:{price:2.1,change:.05,trades:{aggressive_buy_notional_usdt:150,aggressive_sell_notional_usdt:40,
+   first_trade_ms:now-60000,last_trade_ms:now,aggressive_buy_count:8,aggressive_sell_count:2}},
+  liquidity:{liquidity_usd:1234,observed_utc:new Date(now).toISOString()}
+ }}));
+ await page.goto(HOST+'/');
+ await page.locator('#user').fill('test-user');
+ await page.locator('#password').fill('long-test-password');
+ await page.locator('form[action="/login"] button').click();
+ await expect(page.locator('#lensBuy')).toHaveText('150 USDT');
+ await expect(page.locator('#lensSell')).toHaveText('40 USDT');
+ await expect(page.locator('#lensFlowDetail')).toContainText('110 USDT');
+ await expect(page.locator('#lensLiquidity')).toContainText('$1,234');
+ for(const id of ['lensPrice','lensFlow']){
+  expect(await page.locator('#'+id).evaluate(canvas=>canvas.width>=canvas.clientWidth&&canvas.toDataURL().length>2000)).toBe(true);
+ }
+ await expect(page.locator('#lensMotion')).toHaveAttribute('aria-pressed','false');
+ await page.locator('#lensMotion').click();
+ await expect(page.locator('#lensMotion')).toHaveAttribute('aria-pressed','true');
+});

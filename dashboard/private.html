@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=operations-1">
+  <link rel="stylesheet" href="/assets/style.css?v=market-lens-1">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
@@ -71,6 +71,27 @@
     <div id="warning" class="warning" role="alert" hidden></div>
 
     <div class="trade-grid" id="trading" role="tabpanel" aria-labelledby="tradeTab">
+      <section class="market-lens" aria-labelledby="lensTitle">
+        <header class="lens-header">
+          <div><h2 id="lensTitle" data-copy="Market pulse">نبض السوق</h2><p id="lensSummary"></p></div>
+          <button id="lensMotion" type="button" aria-pressed="true">إيقاف الحركة</button>
+        </header>
+        <div class="lens-scenes">
+          <figure class="lens-scene">
+            <figcaption><strong data-copy="Candle structure">حركة الشموع</strong><span id="lensPriceDetail"></span></figcaption>
+            <canvas id="lensPrice" aria-hidden="true"></canvas>
+          </figure>
+          <figure class="lens-scene">
+            <figcaption><strong data-copy="Executed trade pressure">ضغط الصفقات المنفذة</strong><span id="lensFlowDetail"></span></figcaption>
+            <canvas id="lensFlow" aria-hidden="true"></canvas>
+            <div class="lens-flow-values">
+              <div><span data-copy="Buyer initiated">بمبادرة المشترين</span><b id="lensBuy" dir="ltr">—</b></div>
+              <div><span data-copy="Seller initiated">بمبادرة البائعين</span><b id="lensSell" dir="ltr">—</b></div>
+            </div>
+          </figure>
+        </div>
+        <p class="lens-foot" id="lensLiquidity"></p>
+      </section>
       <section class="panel chart-panel" aria-labelledby="chartTitle">
         <header class="panel-header chart-header">
           <h2 id="chartTitle" data-copy="Price chart">الرسم السعري</h2>
@@ -357,11 +378,13 @@
       <button type="button" id="logoutButton" data-i18n="logout">تسجيل الخروج</button>
     </form>
   </dialog>
+  <script src="/assets/workspace-tabs.js?v=1" defer></script>
+  <script src="/assets/market-lens.js?v=1" defer></script>
   <script src="/assets/chart.js?v=5.0.9" defer></script>
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
-  <script src="/assets/chart-events.js?v=operations-1" defer></script>
-  <script src="/assets/app.js?v=operations-1" defer></script>
+  <script src="/assets/chart-events.js?v=market-lens-1" defer></script>
+  <script src="/assets/app.js?v=market-lens-1" defer></script>
   <script src="/assets/market-flow.js?v=market-workspace-1" defer></script>
 </body>
 </html>

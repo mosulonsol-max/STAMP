@@ -353,3 +353,33 @@ dialog label { font-size: .85rem; color: var(--muted); }
 .replay-actions time{margin-inline-start:auto;font-size:.8rem;color:#f1c781;font-variant-numeric:tabular-nums}
 .replay-controls input[type="range"]{display:block;width:100%;margin:10px 0 4px;accent-color:#8cc8fb}
 .replay-controls p{margin:.3rem 0}
+
+/* Section links remain usable when the dashboard application fails to load. */
+[role="tabpanel"] { scroll-margin-top: 125px; }
+.topbar { z-index: 20; }
+.page-nav { gap: 4px; padding-block: 5px; }
+.page-nav a { padding: 0 12px; min-height: 44px; border-radius: 8px; }
+.page-nav a[aria-selected="true"] { background: #17313d; color: #bdf8eb; }
+.page-nav a[aria-selected="true"]::after { inset-inline: 10px; }
+body { background: radial-gradient(ellipse at 90% 0%, #162638 0%, transparent 580px), #090e17; }
+.market-lens { grid-column: 1 / -1; background: #101a29; border: 1px solid #304359; border-radius: 16px; overflow: clip; }
+.lens-header { display: flex; justify-content: space-between; align-items: start; gap: 14px; padding: 18px 20px; }
+.lens-header h2 { font-size: clamp(1.2rem, 2vw, 1.6rem); }
+.lens-header p { margin-top: 5px; color: #d5e4f3; }
+.lens-header button { flex-shrink: 0; min-height: 44px; }
+.lens-scenes { display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; padding-inline: 16px; }
+.lens-scene { min-width: 0; margin: 0; background: #0b1422; border: 1px solid #263951; border-radius: 12px; overflow: hidden; }
+.lens-scene figcaption { display: grid; gap: 3px; padding: 13px 15px 0; }
+.lens-scene figcaption span, .lens-foot { color: #afc2d8; font-size: .83rem; }
+.lens-scene canvas { display: block; width: 100%; height: clamp(145px, 17vw, 218px); }
+.lens-flow-values { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); padding: 0 15px 12px; gap: 8px; }
+.lens-flow-values div { display: grid; font-size: .8rem; overflow-wrap: anywhere; }
+.lens-flow-values b { justify-self: start; color: #65e2b9; font-family: var(--number); }
+.lens-flow-values div + div b { color: #ff9bad; }
+.lens-foot { padding: 12px 18px; }
+@media (max-width: 660px) {
+ .page-nav a { padding-inline: 3px; }
+ .lens-scenes { grid-template-columns: 1fr; padding-inline: 10px; }
+ .lens-header { padding: 12px; }
+ .lens-header button { font-size: .78rem; }
+}

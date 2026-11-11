@@ -12,7 +12,7 @@ def generate(root=ROOT):
  vendor_path=root/"dashboard"/"vendor"/"lightweight-charts-5.0.9.js"
  vendor=vendor_path.read_text(encoding="utf-8") if vendor_path.exists() else ""
  template=re.sub(r'<script\s+src="/assets/chart\.js(?:\?[^\"]*)?"\s+defer></script>',lambda m:"<script>"+vendor+"</script>",template,count=1)
- for name in ("market-stream.js","market-flow.js","technical-overlays.js","chart-events.js"):
+ for name in ("market-stream.js","market-flow.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js"):
   asset=(root/"dashboard"/name).read_text(encoding="utf-8")
   template=re.sub(r'<script\s+src="/assets/'+re.escape(name)+r'(?:\?[^"]*)?"\s+defer></script>',
    lambda m:"<script>"+asset+"</script>",template,count=1)

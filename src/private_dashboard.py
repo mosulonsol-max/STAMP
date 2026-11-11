@@ -352,7 +352,7 @@ def login_html(error=False):
  message='<p class="warning" role="alert">تحقّق من اسم المستخدم وكلمة المرور.</p>' if error else ''
  return ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
  '<meta name="robots" content="noindex,nofollow"><title>STAMP | تسجيل الدخول</title>'
- '<link rel="stylesheet" href="/assets/style.css?v=operations-1"></head><body class="login-page">'
+ '<link rel="stylesheet" href="/assets/style.css?v=market-lens-1"></head><body class="login-page">'
  '<main class="panel login-card"><div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></div>'
  '<h1>الدخول إلى لوحة السوق</h1>'+message+
  '<form method="post" action="/login"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
@@ -369,7 +369,7 @@ class Handler(BaseHTTPRequestHandler):
   self.end_headers();self.wfile.write(body)
  def do_GET(self):
   path=urlsplit(self.path).path
-  public_assets={"/assets/chart.js":("vendor/lightweight-charts-5.0.9.js","text/javascript; charset=utf-8"),"/assets/chart-license.txt":("vendor/LICENSE-lightweight-charts.txt","text/plain; charset=utf-8")}
+  public_assets={"/assets/chart.js":("vendor/lightweight-charts-5.0.9.js","text/javascript; charset=utf-8"),"/assets/workspace-tabs.js":("workspace-tabs.js","text/javascript; charset=utf-8"),"/assets/chart-license.txt":("vendor/LICENSE-lightweight-charts.txt","text/plain; charset=utf-8")}
   if path in public_assets:
    name,kind=public_assets[path]
    try:return self.send(200,(ROOT/"dashboard"/name).read_bytes(),kind)
@@ -377,7 +377,7 @@ class Handler(BaseHTTPRequestHandler):
   if path=="/healthz":
    # A 200 response must mean the deployment can actually serve its UI and archived data.
    try:
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
    except Exception:healthy=False
    if healthy and parse_qs(urlsplit(self.path).query).get("market")==["1"]:
     try:
@@ -528,7 +528,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
-  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/assets/market-flow.js":"market-flow.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/style.css":"private.css"}
+  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/assets/market-flow.js":"market-flow.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:
