@@ -519,7 +519,7 @@ class Handler(BaseHTTPRequestHandler):
    good=authorized("Basic "+base64.b64encode((username+":"+password).encode()).decode())
   except (ValueError,UnicodeError,TypeError):good=False
   if not good:return self.send(401,login_html(True),"text/html; charset=utf-8")
-  return self.send(303,b"",extra={"Location":"/nexus?build=20261110-2","Set-Cookie":"stamp_session="+make_session()+"; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax"})
+  return self.send(303,b"",extra={"Location":"/","Set-Cookie":"stamp_session="+make_session()+"; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax"})
 def main():
  if not os.getenv("DASHBOARD_USER") or not os.getenv("DASHBOARD_PASSWORD"):raise SystemExit("Refusing to start without dashboard authentication")
  port=int(os.getenv("PORT","10000"))
