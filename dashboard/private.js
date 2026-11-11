@@ -450,3 +450,6 @@ favoritesUi();initializeSceneControls();loadAssetUniverse();updateVenueNetwork()
 if(window.StampMarket){pollQuote(true);setInterval(()=>{updateFreshness();pollQuote();renderAssurance()},1000)}
 setInterval(()=>{if(!document.hidden)refresh()},15000);
 })();
+
+// Resize the authenticated capital-flow module to fit the unified dashboard without nested scrolling.
+window.addEventListener('message',event=>{if(event.origin!==window.location.origin||event.data?.type!=='stamp-market-flow-height')return;const frame=document.querySelector('#globalMarketFlow iframe');if(event.source!==frame?.contentWindow)return;const height=Number(event.data.height);if(Number.isFinite(height)&&height>200&&height<5000)frame.style.height=Math.ceil(height+12)+'px';});
