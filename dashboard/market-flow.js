@@ -247,6 +247,7 @@
     error.textContent = notices.join(" ");
     error.hidden = notices.length === 0;
     if (payload?.sources) el("flowSources").textContent = Object.values(payload.sources).join(" · ");
+    renderCoverage();
     updatePoint();
     drawScene();
     drawHistory();
@@ -279,9 +280,40 @@
   const amount = new Intl.NumberFormat("en-US", {maximumFractionDigits: 2});
   const usdt = value => Number.isFinite(value) ? amount.format(value) + " USDT" : "—";
   let selectedInterval = null, depthRequest = null, depthData = null;
+  function renderCoverage() {
+    const ready = copy("متاح","Available"), missing = copy("غير متاح","Unavailable");
+    const fresh = (timestamp, maxAge) => {
+      const age = Date.now()-Date.parse(timestamp);
+      return Number.isFinite(age) && age >= -5000 && age < maxAge;
+    };
+    const ageLabel = (timestamp, maxAge) => !timestamp ? missing : fresh(timestamp,maxAge) ? ready : copy("قراءة متأخرة","Delayed observation");
+    const chain = depthData?.chain?.coverage, venues = depthData?.venues || [];
+    const records = mode === "whole" ? [
+      ["CoinGecko",copy("تقييم السوق وحجم التداول الإجمالي","Market valuation and gross traded value"),ageLabel(payload?.market_observed_at_utc,1800000),payload?.market_observed_at_utc],
+      ["DefiLlama",copy("معروض العملات المستقرة · رصد يومي","Stablecoin supply · daily observation"),ageLabel(payload?.stablecoin_supply_observed_at_utc,172800000),payload?.stablecoin_supply_observed_at_utc]
+    ] : [
+      ["MEXC Spot",copy("عينة الصفقات المنفّذة حسب الطرف المبادر","Executed sample by aggressor side"),
+       pairData?.status==="ok"?ageLabel(pairData.observed_utc,120000):missing,pairData?.observed_utc],
+      [copy("دفتر الأوامر","Order books"),copy("عمق أوامر الشراء والبيع المفتوحة","Resting bid and ask depth"),
+       venues.length?venues.filter(v=>v.status==="ok").length+" / "+venues.length+" · "+copy("مصادر استجابت","venues responded"):missing,null],
+      ...(pair==="STAMPUSDT"?[["PumpSwap",copy("إضافة وسحب سيولة موثّقان بمعاملات","Transaction-backed liquidity changes"),
+       chain?.inspected_count!=null?(chain.inspected_count+" / "+chain.returned_count+" · "+copy("معاملات فُحصت","transactions inspected")):missing,chain?.observed_utc]]:[])
+    ];
+    el("flowCoverage").replaceChildren(...records.map(([source,metric,status,timestamp])=>{
+      const card=document.createElement("article"), title=document.createElement("strong");
+      card.setAttribute("role","listitem");
+      title.textContent=source;
+      card.append(title);
+      for(const value of [metric,status+(timestamp?" · "+formatTime(timestamp):"")]){
+        const line=document.createElement("span");line.textContent=value;card.append(line);
+      }
+      return card;
+    }));
+  }
   function renderDepthCards() {
     const root = el("flowDepthCards");
     root.replaceChildren();
+    renderCoverage();
     const chain = depthData?.chain, coverage = chain?.coverage;
     el("flowChainView").hidden = pair !== "STAMPUSDT";
     el("flowChainCoverage").textContent = coverage?.observed_utc
@@ -336,6 +368,7 @@
     }
   }
   function renderPair() {
+    renderCoverage();
     const data = pairData;
     const flow = data?.status === "ok" ? data.flow : null;
     const net = flow ? flow.buy - flow.sell : null;
@@ -366,19 +399,26 @@
       return button;
     }));
     const max = Math.max(1, ...rows.flatMap(row => [row.buy,row.sell]));
-    const bar = (x, value, color, top) => {
-      if (value <= 0) return "";
-      const h = 110 * value / max, y = 132 - h;
-      return '<path fill="'+top+'" d="M'+x+' '+y+'l5 -4h9l-5 4z"/>'+
-        '<path fill="'+color+'" opacity=".65" d="M'+(x+9)+' '+y+'l5 -4v'+h+'l-5 4z"/>'+
-        '<rect x="'+x+'" y="'+y+'" width="9" height="'+h+'" fill="'+color+'"/>';
+    const xAt = row => 65 + Math.round((row.time_ms-data.first_ms)/flow.bucket_ms)*43;
+    const bar = (x,value,color) => {
+      const h=110*value/max;
+      return '<rect x="'+x+'" y="'+(136-h)+'" width="12" height="'+h+'" rx="2" fill="'+color+'"/>';
     };
-    el("flowPairPlot").innerHTML = rows.length ? '<svg viewBox="0 0 500 148" aria-hidden="true">'+
-      '<path d="M16 132H482 M16 96H482 M16 59H482 M16 22H482" stroke="#2c435c" fill="none"/>'+
+    let cumulative=0;
+    const netPoints=rows.map(row=>({x:xAt(row)+14,value:cumulative+=row.buy-row.sell}));
+    const netScale=Math.max(1,...netPoints.map(p=>Math.abs(p.value)));
+    const label=(x,y,value)=>'<text x="'+x+'" y="'+y+'" fill="#a9bed3" font-size="11">'+value+'</text>';
+    const netPath=netPoints.map(p=>p.x+","+(216-44*p.value/netScale)).join(" ");
+    el("flowPairPlot").innerHTML = rows.length ? '<svg viewBox="0 0 600 277" aria-hidden="true">'+
+      label(8,15,"USDT")+label(8,30,amount.format(max))+label(8,85,amount.format(max/2))+label(8,139,"0")+
+      '<path d="M58 26H586 M58 81H586 M58 136H586 M58 172H586 M58 216H586 M58 260H586" stroke="#2c435c" fill="none"/>'+
+      label(8,175,"+"+amount.format(netScale))+label(8,220,"0")+label(8,263,"−"+amount.format(netScale))+
       rows.map(row=>{
-        const x=22+Math.round((row.time_ms-data.first_ms)/flow.bucket_ms)*38;
-        return '<g opacity="'+(row===selected?1:.62)+'">'+bar(x,row.buy,"#41c7a1","#88efcf")+bar(x+15,row.sell,"#e57790","#ffc0ce")+'</g>';
-      }).join("")+'</svg>' : "";
+        const x=xAt(row), active=row===selected;
+        return '<g opacity="'+(active?1:.78)+'">'+(active?'<rect x="'+(x-4)+'" y="20" width="34" height="244" rx="5" fill="#263b52"/>':'')+
+          bar(x,row.buy,"#56d6af")+bar(x+15,row.sell,"#f480a1")+'</g>';
+      }).join("")+'<polyline points="'+netPath+'" stroke="#c4a7ff" stroke-width="2.5" fill="none"/>'+
+      netPoints.map(p=>'<circle cx="'+p.x+'" cy="'+(216-44*p.value/netScale)+'" r="3" fill="#c4a7ff"/>').join("")+'</svg>' : "";
     const body = el("flowPairRows");
     body.replaceChildren(...rows.map(row => {
       const tr = document.createElement("tr");
