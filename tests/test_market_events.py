@@ -68,6 +68,16 @@ class MarketEventTests(unittest.TestCase):
         self.assertEqual(btc_result["available_venues"],3)
         self.assertEqual(btc_result["flow"]["buy"],600.0)
 
+    def test_kucoin_nanosecond_execution_is_fresh_and_classified(self):
+        upstream={"code":"200000","data":[{"time":str((CHECKED-750)*1_000_000),
+                  "price":"100","size":"2","side":"buy","sequence":"9001"}]}
+        with patch("src.multi_asset.public_json",return_value=upstream):
+            rows=events.venue_trade_rows("KuCoin","XAUTUSDT")
+        sample=events.trade_sample(rows,"XAUTUSDT",OBSERVED,"KuCoin")
+        self.assertEqual(sample["status"],"ok")
+        self.assertEqual(sample["events"][0]["time_ms"],CHECKED-750)
+        self.assertEqual(sample["events"][0]["side"],"buy")
+
     def test_pump_amm_instructions_require_success_exact_pool_program_and_mints(self):
         accounts = [POOL, "", "", events.MINT, QUOTE, "", "", "", "", "", ""]
         deposit = {"programId": events.PUMPSWAP, "accounts": accounts,

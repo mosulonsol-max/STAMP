@@ -144,13 +144,17 @@ def venue_trade_rows(venue,pair):
       try:
         if venue=="OKX":t,p,q,side,key=row["ts"],row["px"],row["sz"],row["side"],row["tradeId"]
         elif venue=="Bybit":t,p,q,side,key=row["time"],row["price"],row["size"],row["side"],row["execId"]
-        elif venue=="KuCoin":t,p,q,side,key=row["time"],row["price"],row["size"],row["side"],row["sequence"]
+        elif venue=="KuCoin":
+          t,p,q,side,key=row["time"],row["price"],row["size"],row["side"],row["sequence"]
+          # KuCoin trade timestamps are commonly nanoseconds, unlike the ms
+          # timestamps returned by the other spot execution endpoints.
+          t=int(t)//1_000_000 if int(t)>=10**17 else int(t)
         elif venue=="Gate":t,p,q,side,key=row["create_time_ms"],row["price"],row["amount"],row["side"],row["id"]
         else:t,p,q,side,key=row["ts"],row["price"],row["size"],row["side"],row["execId"]
         direction=str(side).lower()
         if direction not in ("buy","sell"):continue
         result.append({"time":t,"price":p,"qty":q,"id":key,"isBuyerMaker":direction=="sell"})
-      except (KeyError,TypeError):continue
+      except (KeyError,TypeError,ValueError):continue
     return result
 
 @lru_cache(maxsize=80)
