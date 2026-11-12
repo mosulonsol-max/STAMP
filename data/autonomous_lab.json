@@ -1,12 +1,14 @@
 {
-  "generated_at_utc": "2026-11-11T17:52:53.623010+00:00",
+  "generated_at_utc": "2026-11-12T00:37:35.443978+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-11T17:52:53.623010+00:00",
-    "state": "healthy",
+    "generated_at_utc": "2026-11-12T00:37:35.443978+00:00",
+    "state": "degraded",
     "previous_pipeline_passed": true,
-    "previous_pipeline_at_utc": "2026-11-11T17:30:50.617755+00:00",
-    "failed_checks": [],
+    "previous_pipeline_at_utc": "2026-11-11T21:24:58.321140+00:00",
+    "failed_checks": [
+      "fresh_pipeline"
+    ],
     "checks": {
       "pipeline_steps": {
         "passed": true,
@@ -25,7 +27,7 @@
         "details": "No missing/future clock"
       },
       "fresh_pipeline": {
-        "passed": true,
+        "passed": false,
         "details": "Scheduled Actions are best effort; 3 hours is a health threshold."
       },
       "horizon_wiring": {
@@ -70,23 +72,23 @@
       },
       "ticker": {
         "status": "missing",
-        "historical_points": 11,
+        "historical_points": 7,
         "currently_available": false
       },
       "orderbook": {
         "status": "missing",
-        "historical_points": 11,
+        "historical_points": 7,
         "currently_available": false
       },
       "trades": {
         "status": "missing",
-        "historical_points": 11,
+        "historical_points": 7,
         "currently_available": false
       },
       "dex": {
-        "status": "used",
-        "historical_points": 17,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 16,
+        "currently_available": false
       },
       "onchain": {
         "status": "used",
@@ -104,9 +106,9 @@
         "currently_available": false
       },
       "macro": {
-        "status": "used",
-        "historical_points": 17,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 16,
+        "currently_available": false
       },
       "derivatives": {
         "status": "missing",
@@ -126,11 +128,11 @@
       "id": "4b1db79fb44eb9c6",
       "horizon": "1h",
       "candidate": "technical_absolute",
-      "action": "revise_in_sandbox",
-      "reason": "failed_no_change_baseline",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": -0.004224459757363963,
+      "skill_vs_zero": -0.0017923643608286355,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -138,23 +140,23 @@
       "id": "78e64496f69a5ab9",
       "horizon": "4h",
       "candidate": "forest_absolute",
-      "action": "revise_in_sandbox",
-      "reason": "failed_no_change_baseline",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": -0.0379400577385367,
+      "skill_vs_zero": -0.04163754793143881,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
     {
-      "id": "6e1b896b2e2b4087",
+      "id": "65dd0297ae9c9cfa",
       "horizon": "24h",
-      "candidate": "no_change",
-      "action": "continue_sandbox",
-      "reason": "insufficient_independent_later_tests",
+      "candidate": "hist_absolute",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
       "replay_consistent": true,
-      "later_samples": 23.0,
-      "skill_vs_zero": 0.0,
+      "later_samples": 24.0,
+      "skill_vs_zero": -0.16493485951170306,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -162,11 +164,11 @@
       "id": "1c5b99ed40ec90a5",
       "horizon": "7d",
       "candidate": "hist_absolute",
-      "action": "continue_sandbox",
-      "reason": "insufficient_independent_later_tests",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
       "replay_consistent": true,
       "later_samples": 3.0,
-      "skill_vs_zero": 0.002369425138379122,
+      "skill_vs_zero": 0.034555454086687365,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     }
