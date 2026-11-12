@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=market-flow-evidence-4">
+  <link rel="stylesheet" href="/assets/style.css?v=project-ops-1">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
@@ -18,6 +18,7 @@
         <a id="flowTab" href="#globalMarketFlow" role="tab" aria-controls="globalMarketFlow" aria-selected="false" data-copy="Market flows">تدفقات السوق</a>
         <a id="venuesTab" href="#venuesSection" role="tab" aria-controls="venuesSection" aria-selected="false" data-copy="Exchanges">المنصات</a>
         <a id="labTab" href="#labCenter" role="tab" aria-controls="labCenter" aria-selected="false" data-copy="Research">المختبر</a>
+        <a id="systemTab" href="#systemCenter" role="tab" aria-controls="systemCenter" aria-selected="false" data-copy="System">النظام</a>
       </nav>
       <div class="toolbar-actions">
         <span id="status" role="status">جاري الاتصال</span>
@@ -28,6 +29,20 @@
   </header>
 
   <main class="workspace" id="overview">
+    <section id="systemCenter" class="market-section" role="tabpanel" aria-labelledby="systemTab">
+      <header class="section-header">
+        <div><h2 data-copy="Project operations">تشغيل مشروع ستامب</h2><p id="systemRun"></p></div>
+        <p id="systemVerdict" role="status"></p>
+      </header>
+      <ol id="systemStages" class="system-stages" aria-label="مراحل عمل المشروع"></ol>
+      <section class="panel">
+        <header class="panel-header"><h3 data-copy="Model decisions by horizon">قرارات النماذج حسب الأفق</h3></header>
+        <div class="history-table"><table class="system-table"><thead><tr>
+          <th data-copy="Horizon">الأفق</th><th data-copy="Model">النموذج</th><th data-copy="Decision">القرار</th>
+          <th data-copy="Error improvement vs no change">تحسن الخطأ مقابل ثبات السعر</th><th data-copy="Measured outcomes">نتائج مقاسة</th>
+        </tr></thead><tbody id="systemModels"></tbody></table></div>
+      </section>
+    </section>
     <div class="trade-grid" id="trading" role="tabpanel" aria-labelledby="tradeTab">
     <section class="market-overview" aria-labelledby="coinName">
       <div class="market-top">
@@ -439,7 +454,7 @@
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
-  <script src="/assets/app.js?v=venue-scene-4" defer></script>
+  <script src="/assets/app.js?v=project-ops-1" defer></script>
   <script src="/assets/market-flow.js?v=market-flow-evidence-4" defer></script>
 </body>
 </html>

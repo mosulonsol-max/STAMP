@@ -455,3 +455,12 @@ body { background: radial-gradient(ellipse at 90% 0%, #162638 0%, transparent 58
 .flow-chart-key { display:flex; flex-wrap:wrap; gap:8px 16px; margin-top:12px; color:#c5d8e9; font-size:.82rem; }
 .flow-chart-key > span { display:inline-flex; align-items:center; gap:5px; }
 #flowPairPlot svg { height:auto; max-height:370px; }
+.system-stages { list-style:none; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(165px,100%),1fr)); gap:10px; padding:0; margin:14px 0; }
+.system-stages li { border:1px solid #2a4059; border-top:3px solid #697b92; border-radius:10px; background:#101c2d; min-width:0; }
+.system-stages li[data-stage-state="success"],.system-stages li[data-stage-state="healthy"] { border-top-color:#60d5b5; }
+.system-stages li[data-stage-state="failure"],.system-stages li[data-stage-state="degraded"] { border-top-color:#f0949d; }
+.system-stages a { min-height:104px; display:grid; gap:5px; padding:12px; text-decoration:none; color:var(--text); }
+.system-stages span,.system-stages small { color:var(--muted); overflow-wrap:anywhere; }
+.system-table { width:100%; text-align:start; }
+.system-table :is(th,td) { padding:10px; border-bottom:1px solid var(--border); text-align:start; }
+#systemVerdict { color:var(--accent); font-weight:650; }

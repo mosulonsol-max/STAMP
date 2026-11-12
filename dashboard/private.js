@@ -922,9 +922,49 @@ function renderIntelligence(){
   copy("لا توجد قرارات مؤرشفة","No archived decisions");
  set("labEvidence",lab.warning||"");
 }
+let systemSnapshot=null;
+function paintSystem(){
+ const root=el("systemStages");
+ if(!root)return;
+ const report=systemSnapshot, health=report?.health, lab=report?.laboratory, activity=report?.forecast_activity;
+ const status=value=>({success:copy("نجحت","Passed"),failure:copy("فشلت","Failed"),skipped:copy("تُخطّيت","Skipped")})[value]||copy("غير موثّقة","Unverified");
+ const checks=health?.steps||{};
+ const rows=[
+  ["monitor",copy("رصد السوق","Market collection"),report?.observed_utc?stamp(report.observed_utc,true):"—","venuesSection"],
+  ["archive",copy("حفظ الشموع المغلقة","Closed-candle archive"),report?.candles?.["15m"]?.length!=null?number(report.candles["15m"].length)+" · 15m":"—","trading"],
+  ["research",copy("التدريب وإصدار التوقعات","Training and forecast issuance"),activity?.last_forecast_utc?stamp(activity.last_forecast_utc,true):"—","trading"],
+  ["audit",copy("قياس نتائج التوقعات","Outcome measurement"),report?.forecast_review?.rows?number(report.forecast_review.rows.filter(row=>n(row.actual_price)>0).length)+" · "+copy("نتيجة في السجل المعروض","outcomes in displayed history"):"—","trading"],
+  ["governance",copy("الاعتماد الآلي","Automatic model review"),copy("القرارات حسب الأفق في الجدول","Decisions by horizon in the table"),"systemCenter"],
+  ["lab",copy("تجارب المختبر","Sandbox experiments"),lab?.evaluated!=null?number(lab.evaluated)+" · "+copy("تجربة مقيّمة","experiments evaluated"):"—","labCenter"],
+  ["dashboard",copy("بناء اللوحة","Dashboard build"),health?.production_smoke_passed===true?copy("نجح فحص الإنتاج","Production smoke check passed"):"—","globalMarketFlow"]
+ ];
+ const markup=rows.map(([key,title,evidence,target])=>{
+  const state=key==="lab"?lab?.status:checks[key];
+  const label=key==="lab"?(state==="healthy"?copy("سليم","Healthy"):state==="degraded"?copy("يحتاج مراجعة","Degraded"):status(null)):status(state);
+  return '<li data-stage-state="'+esc(state||"unknown")+'"><a href="#'+target+'"><strong>'+esc(title)+'</strong><span>'+esc(label)+'</span><small>'+esc(evidence)+'</small></a></li>';
+ }).join("");
+ if(root.innerHTML!==markup)root.innerHTML=markup;
+ const decisions=Object.entries(report?.model_decisions||{}).filter(([,decision])=>decision&&typeof decision==="object");
+ const approved=decisions.filter(([,d])=>d.status==="approved").length;
+ set("systemVerdict",!report?copy("بانتظار سجل التشغيل","Awaiting run evidence"):
+  (health?.passed===true?copy("آخر دورة مسجّلة نجحت","Last recorded pipeline passed"):
+   health?.passed===false?copy("آخر دورة مسجّلة لم تكتمل بنجاح","Last recorded pipeline failed"):copy("حالة الدورة غير موثّقة","Pipeline status unverified"))+
+  (decisions.length?" · "+copy("آفاق معتمدة","Approved horizons")+" "+approved+" / "+decisions.length:""));
+ const checked=age(health?.at);
+ set("systemRun",health?.at?copy("آخر سجل لدورة STAMP","Latest STAMP run record")+" · "+stamp(health.at,true)+
+  (checked!==null&&checked>10800?" · "+copy("السجل متأخر","Delayed record"):""):"");
+ const table=el("systemModels");
+ const modelRows=decisions.map(([h,d])=>"<tr><th>"+esc(h)+"</th><td>"+esc(d.selected_model||"—")+"</td><td>"+
+  esc(d.status==="approved"?t("approved"):d.status==="experimental"?t("experimental"):t("unknown"))+"</td><td>"+
+  esc(n(d.forward_validation?.skill_vs_zero)===null?"—":pct(d.forward_validation.skill_vs_zero*100))+"</td><td>"+
+  esc(d.prospective?.samples??"—")+"</td></tr>").join("");
+ if(table.innerHTML!==modelRows)table.innerHTML=modelRows;
+}
 function render(result){
  if(!result||!result.market)throw Error("Invalid research payload");
  data=result;
+ if(selectedAsset==="STAMPUSDT")systemSnapshot=result;
+ paintSystem();
  if(selectedAsset==="STAMPUSDT"&&result.laboratory)lastLaboratory=result.laboratory;
  if(selectedAsset==="STAMPUSDT"&&result.operations)operationsReport=result.operations;
  paintOperations();
@@ -1146,6 +1186,7 @@ function translate(){
  el("langSelect").value=lang;
  el("zoneSelect").value=zone;
  favoritesUi();
+ paintSystem();
  paintOperations();
  if(chart)chart.applyOptions({localization:{timeFormatter:time=>formatChartTime(time)},timeScale:{tickMarkFormatter:(time,type)=>formatChartTime(time,type>2)}});
 }
