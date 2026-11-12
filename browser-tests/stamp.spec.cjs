@@ -420,3 +420,44 @@ test('market pulse describes the trade sample and draws high density scenes',asy
  await page.locator('#lensMotion').click();
  await expect(page.locator('#lensMotion')).toHaveAttribute('aria-pressed','true');
 });
+
+test('evidence map switches pair, inspects depth and jumps to a recorded candle',async({page})=>{
+ const now=Date.now(),step=900000,end=Math.floor(now/step)*step,time=end-step+10000;
+ const candles=Array.from({length:20},(_,i)=>({t:end-(20-i)*step,o:2,c:2.1,h:2.2,l:1.9,v:20}));
+ await page.route('**/api/dashboard',r=>r.fulfill({json:{observed_utc:new Date(now).toISOString(),market:{price:2.1},candles:{'15m':candles}}}));
+ await page.route('**/api/assets/venues?*',r=>{
+  const symbol=new URL(r.request().url()).searchParams.get('symbol');
+  return r.fulfill({json:{symbol,available_venues:1,retrieved_at_utc:new Date(now).toISOString(),venues:{
+   MEXC:{status:'ok',bid:2,ask:2.2,mid:2.1,spread_pct:9.52,retrieved_at_utc:new Date(now).toISOString()}
+  }}});
+ });
+ await page.route('**/api/market-events?*',r=>{
+  const symbol=new URL(r.request().url()).searchParams.get('symbol');
+  return r.fulfill({json:{symbol,records:[{id:'execution',symbol,kind:'trade',side:'buy',time_ms:time,notional:40}]}});
+ });
+ await page.route('**/api/assets/microstructure?*',r=>{
+  const params=new URL(r.request().url()).searchParams;
+  return r.fulfill({json:{symbol:params.get('symbol'),venue:params.get('venue'),result:{candles:{status:'unavailable'},book:{status:'ok',retrieved_at_utc:new Date(now).toISOString(),data:{
+   bids:[{price:2,quantity:50}],asks:[{price:2.2,quantity:20}],bid_depth_usdt:100,ask_depth_usdt:44,spread_pct:9.52,levels:1
+  }}}}});
+ });
+ await page.route('**/api/assets/snapshot?*',r=>r.fulfill({json:{symbol:'SOLUSDT',ticker:{lastPrice:2.1,closeTime:now},candles:{'15m':candles}}}));
+ await page.goto(HOST+'/');
+ await page.locator('#user').fill('test-user');
+ await page.locator('#password').fill('long-test-password');
+ await page.locator('form[action="/login"] button').click();
+ await page.locator('#venuesTab').click();
+ await expect(page.locator('#venueNetworkStatus')).toContainText('STAMPUSDT');
+ await page.locator('[data-scene-node="MEXC"]').click();
+ await expect(page.locator('#sceneNodeDetail')).toContainText('Bid / Ask');
+ await expect(page.locator('#microMetrics meter')).toBeVisible();
+ await page.locator('#sceneTimeline button').first().click();
+ await expect(page.locator('#trading')).toBeVisible();
+ await page.locator('#assetPickerButton').click();
+ await page.locator('#assetSearch').fill('SOL');
+ await page.locator('[data-pair="SOLUSDT"]').click();
+ await page.locator('#venuesTab').click();
+ await expect(page.locator('#venueNetworkStatus')).toContainText('SOLUSDT');
+ await page.locator('[data-scene-node="display"]').click();
+ await expect(page.locator('#sceneNodeDetail')).toContainText('SOLUSDT');
+});

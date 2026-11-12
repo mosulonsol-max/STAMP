@@ -352,7 +352,7 @@ def login_html(error=False):
  message='<p class="warning" role="alert">تحقّق من اسم المستخدم وكلمة المرور.</p>' if error else ''
  return ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
  '<meta name="robots" content="noindex,nofollow"><title>STAMP | تسجيل الدخول</title>'
- '<link rel="stylesheet" href="/assets/style.css?v=workspace-return-3"></head><body class="login-page">'
+ '<link rel="stylesheet" href="/assets/style.css?v=venue-scene-4"></head><body class="login-page">'
  '<main class="panel login-card"><div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></div>'
  '<h1>الدخول إلى لوحة السوق</h1>'+message+
  '<form method="post" action="/login"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'

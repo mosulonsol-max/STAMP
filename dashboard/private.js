@@ -136,16 +136,76 @@ function activeCandle(){
 let venueTopology=null;
 const camera={yaw:-.28,pitch:.2,zoom:1,auto:false};
 let sceneDrag=null,sceneAnimation=0;
-const nodes3d=[
- ["MEXC",-390,-160,-160],["Binance",-370,-80,140],["OKX",-370,25,-65],["Bybit",-360,145,170],["KuCoin",-380,230,-140],["Gate",-365,-235,75],["Bitget",-350,305,125],
- ["VALIDATION",-80,0,0],["AI ENGINE",170,0,0],["DASHBOARD",395,0,0]
+const sceneVenues=["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"];
+let sceneFocus="validation",sceneObservation="",sceneUpdated=0;
+const sceneStages=[
+ ["validation","التحقق","Validation"],
+ ["model","النموذج","Model"],
+ ["display","اللوحة","Dashboard"]
 ];
+function sceneVenueState(quote){
+ if(quote?.status!=="ok")return "missing";
+ return (age(quote.retrieved_at_utc)??Infinity)>120?"late":"ready";
+}
+function inspectScene(id,load=false){
+ sceneFocus=id;
+ const topology=venueTopology?.symbol===selectedAsset?venueTopology:null;
+ const quote=topology?.venues[id];
+ const status=sceneVenueState(quote);
+ const rows=[];
+ if(sceneVenues.includes(id)){
+  rows.push([copy("المنصة","Exchange"),id+" · "+selectedAsset]);
+  rows.push([copy("الحالة","Status"),status==="ready"?copy("متاح","Available"):status==="late"?copy("آخر رصد متأخر","Delayed observation"):quote?.reason||copy("بانتظار الرصد","Awaiting data")]);
+  if(quote?.status==="ok")rows.push(["Bid / Ask",price(quote.bid)+" / "+price(quote.ask)+" USDT"],[copy("الفارق","Spread"),pct(quote.spread_pct)],[copy("وقت الجلب","Retrieved"),stamp(quote.retrieved_at_utc,true)]);
+  if(load){el("venueSelect").value=id;loadMicrostructure(id)}
+ }else if(id==="validation"){
+  rows.push([copy("الأسعار المستلمة","Quotes received"),topology?topology.available_venues+" / "+sceneVenues.length:"—"]);
+  rows.push([copy("هوية الأصل","Asset identity"),topology?.identity_status==="verified_major_pair"?copy("زوج رئيسي معروف","Recognized major pair"):copy("المطابقة بين المنصات غير مؤكدة","Cross-venue identity unverified")]);
+  rows.push([copy("تباعد الأسعار الوسطية","Midpoint dispersion"),n(topology?.mid_dispersion_pct)===null?"—":pct(topology.mid_dispersion_pct)]);
+ }else if(id==="model"){
+  const decision=data?.model_decisions?.[horizon], forecast=data?.forecasts?.[horizon], projection=forecast?.forecast;
+  rows.push([copy("مصدر شموع النموذج","Model candle source"),"MEXC"],[t("model"),decision?.selected_model||"—"],
+   [t("forecastHorizon"),horizon],[t("nextForecast"),n(projection?.predicted_price)===null?"—":price(projection.predicted_price)+" USDT"],
+   [t("due"),stamp(projection?.due_at_utc)],[t("decisionSource"),decision?stamp(decision.decided_at_utc):"—"]);
+  if(decision)rows.push([t("quality"),decision.status==="approved"?t("approved"):t("experimental")],
+   [t("skill"),n(decision.forward_validation?.skill_vs_zero)===null?"—":pct(decision.forward_validation.skill_vs_zero*100)],
+   [copy("أسباب القرار","Decision reasons"),(decision.reason_codes||[]).map(code=>reasonText[code]?.[lang==="ar"?0:1]||code).join(" · ")||"—"]);
+  if(forecast?.selected_feature_groups?.length)rows.push([t("inputsTitle"),forecast.selected_feature_groups.map(t).join(" · ")]);
+ }else{
+  rows.push([copy("الزوج","Pair"),selectedAsset],[copy("إغلاق الشموع","Closed candles"),stamp(data?.observed_utc)],
+   [copy("آخر سعر ظاهر","Displayed price"),el("price").textContent],[copy("رصد سيولة DEX","DEX liquidity observation"),stamp(data?.liquidity?.observed_utc)]);
+ }
+ const detail=el("sceneNodeDetail");
+ const markup="<dl>"+rows.map(([label,value])=>"<div><dt>"+esc(label)+"</dt><dd>"+esc(value)+"</dd></div>").join("")+"</dl>";
+ if(detail&&detail.innerHTML!==markup)detail.innerHTML=markup;
+}
+function renderSceneTimeline(){
+ const list=el("sceneTimeline");
+ if(!list)return;
+ const archive=selectedAsset==="STAMPUSDT"?operationsReport?.events?.records||[]:[];
+ const records=new Map([...archive,...(eventPayload?.records||[])].filter(e=>e.symbol===selectedAsset).map(e=>[e.id,e]));
+ const eventLabels={buy:copy("صفقة شراء","Buy execution"),sell:copy("صفقة بيع","Sell execution"),
+  liquidity_add:copy("إضافة سيولة","Liquidity deposit"),liquidity_remove:copy("سحب سيولة","Liquidity withdrawal"),
+  burn:copy("حرق","Burn")};
+ const entries=[...records.values()].map(e=>({time:e.time_ms,label:eventLabels[e.kind==="trade"?e.side:e.kind],
+  detail:n(e.notional)===null?(e.source||""):number(e.notional)+" USDT"}));
+ for(const row of data?.forecast_review?.rows||[]){
+  if(row.horizon!==horizon)continue;
+  entries.push({time:Date.parse(row.created_utc),label:t("predicted"),detail:price(row.predicted_price)+" USDT"});
+  if(n(row.actual_price)>0)entries.push({time:Date.parse(row.evaluated_utc),label:t("measured"),
+   detail:price(row.actual_price)+" USDT · "+t("target")+" "+price(row.predicted_price)});
+ }
+ const recent=entries.filter(e=>Number.isFinite(e.time)&&e.label).sort((a,b)=>b.time-a.time).slice(0,14);
+ const markup=recent.length?recent.map(e=>'<li><button type="button" data-scene-time="'+e.time+'"><strong>'+esc(e.label)+'</strong><span>'+esc(e.detail)+'</span><time>'+esc(stamp(e.time,true))+'</time></button></li>').join(""):
+  '<li class="muted">'+esc(copy("لا أحداث موثقة متاحة للزوج حاليًا","No recorded events currently available for this pair"))+'</li>';
+ if(list.innerHTML!==markup)list.innerHTML=markup;
+}
 function drawNeuralScene(){
  const scene=el("venueNetwork");
  if(!scene||typeof document.createElementNS!=="function")return;
  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
- svg.setAttribute("viewBox","0 0 790 390");
- svg.setAttribute("aria-label",copy("شبكة اتصال المنصات","Exchange connections"));
+ svg.setAttribute("viewBox","0 0 820 436");
+ svg.setAttribute("aria-label",copy("شبكة بيانات الزوج ومراحل المعالجة","Pair data and processing stages"));
  const mk=(tag,attrs,txt,parent=svg)=>{
   const node=document.createElementNS(svg.namespaceURI,tag);
   for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));
@@ -153,66 +213,70 @@ function drawNeuralScene(){
   parent.appendChild(node);
   return node;
  };
- const cy=Math.cos(camera.yaw),sy=Math.sin(camera.yaw),cp=Math.cos(camera.pitch),sp=Math.sin(camera.pitch);
- const project=(x,y,z)=>{
-  const X=x*cy-z*sy,Z=x*sy+z*cy,Y=y*cp-Z*sp,depth=y*sp+Z*cp;
-  const scale=600/(1030+depth*.6)*camera.zoom;
-  return {x:395+X*scale,y:194+Y*scale,z:depth,scale};
- };
- const points=nodes3d.map(([,x,y,z])=>project(x,y-22,z));
- for(let z=-360;z<=360;z+=90){
-  const a=project(-480,275,z),b=project(470,275,z);
-  mk("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:"#263442"});
+ const yaw=Math.sin(camera.yaw),pitch=Math.sin(camera.pitch), zoom=Math.min(1.28,camera.zoom);
+ const project=(x,y,z=0)=>[410+(x+z*yaw*.56)*zoom,212+(y+z*pitch*.38)*zoom];
+ for(let z=-140;z<=140;z+=35){
+  const [x1,y1]=project(-345,112+z*.31,z),[x2,y2]=project(345,112+z*.31,z);
+  mk("line",{x1,y1,x2,y2,stroke:"#20344a"});
  }
- for(let x=-450;x<=450;x+=90){
-  const a=project(x,275,-360),b=project(x,275,360);
-  mk("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,stroke:"#263442"});
+ for(let x=-320;x<=320;x+=64){
+  const [x1,y1]=project(x,68,-140),[x2,y2]=project(x,155,140);
+  mk("line",{x1,y1,x2,y2,stroke:"#20344a"});
  }
- const venueCount=7;
- const links=[...Array.from({length:venueCount},(_,i)=>[i,7]),[7,8],[8,9]];
- const active=i=>i<venueCount?venueTopology?.venues?.[nodes3d[i][0]]?.status==="ok":venueTopology?.available_venues>0;
- const animate=!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
- links.forEach(([i,j],idx)=>{
-  const a=points[i],b=points[j],good=active(i);
-  const d="M"+a.x+" "+a.y+" Q"+((a.x+b.x)/2)+" "+((a.y+b.y)/2-15*camera.zoom)+" "+b.x+" "+b.y;
-  const id="venue-link-"+idx;
-  mk("path",{id,d,fill:"none",stroke:good?"#68b9ac":"#485668","stroke-width":good?1.7:1,"stroke-dasharray":good?"none":"4 6"});
-  if(good&&animate){
-   const dot=mk("circle",{r:2.5,fill:"#a7f5e5"});
-   const motion=mk("animateMotion",{dur:(2.3+idx*.19)+"s",begin:(-idx*.3)+"s",repeatCount:"indefinite"},undefined,dot);
-   mk("mpath",{href:"#"+id},undefined,motion);
-  }
- });
- const detail=el("sceneNodeDetail");
- const stages=["VALIDATION","MODEL","DASHBOARD"];
- const ordered=points.map((point,i)=>({...point,i})).sort((a,b)=>b.z-a.z);
- for(const p of ordered){
-  const i=p.i,venue=i<venueCount,name=venue?nodes3d[i][0]:stages[i-venueCount],good=active(i);
-  const r=venue?10:15;
-  const group=mk("g",venue?{tabindex:0,role:"button","aria-label":name}:{});
-  mk("circle",{cx:p.x,cy:p.y,r:r+6,fill:good?"#213f3e":"#202a36"},undefined,group);
-  mk("circle",{cx:p.x,cy:p.y,r,fill:good?"#80e3d0":"#566679",stroke:"#10161e","stroke-width":2},undefined,group);
-  mk("text",{x:p.x,y:p.y+r+19,"text-anchor":"middle",fill:"#d9e4ef","font-size":14,"font-weight":600},name,group);
-  if(venue){
-   const inspect=()=>{
-    const quote=venueTopology?.venues?.[name];
-    detail.textContent=quote?.status==="ok"
-     ? name+" · Bid "+price(quote.bid)+" / Ask "+price(quote.ask)+" · "+stamp(quote.retrieved_at_utc)
-     : name+" · "+copy("السعر غير متاح","Quote unavailable");
-    el("venueSelect").value=name;
-    loadMicrostructure(name);
-   };
-   group.addEventListener("click",inspect);
-   group.addEventListener("keydown",event=>{
-    if(event.key==="Enter"||event.key===" "){event.preventDefault();inspect()}
-   });
-  }
+ const topology=venueTopology?.symbol===selectedAsset?venueTopology:null;
+ const time=topology?.retrieved_at_utc;
+ if(time&&time!==sceneObservation){sceneObservation=time;sceneUpdated=Date.now()}
+ const stages=sceneStages.map(([id,ar,en],index)=>({id,label:copy(ar,en),point:project(-42+index*156,-7+index*20,28)}));
+ const sources=sceneVenues.map((id,i)=>({id,label:id,point:project(-260+(i%2)*24,-152+i*49,(i%2?35:-35)),quote:topology?.venues[id]}));
+ for(const source of sources){
+  const [x,y]=source.point,[ex,ey]=stages[0].point,state=sceneVenueState(source.quote);
+  const color=state==="ready"?"#53c5ad":state==="late"?"#e5b460":"#435873";
+  const link=mk("path",{d:"M "+(x+62)+" "+y+" C "+(x+114)+" "+y+", "+(ex-95)+" "+ey+", "+(ex-62)+" "+ey,
+   stroke:color,fill:"none","stroke-width":source.id==="MEXC"?2:1,"stroke-dasharray":source.id==="MEXC"&&state==="ready"?"none":"4 5"});
+  if(state==="ready"&&Date.now()-sceneUpdated<1200&&!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)
+   mk("animate",{attributeName:"opacity",values:".3;1",dur:".8s"},undefined,link);
+ }
+ const [model,dashboard]=stages.slice(1);
+ const mexc=sources[0].point;
+ mk("path",{d:"M "+(mexc[0]+62)+" "+(mexc[1]-10)+" Q 410 4 "+model.point[0]+" "+(model.point[1]-23),
+  stroke:"#a79cf8",fill:"none","stroke-width":1.5});
+ mk("path",{d:"M "+(model.point[0]+62)+" "+model.point[1]+" L "+(dashboard.point[0]-62)+" "+dashboard.point[1],stroke:"#a79cf8","stroke-dasharray":"3 5"});
+ for(const card of [...sources,...stages]){
+  const [x,y]=card.point,venue=sceneVenues.includes(card.id),state=venue?sceneVenueState(card.quote):"stage";
+  const color=state==="ready"?"#69dfbf":state==="late"?"#efbe72":state==="stage"?"#baaaff":"#899bb3";
+  const sub=venue?(card.quote?.status==="ok"?price(card.quote.mid)+" · "+pct(card.quote.spread_pct):copy("غير متاح","Unavailable")):
+   card.id==="model"?"MEXC · "+horizon:card.id==="validation"?(topology?.available_venues??"—")+" / 7":selectedAsset;
+  const group=mk("g",{tabindex:0,role:"button","aria-label":card.label,"data-scene-node":card.id,transform:"translate("+x+" "+y+")"});
+  mk("path",{d:"M-62 -19 l10 -8 h124 l-10 8 v38 l10 -8 v-38",fill:"#28405a",stroke:"#3d536a"},undefined,group);
+  mk("rect",{x:-62,y:-19,width:124,height:38,rx:5,fill:"#121f31",stroke:color},undefined,group);
+  mk("text",{x:-52,y:-4,fill:color,"font-size":12,"font-weight":700},card.label,group);
+  mk("text",{x:-52,y:11,fill:"#d4deed","font-size":10},sub,group);
+  const select=()=>inspectScene(card.id,venue);
+  group.addEventListener("click",select);
+  group.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();select()}});
  }
  scene.replaceChildren(svg);
+ inspectScene(sceneFocus);
+ renderSceneTimeline();
 }
 function initializeSceneControls(){
  const scene=el("venueNetwork");
  if(!scene)return;
+ el("sceneTimeline")?.addEventListener("click",event=>{
+  const button=event.target.closest("[data-scene-time]");
+  if(!button)return;
+  const at=Number(button.dataset.sceneTime);
+  const bars=chartCandles(frame);
+  const bar=bars.find(c=>c.t<=at&&at<c.t+FRAME_MS[frame]);
+  if(!bar){
+   button.querySelector("time").textContent=copy("خارج نطاق الشموع المغلقة المحمّلة","Outside loaded closed candles");
+   return;
+  }
+  el("tradeTab").click();
+  stopReplay();
+  renderChart();
+  focusEventCandle(bar.t);
+ });
  scene.addEventListener("pointerdown",event=>{
   if(event.button!==0)return;
   sceneDrag={x:event.clientX,y:event.clientY,yaw:camera.yaw,pitch:camera.pitch};
@@ -281,6 +345,8 @@ async function updateVenueNetwork(){
   payload=await response.json();
   if(!payload||!payload.venues||typeof payload.available_venues!=="number")throw Error("invalid_venue_payload");
   if(requestId!==venuePollId||symbol!==selectedAsset)return;
+  if(!payload.symbol)payload.symbol=symbol;
+  if(payload.symbol!==symbol)throw Error("pair_mismatch");
  }catch(err){if(requestId===venuePollId){
   venueTopology=null;
   drawNeuralScene();
@@ -331,6 +397,13 @@ async function loadMicrostructure(venue){
    root.innerHTML='<dl class="micro-stats">'+stats.map(([label,value])=>"<div><dt>"+esc(label)+"</dt><dd dir=\"ltr\">"+esc(value)+"</dd></div>").join("")+
     '</dl><div class="history-table"><table><thead><tr><th>'+copy("سعر الشراء","Bid")+"</th><th>"+copy("الكمية","Size")+
     "</th><th>"+copy("سعر البيع","Ask")+"</th><th>"+copy("الكمية","Size")+"</th></tr></thead><tbody>"+levels.join("")+"</tbody></table></div>";
+  }
+  if(book.status==="ok"){
+   const {bid_depth_usdt:bid,ask_depth_usdt:ask,levels}=book.data;
+   if(n(bid)>=0&&n(ask)>=0&&bid+ask>0){
+    const caption=copy("حصة الشراء من قيمة المستويات المعروضة","Bid share of sampled depth");
+    root.insertAdjacentHTML("afterbegin",'<div class="scene-depth"><span>'+esc(caption)+' · '+esc(levels)+'</span><meter min="0" max="1" value="'+(bid/(bid+ask))+'" aria-label="'+esc(caption)+'"></meter></div>');
+   }
   }
   if(rows.length>1)renderMicroCandles(root,rows);
  }catch(error){
@@ -468,6 +541,7 @@ async function pollChartEvents(force=false){
   if(payload?.symbol!==symbol||!Array.isArray(payload.records))throw Error("invalid_market_events");
   if(eventRequest!==controller||symbol!==selectedAsset)return;
   eventPayload=payload;
+  if(!el("venuesSection")?.hidden)renderSceneTimeline();
   eventState="ready";
  }catch{
   if(eventRequest!==controller||symbol!==selectedAsset)return;
@@ -966,6 +1040,7 @@ async function selectAsset(symbol){
  resetMarketPoll();
  inspectingChart=false;
  venueTopology=null;
+ sceneFocus="validation";
  microRequest++;
  assetPending?.abort();
  assetPending=null;
