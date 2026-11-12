@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=stamp-pipeline-scene-2">
+  <link rel="stylesheet" href="/assets/style.css?v=stamp-artifact-flow-3">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
@@ -43,10 +43,12 @@
       <div class="trace-workspace">
         <div class="trace-visual">
           <canvas id="traceCanvas" aria-label="مجسم مراحل معالجة البيانات"></canvas>
-          <p class="trace-caption" data-copy="Playback compresses the recorded sequence. The dashed link marks the separate lab workflow.">الحركة تعرض ترتيب المراحل المسجّلة بزمن مختصر. الخط المتقطع يشير إلى دورة المختبر المنفصلة.</p>
+          <p class="trace-caption" data-copy="Links show matched artifact fingerprints. Playback compresses time.">تظهر الوصلة عند تطابق بصمة الملف المنتج مع الملف الذي قرأته المرحلة التالية. تُعرض الحركة بزمن مختصر.</p>
           <div class="trace-controls">
             <button id="traceRotate" type="button" data-copy="Rotate view">تدوير المشهد</button>
             <button id="traceReplay" type="button" data-copy="Replay recorded events">إعادة الحركة المسجّلة</button>
+            <input type="range" id="traceSeek" min="0" max="0" value="0" aria-label="تصفح عمليات التسليم" disabled>
+            <span id="traceTransferCount" class="muted"></span>
           </div>
         </div>
         <section class="trace-inspector" aria-labelledby="traceStage">
@@ -500,7 +502,7 @@
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
-  <script src="/assets/app.js?v=stamp-pipeline-scene-2" defer></script>
+  <script src="/assets/app.js?v=stamp-artifact-flow-3" defer></script>
   <script src="/assets/market-flow.js?v=market-flow-evidence-4" defer></script>
 </body>
 </html>

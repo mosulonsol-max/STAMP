@@ -980,6 +980,17 @@ const pipelineStages=[
  ["lab","المختبر","Lab","labCenter",[1,1.3,-.5]]
 ];
 let pipelineSelected="monitor",pipelineRun=null,pipelineFrame=0,pipelineAngle=-.14,pipelinePoints=[];
+let selectedHandoff=null, pipelineLinks=[];
+function pipelineTransfers(){
+ const ids=new Set(pipelineStages.map(stage=>stage[0]));
+ return (systemSnapshot?.health?.trace||[]).flatMap(row=>row.handoffs||[])
+  .filter(event=>ids.has(event.from)&&ids.has(event.to)&&event.from!==event.to&&Number.isFinite(Date.parse(event.observed_utc)))
+  .sort((a,b)=>Date.parse(a.observed_utc)-Date.parse(b.observed_utc));
+}
+const stageName=id=>{
+ const item=pipelineStages.find(stage=>stage[0]===id);
+ return item?copy(item[1],item[2]):id;
+};
 const traceOutcome=s=>s==="success"?copy("نجحت","Passed"):s==="failure"?copy("فشلت","Failed"):
  s==="skipped"?copy("تُخطّيت","Skipped"):copy("بانتظار سجل","Awaiting evidence");
 function pipelineRecord(id){
@@ -1007,30 +1018,46 @@ function drawPipeline(pulse=null){
  for(let z=-1.3;z<=1.6;z+=.45)line(project([-4,1.8,z]),project([4,1.8,z]),"#223c50");
  pipelinePoints=pipelineStages.map(([id,ar,en,,pos])=>({id,name:copy(ar,en),p:project(pos),floor:project([pos[0],1.8,pos[2]])}));
  const steps=systemSnapshot?.health?.steps||{};
- for(let i=1;i<7;i++){
-  const a=pipelinePoints[i-1],b=pipelinePoints[i];
-  line(a.p,b.p,steps[a.id]==="success"&&steps[b.id]==="success"?"#4eae9e":"#3b5064",2);
+ const transfers=pipelineTransfers();
+ const edges=new Map();
+ for(const event of transfers)edges.set(event.from+"|"+event.to,event);
+ pipelineLinks=[...edges.values()].map(event=>({
+  event,a:pipelinePoints.find(node=>node.id===event.from).p,b:pipelinePoints.find(node=>node.id===event.to).p
+ }));
+ const arch=({a,b})=>[.5*(a[0]+b[0]),Math.max(13,Math.min(a[1],b[1])-Math.min(58,Math.abs(a[0]-b[0])*.14))];
+ const at=(a,c,b,t)=>[(1-t)**2*a[0]+2*t*(1-t)*c[0]+t*t*b[0],(1-t)**2*a[1]+2*t*(1-t)*c[1]+t*t*b[1]];
+ for(const link of pipelineLinks){
+  const {a,b,event}=link,c=arch(link);
+  link.c=c;
+  const active=selectedHandoff?.from===event.from&&selectedHandoff?.to===event.to;
+  ctx.strokeStyle=active?"#9bffe4":"#4eae9e";ctx.lineWidth=active?2.6:1.3;
+  ctx.beginPath();ctx.moveTo(...a);ctx.quadraticCurveTo(...c,...b);ctx.stroke();
+  const tip=at(a,c,b,.76),left=at(a,c,b,.71),angle=Math.atan2(tip[1]-left[1],tip[0]-left[0]);
+  line(tip,[tip[0]-5*Math.cos(angle-.55),tip[1]-5*Math.sin(angle-.55)],"#a4f3df");
+  line(tip,[tip[0]-5*Math.cos(angle+.55),tip[1]-5*Math.sin(angle+.55)],"#a4f3df");
  }
- ctx.setLineDash([4,5]);
- line(pipelinePoints[6].p,pipelinePoints[7].p,"#977fbc");
- ctx.setLineDash([]);
+ const size=Math.max(7,Math.min(15,w/42));
+ const face=(points,fill,stroke)=>{
+  ctx.beginPath();ctx.moveTo(...points[0]);for(const p of points.slice(1))ctx.lineTo(...p);ctx.closePath();
+  ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke();
+ };
  for(const node of pipelinePoints){
-  const [x,y]=node.p,active=node.id===pipelineSelected, state=steps[node.id];
+  const [x,y]=node.p,active=node.id===pipelineSelected&&!selectedHandoff,state=steps[node.id];
   const color=state==="success"?"#75e4cb":state==="failure"?"#ff8d9e":node.id==="lab"?"#bcabff":"#8ea3b8";
+  const left=[x-size,y-size*.35],top=[x,y-size*.8],right=[x+size,y-size*.35],middle=[x,y+size*.1];
   line(node.floor,node.p,"#3e5b72");
-  ctx.fillStyle="#081522";ctx.strokeStyle=active?"#ffffff":color;ctx.lineWidth=active?3:1.5;
-  ctx.beginPath();ctx.arc(x,y,active?14:11,0,2*Math.PI);ctx.fill();ctx.stroke();
-  ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,4,0,2*Math.PI);ctx.fill();
-  ctx.textAlign="center";ctx.font=(w<460?"10":"13")+"px system-ui";ctx.fillText(node.name,x,y-19);
+  face([left,middle,[x,y+size],[x-size,y+size*.55]],"#153348",color);
+  face([middle,right,[x+size,y+size*.55],[x,y+size]],"#112536",color);
+  face([left,top,right,middle],active?"#376b73":"#203d53",active?"#fff":color);
+  ctx.fillStyle=color;ctx.textAlign="center";ctx.font=(w<460?"10":"13")+"px system-ui";ctx.fillText(node.name,x,y+size+13);
  }
  if(pulse){
-  const target=pipelinePoints.find(p=>p.id===pulse.stage);
-  const index=pipelinePoints.indexOf(target), prior=pipelinePoints[index-1];
-  if(target){
-   const sameRun=prior&&pipelineRecord(prior.id)?.status==="success"&&index<7;
-   const a=sameRun?prior.p:target.p, b=target.p, mix=pulse.progress;
-   ctx.fillStyle=pulse.status==="success"?"#c3fff4":"#ff8d9e";
-   ctx.beginPath();ctx.arc(a[0]+(b[0]-a[0])*mix,a[1]+(b[1]-a[1])*mix,4+2*Math.sin(Math.PI*mix),0,2*Math.PI);ctx.fill();
+  const link=pipelineLinks.find(({event})=>event.from===pulse.from&&event.to===pulse.to);
+  if(link){
+   const [x,y]=at(link.a,link.c,link.b,pulse.progress);
+   face([[x-5,y],[x,y-3],[x+5,y],[x,y+3]],"#d9fff5","#fff");
+   face([[x-5,y],[x,y+3],[x,y+8],[x-5,y+5]],"#58dfbb","#d9fff5");
+   face([[x,y+3],[x+5,y],[x+5,y+5],[x,y+8]],"#268870","#d9fff5");
   }
  }
 }
@@ -1039,6 +1066,7 @@ function paintPipeline(){
  if(!details)return;
  const [id,ar,en,target]=pipelineStages.find(stage=>stage[0]===pipelineSelected)||pipelineStages[0];
  const report=systemSnapshot, health=report?.health, entry=pipelineRecord(id);
+ if(pipelineRun!==null&&health?.run!==pipelineRun)selectedHandoff=null;
  const label=copy(ar,en),lab=report?.laboratory;
  const rows=[[copy("الحالة","Status"),id==="lab"?(lab?.status||"—"):traceOutcome(health?.steps?.[id])],
   [copy("بدأت","Started"),stamp(entry?.started_utc,true)],[copy("انتهت","Finished"),stamp(entry?.finished_utc,true)]];
@@ -1054,30 +1082,48 @@ function paintPipeline(){
  if(id==="lab")rows.push([copy("وقت تدقيق المختبر","Lab audit time"),stamp(lab?.audited_at_utc,true)],[copy("تجارب مقيّمة","Evaluated experiments"),lab?.evaluated??"—"]);
  set("traceStage",label);
  set("traceRun",health?.run?"STAMP · "+copy("تشغيل","Run")+" "+health.run+" · "+stamp(health.at,true):copy("بانتظار سجل التشغيل","Awaiting run record"));
+ if(selectedHandoff){
+  const e=selectedHandoff;
+  set("traceStage",stageName(e.from)+" → "+stageName(e.to));
+  rows.splice(0,rows.length,[copy("الملف","Artifact"),e.artifact],[copy("حجم الدفعة","Batch size"),number(e.bytes)+" B"],
+   [copy("وقت القراءة","Read time"),stamp(e.observed_utc,true)],["SHA-256",e.sha256]);
+ }
  const html=rows.map(([k,v])=>"<div><dt>"+esc(k)+"</dt><dd>"+esc(v)+"</dd></div>").join("");
  if(details.innerHTML!==html)details.innerHTML=html;
  el("traceOpen").setAttribute("href","#"+target);
  const keys=el("traceStageKeys"), buttons=pipelineStages.map(([key,a,b])=>
   '<button type="button" data-trace-stage="'+key+'" aria-pressed="'+String(id===key)+'">'+esc(copy(a,b))+'</button>').join("");
  if(keys.innerHTML!==buttons)keys.innerHTML=buttons;
- const hasTrace=pipelineStages.some(([key])=>pipelineRecord(key)?.started_utc);
+ const transfers=pipelineTransfers(), hasTrace=transfers.length>0;
+ const slider=el("traceSeek");
+ if(slider){
+  slider.max=String(Math.max(0,transfers.length-1));slider.disabled=!hasTrace;
+  const index=selectedHandoff?transfers.findIndex(e=>e.from===selectedHandoff.from&&e.to===selectedHandoff.to&&e.artifact===selectedHandoff.artifact&&e.observed_utc===selectedHandoff.observed_utc):-1;
+  slider.value=String(Math.max(0,index));
+ }
+ set("traceTransferCount",hasTrace?number(transfers.length)+" · "+copy("عمليات تسليم موثّقة","verified handoffs"):copy("لا توجد عمليات تسليم مسجّلة لهذه الدورة","No recorded handoffs for this run"));
  el("traceReplay").disabled=!hasTrace;
- if(!hasTrace)el("traceReplay").title=copy("أوقات المراحل غير متاحة لهذا التشغيل","Step timings are unavailable for this run");
+ if(!hasTrace)el("traceReplay").title=copy("لا توجد عمليات تسليم مسجّلة","No recorded handoffs");
  else el("traceReplay").title="";
  drawPipeline();
  if(hasTrace&&health.run!==pipelineRun){pipelineRun=health.run;playPipeline()}
 }
 function playPipeline(){
  if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
- const entries=pipelineStages.map(([id])=>pipelineRecord(id)).filter(row=>row&&Number.isFinite(Date.parse(row.started_utc)))
-  .sort((a,b)=>Date.parse(a.started_utc)-Date.parse(b.started_utc));
+ const entries=pipelineTransfers();
  if(!entries.length)return;
  if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
- let begin=null;
+ let begin=null,shown=-1;
  const animate=time=>{
   if(begin===null)begin=time;
   const elapsed=time-begin,index=Math.floor(elapsed/650);
   if(index>=entries.length){pipelineFrame=0;drawPipeline();return}
+  if(index!==shown){
+   shown=index;
+   selectedHandoff=entries[index];
+   pipelineSelected=selectedHandoff.to;
+   paintPipeline();
+  }
   drawPipeline({...entries[index],progress:elapsed/650-index});
   pipelineFrame=requestAnimationFrame(animate);
  };
@@ -1089,14 +1135,25 @@ function setupPipeline(){
  canvas.addEventListener("click",event=>{
   const bounds=canvas.getBoundingClientRect();
   const hit=pipelinePoints.find(({p})=>Math.hypot(p[0]-(event.clientX-bounds.left),p[1]-(event.clientY-bounds.top))<26);
-  if(hit){pipelineSelected=hit.id;paintPipeline()}
+  if(hit){selectedHandoff=null;pipelineSelected=hit.id;paintPipeline();return}
+  const x=event.clientX-bounds.left,y=event.clientY-bounds.top;
+  const link=pipelineLinks.find(({a,b,c})=>Array.from({length:25},(_,i)=>i/24).some(t=>
+   Math.hypot((1-t)**2*a[0]+2*t*(1-t)*c[0]+t*t*b[0]-x,(1-t)**2*a[1]+2*t*(1-t)*c[1]+t*t*b[1]-y)<9));
+  if(link){selectedHandoff=link.event;pipelineSelected=link.event.to;paintPipeline()}
  });
  keys.addEventListener("click",event=>{
   const button=event.target.closest("[data-trace-stage]");
-  if(button){pipelineSelected=button.dataset.traceStage;paintPipeline();keys.querySelector('[aria-pressed="true"]')?.focus()}
+  if(button){selectedHandoff=null;pipelineSelected=button.dataset.traceStage;paintPipeline();keys.querySelector('[aria-pressed="true"]')?.focus()}
  });
  el("traceRotate").addEventListener("click",()=>{pipelineAngle=pipelineAngle>=.58?-.58:pipelineAngle+.28;drawPipeline()});
  el("traceReplay").addEventListener("click",playPipeline);
+ el("traceSeek")?.addEventListener("input",event=>{
+  if(pipelineFrame){cancelAnimationFrame(pipelineFrame);pipelineFrame=0}
+  selectedHandoff=pipelineTransfers()[Number(event.target.value)]||null;
+  if(selectedHandoff)pipelineSelected=selectedHandoff.to;
+  paintPipeline();
+  if(selectedHandoff)drawPipeline({...selectedHandoff,progress:.68});
+ });
  if(typeof ResizeObserver!=="undefined")new ResizeObserver(()=>drawPipeline()).observe(canvas);
  paintPipeline();
 }
