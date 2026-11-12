@@ -971,26 +971,27 @@ function renderIntelligence(){
 }
 let systemSnapshot=null;
 const pipelineStages=[
- ["monitor","الرصد","Collect","venuesSection",[-2.9,-1.35,-.3]],
- ["archive","الأرشيف","Archive","trading",[-1.9,-.15,.3]],
- ["evidence","التحقق","Verify","venuesSection",[-.9,-1.35,-.3]],
- ["research","التدريب","Train","trading",[.1,-.15,.3]],
- ["audit","قياس النتائج","Measure","trading",[1.1,-1.35,-.3]],
- ["governance","الاعتماد","Review","systemCenter",[2.1,-.15,.3]],
- ["dashboard","النشر","Publish","systemCenter",[3.1,-1.35,-.3]],
- ["lab","المختبر","Lab","labCenter",[1.1,1.5,-.9]],
- ["diagnosis","تشخيص الخطأ","Diagnose","systemCenter",[2.7,1.2,.9]],
- ["multi_asset_governance","مراجعة الأزواج","Pairs review","systemCenter",[1.4,1.2,.9]],
- ["forecast_health","فحص التوقعات","Forecast check","systemCenter",[.1,1.2,.9]],
- ["production_smoke","فحص النشر","Production check","systemCenter",[-1.2,1.2,.9]],
- ["market_view","تدفق السوق","Market flow","globalMarketFlow",[3.1,1.5,-.9]],
+ ["monitor","الرصد","Collect","venuesSection",[-1.95,-1.05,.5]],
+ ["archive","الأرشيف","Archive","trading",[-1.05,-1.05,.5]],
+ ["evidence","التحقق","Verify","venuesSection",[-.15,-1.05,.5]],
+ ["research","التدريب","Train","trading",[.75,-1.05,.5]],
+ ["audit","قياس النتائج","Measure","trading",[1.65,-1.05,.5]],
+ ["governance","الاعتماد","Review","systemCenter",[2.55,-1.05,.5]],
+ ["dashboard","النشر","Publish","systemCenter",[3.45,-1.05,.5]],
+ ["lab","المختبر","Lab","labCenter",[-.75,1.15,-.7]],
+ ["diagnosis","تشخيص الخطأ","Diagnose","systemCenter",[.35,1.15,-.7]],
+ ["multi_asset_governance","مراجعة الأزواج","Pairs review","systemCenter",[1.45,1.15,-.7]],
+ ["forecast_health","فحص التوقعات","Forecast check","systemCenter",[2.55,1.15,-.7]],
+ ["production_smoke","فحص النشر","Production check","systemCenter",[3.65,1.15,-.7]],
+ ["market_view","تدفق السوق","Market flow","globalMarketFlow",[-2.75,-.05,-.4]],
  ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map((venue,index)=>
-  ["venue_"+venue.toLowerCase(),venue,venue,"globalMarketFlow",[-3.95,-1.8+index*.6,-1.65+index*.5]])
+  ["venue_"+venue.toLowerCase(),venue,venue,"globalMarketFlow",[-3.95,-1.55+index*.52,-1.25]])
 ];
 const pipelineTopology=[
  ["monitor","archive"],["archive","evidence"],["evidence","research"],["research","audit"],
  ["audit","governance"],["governance","diagnosis"],["diagnosis","multi_asset_governance"],
  ["multi_asset_governance","forecast_health"],["forecast_health","production_smoke"],["production_smoke","dashboard"],
+ ["venue_mexc","monitor"],["market_view","dashboard"],
  ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map(venue=>["venue_"+venue.toLowerCase(),"market_view"])
 ];
 let pipelineSelected="monitor",pipelineRun=null,pipelineFrame=0,pipelineAngle=-.14,pipelinePitch=.32,pipelineZoom=1,pipelinePoints=[];
@@ -1038,7 +1039,7 @@ function drawPipeline(pulse=null){
  pipelinePoints=pipelineStages.map(([id,ar,en,,pos])=>({id,name:copy(ar,en),p:project(pos),floor:project([pos[0],1.8,pos[2]])}));
  const steps=systemSnapshot?.health?.steps||{};
  const transfers=pipelineTransfers();
- const edges=new Map();
+ const edges=new Map(pipelineTopology.map(([from,to])=>[from+"|"+to,{from,to,configured:true}]));
  for(const event of transfers)edges.set(event.from+"|"+event.to,event);
  for(const event of livePipelineEvents.values())edges.set(event.from+"|"+event.to,{...event,live:true});
  for(const [id,observation] of liveObservations)edges.set(id+"|market_view",{from:id,to:"market_view",artifact:"spot_execution_observation",live:true,...observation});
@@ -1052,7 +1053,7 @@ function drawPipeline(pulse=null){
    states[node.id]=pipelineLive?.status==="in_progress"&&pipelineLive?.stages?.[node.id]?.status==="in_progress"?"running":
     recent&&age(recent.observed_utc)<90?"running":steps[node.id];
   }
-  pipelineWorld.draw(pipelineStages.map(([id,,,,pos])=>({id,pos})),pipelineLinks.map(({event})=>event),
+  pipelineWorld.draw(pipelineStages.map(([id,,,,pos])=>({id,pos})),pipelineLinks.map(({event})=>event).filter(event=>!event.configured||selectedHandoff?.from===event.from&&selectedHandoff?.to===event.to),
     pulse?(Array.isArray(pulse)?pulse:[pulse]):[],selectedHandoff||{id:pipelineSelected},states,pipelineTopology);
   ctx.textAlign="center";ctx.font=(w<550?"10":"12")+"px system-ui";
   for(const node of pipelinePoints){
@@ -1067,7 +1068,7 @@ function drawPipeline(pulse=null){
   const {a,b,event}=link,c=arch(link);
   link.c=c;
   const active=selectedHandoff?.from===event.from&&selectedHandoff?.to===event.to;
-  ctx.strokeStyle=active?"#9bffe4":event.live?(age(event.observed_utc)<90?"#6ecff3":"#486779"):"#4eae9e";ctx.lineWidth=active?2.6:1.3;
+  ctx.strokeStyle=active?"#9bffe4":event.configured?"#345263":event.live?(age(event.observed_utc)<90?"#6ecff3":"#486779"):"#4eae9e";ctx.lineWidth=active?2.6:1.3;
   ctx.beginPath();ctx.moveTo(...a);ctx.quadraticCurveTo(...c,...b);ctx.stroke();
   const tip=at(a,c,b,.76),left=at(a,c,b,.71),angle=Math.atan2(tip[1]-left[1],tip[0]-left[0]);
   line(tip,[tip[0]-5*Math.cos(angle-.55),tip[1]-5*Math.sin(angle-.55)],"#a4f3df");
@@ -1129,7 +1130,10 @@ function paintPipeline(){
  if(selectedHandoff){
   const e=selectedHandoff;
   set("traceStage",stageName(e.from)+" → "+stageName(e.to));
-  if(e.kind==="artifact_handoff"){
+  if(e.configured){
+   rows.splice(0,rows.length,[copy("نوع الوصلة","Connection"),copy("مسار مهيأ؛ لا توجد قراءة مطابقة في السجل المعروض","Configured route; no matching transfer in the displayed record")],
+    [copy("من","From"),stageName(e.from)],[copy("إلى","To"),stageName(e.to)]);
+  }else if(e.kind==="artifact_handoff"){
    set("traceRun",copy("دورة جارية","Current run")+" "+e.run+" · "+stamp(e.received_at_utc,true));
    rows.splice(0,rows.length,[copy("الملف المقروء","Read artifact"),e.artifact],
     [copy("الحجم","Bytes"),number(e.bytes)+" B"],[copy("وقت القراءة","Read time"),stamp(e.observed_utc,true)],

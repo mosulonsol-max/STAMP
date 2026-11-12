@@ -36,9 +36,17 @@ window.StampPipeline3D = (() => {
       function add(target,world,color){const pt=project(world);target.push(pt.x/width*2-1,1-pt.y/height*2,pt.z,...color)}
       function triangle(a,b,c,color){add(triangles,a,color);add(triangles,b,color);add(triangles,c,color)}
       function segment(a,b,color){add(lines,a,color);add(lines,b,color)}
-      function ribbon(a,b,color){const left=[-.014,0,0],right=[.014,0,0],shift=(point,offset)=>point.map((v,i)=>v+offset[i]);
-        triangle(shift(a,left),shift(b,left),shift(b,right),color);
-        triangle(shift(a,left),shift(b,right),shift(a,right),color)}
+      function ribbon(a,b,color,pixels){
+        // Offset in screen space, perpendicular to the projected direction.
+        // A fixed world-X offset collapses horizontal links into zero-area faces.
+        const start=project(a),end=project(b),dx=end.x-start.x,dy=end.y-start.y;
+        const length=Math.hypot(dx,dy);if(length<.01)return;
+        const ox=-dy/length*pixels/2,oy=dx/length*pixels/2;
+        const point=(p,x,y)=>[(p.x+x)/width*2-1,1-(p.y+y)/height*2,p.z,...color];
+        const v1=point(start,ox,oy),v2=point(start,-ox,-oy);
+        const v3=point(end,ox,oy),v4=point(end,-ox,-oy);
+        triangles.push(...v1,...v2,...v3,...v2,...v4,...v3);
+      }
       function box(at,size,color){
         const [x,y,z]=at,s=size,half=s*.55;
         const vertices=[[x-s,y-half,z-s],[x+s,y-half,z-s],[x+s,y-half,z+s],[x-s,y-half,z+s],
@@ -55,13 +63,22 @@ window.StampPipeline3D = (() => {
         return [0,1,2].map(i=>(1-t)**2*a[i]+2*(1-t)*t*mid[i]+t*t*b[i])};
       for(const [from,to] of topology){
         const a=positions.get(from),b=positions.get(to);if(!a||!b)continue;
-        for(let i=0;i<18;i+=3)segment(curve(a,b,i/18),curve(a,b,(i+1)/18),[.23,.42,.49]);
+        for(let i=0;i<28;i++)ribbon(curve(a,b,i/28),curve(a,b,(i+1)/28),[.11,.23,.30],1.4);
       }
       for(const link of links){
         const a=positions.get(link.from),b=positions.get(link.to);if(!a||!b)continue;
         const active=selected?.from===link.from&&selected?.to===link.to;
-        const color=active?[.76,1,.88]:link.live?[.35,.78,.96]:[.28,.62,.57];
-        for(let i=0;i<28;i++)ribbon(curve(a,b,i/28),curve(a,b,(i+1)/28),color);
+        const color=active?[.76,1,.88]:link.live?[.35,.78,.96]:[.18,.48,.44];
+        for(let i=0;i<28;i++)ribbon(curve(a,b,i/28),curve(a,b,(i+1)/28),color,active?4:link.live?2.8:1.6);
+        // Fixed arrowheads indicate direction; only event packets move.
+        const before=project(curve(a,b,.81)),tip=project(curve(a,b,.85));
+        const vx=tip.x-before.x,vy=tip.y-before.y,size=Math.hypot(vx,vy);
+        if(size>.01){const nx=vx/size,ny=vy/size,back=project(curve(a,b,.85));
+          const from=[back.x-9*nx-4*ny,back.y-9*ny+4*nx];
+          const other=[back.x-9*nx+4*ny,back.y-9*ny-4*nx];
+          const arrow=(p,q)=>{lines.push(p[0]/width*2-1,1-p[1]/height*2,tip.z,...color,
+            q[0]/width*2-1,1-q[1]/height*2,tip.z,...color)};
+          arrow(from,[tip.x,tip.y]);arrow(other,[tip.x,tip.y]);}
       }
       for(const node of nodes){
         const status=states[node.id],color=node.id===selected?.id?palette.selected:status==="running"?palette.running:
