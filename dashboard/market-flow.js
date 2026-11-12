@@ -273,6 +273,118 @@
     }
   }
 
+  let mode = "whole", pair = "STAMPUSDT", pairRequest = null, pairData = null, pairFailed = false;
+  const amount = new Intl.NumberFormat("en-US", {maximumFractionDigits: 2});
+  const usdt = value => Number.isFinite(value) ? amount.format(value) + " USDT" : "—";
+  function renderPair() {
+    const data = pairData;
+    const flow = data?.status === "ok" ? data.flow : null;
+    const net = flow ? flow.buy - flow.sell : null;
+    el("flowPairTitle").textContent = pair.replace(/USDT$/, " / USDT");
+    el("flowPairStatus").textContent = pairFailed
+      ? (data ? copy("تعذّر التحديث · آخر عينة محفوظة", "Refresh failed · previous sample") : copy("تعذّر جلب الصفقات", "Could not retrieve executions"))
+      : data?.observed_utc ? "MEXC Spot · " + formatTime(data.observed_utc) : copy("جارٍ جلب الصفقات…", "Loading executions…");
+    el("flowPairBuy").textContent = usdt(flow?.buy);
+    el("flowPairSell").textContent = usdt(flow?.sell);
+    el("flowPairNet").textContent = (net > 0 ? "+" : "") + usdt(net);
+    el("flowPairNet").className = net > 0 ? "positive" : net < 0 ? "negative" : "";
+    el("flowPairCount").textContent = data?.sample_count ?? "—";
+    el("flowPairWindow").textContent = flow
+      ? formatTime(new Date(data.first_ms).toISOString()) + " → " + formatTime(new Date(data.last_ms).toISOString()) +
+       " · " + copy("طول الفترة", "Interval size") + " " + amount.format(flow.bucket_ms / 1000) + "s"
+      : data ? copy("العينة خالية من صفقات قابلة للتصنيف.", "No classifiable executions in the returned sample.") : "";
+    const rows = (flow?.buckets || []).filter(row => [row.time_ms,row.buy,row.sell,row.count].every(Number.isFinite));
+    const max = Math.max(1, ...rows.flatMap(row => [row.buy,row.sell]));
+    const bar = (x, value, color, top) => {
+      if (value <= 0) return "";
+      const h = 110 * value / max, y = 132 - h;
+      return '<path fill="'+top+'" d="M'+x+' '+y+'l5 -4h9l-5 4z"/>'+
+        '<path fill="'+color+'" opacity=".65" d="M'+(x+9)+' '+y+'l5 -4v'+h+'l-5 4z"/>'+
+        '<rect x="'+x+'" y="'+y+'" width="9" height="'+h+'" fill="'+color+'"/>';
+    };
+    el("flowPairPlot").innerHTML = rows.length ? '<svg viewBox="0 0 500 148" aria-hidden="true">'+
+      '<path d="M16 132H482 M16 96H482 M16 59H482 M16 22H482" stroke="#2c435c" fill="none"/>'+
+      rows.map(row=>{
+        const x=22+Math.round((row.time_ms-data.first_ms)/flow.bucket_ms)*38;
+        return bar(x,row.buy,"#41c7a1","#88efcf")+bar(x+15,row.sell,"#e57790","#ffc0ce");
+      }).join("")+'</svg>' : "";
+    const body = el("flowPairRows");
+    body.replaceChildren(...rows.map(row => {
+      const tr = document.createElement("tr");
+      for (const value of [formatTime(new Date(row.time_ms).toISOString()),amount.format(row.buy),amount.format(row.sell),String(row.count)]) {
+        const td = document.createElement("td");
+        td.textContent = value;
+        tr.append(td);
+      }
+      return tr;
+    }));
+  }
+  async function refreshPair() {
+    if (pairRequest) return;
+    const controller = new AbortController(), symbol = pair;
+    pairRequest = controller;
+    const timer = setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await fetch("/api/market-flow?symbol="+encodeURIComponent(symbol),{credentials:"same-origin",cache:"no-store",signal:controller.signal});
+      if (!response.ok) throw Error("pair data unavailable");
+      const data = await response.json();
+      if (data.symbol !== symbol || pairRequest !== controller) return;
+      if (data.status === "unavailable") throw Error("sample unavailable");
+      pairData = data;
+      pairFailed = false;
+    } catch {
+      if (pairRequest === controller) pairFailed = true;
+    } finally {
+      clearTimeout(timer);
+      if (pairRequest === controller) {
+        pairRequest = null;
+        if (mode === "pair") renderPair();
+      }
+    }
+  }
+  function follow(value) {
+    const input = el("flowPairInput");
+    const symbol = value.toUpperCase().trim().replace(/[ /-]/g,"");
+    const next = symbol.endsWith("USDT") ? symbol : symbol+"USDT";
+    if (!/^[A-Z0-9]{1,22}USDT$/.test(next)) {
+      input.setCustomValidity(copy("أدخل رمز عملة صالحًا","Enter a valid coin symbol"));
+      input.reportValidity();
+      return;
+    }
+    if (next !== pair) {
+      pairRequest?.abort();
+      pairRequest = null;
+      pairData = null;
+      pairFailed = false;
+      pair = next;
+    }
+    input.value = pair;
+    renderPair();
+    refreshPair();
+  }
+  const tradingPair = () => el("assetSelected").textContent;
+  function switchMode(next) {
+    mode = next;
+    const selected = mode === "pair";
+    el("flowWholeMode").setAttribute("aria-pressed",String(!selected));
+    el("flowPairMode").setAttribute("aria-pressed",String(selected));
+    el("flowWholeView").hidden = selected;
+    el("flowStatus").hidden = selected;
+    el("flowPairView").hidden = !selected;
+    el("flowPairForm").hidden = !selected;
+    if (selected) follow(el("flowPairInput").value || tradingPair());
+    else { render(); refresh(); }
+  }
+  el("flowWholeMode").addEventListener("click",()=>switchMode("whole"));
+  el("flowPairMode").addEventListener("click",()=>switchMode("pair"));
+  el("flowPairInput").addEventListener("input",event=>event.target.setCustomValidity(""));
+  el("flowPairForm").addEventListener("submit",event=>{event.preventDefault(); follow(el("flowPairInput").value)});
+  el("flowUseTrading").addEventListener("click",()=>{el("flowPairInput").setCustomValidity("");follow(tradingPair())});
+  for (const symbol of ["STAMPUSDT","SOLUSDT","BTCUSDT","ETHUSDT"]) {
+    const option = document.createElement("option"); option.value = symbol; el("flowPairCatalog").append(option);
+  }
+  const refreshScope = () => mode === "pair" ? refreshPair() : refresh();
+
   periods.addEventListener("click", event => {
     const button = event.target.closest("button[data-days]");
     if (!button) return;
@@ -333,9 +445,11 @@
     observer.observe(scene);
     observer.observe(history);
   }
-  el("refresh").addEventListener("click", refresh);
-  el("langSelect").addEventListener("change", () => { if (payload || loadFailed) render(); });
-  el("zoneSelect").addEventListener("change", () => { if (payload || loadFailed) render(); });
-  refresh();
-  setInterval(() => { if (!document.hidden) refresh(); }, 300000);
+  el("refresh").addEventListener("click", refreshScope);
+  el("langSelect").addEventListener("change", () => { if (mode === "pair") renderPair(); else if (payload || loadFailed) render(); });
+  el("zoneSelect").addEventListener("change", () => { if (mode === "pair") renderPair(); else if (payload || loadFailed) render(); });
+  if (!section.hidden) refreshScope();
+  document.addEventListener("stamp:tabchange",()=>{if(!section.hidden)refreshScope()});
+  setInterval(() => { if (!document.hidden && !section.hidden && mode === "pair") refreshPair(); }, 45000);
+  setInterval(() => { if (!document.hidden && !section.hidden && mode === "whole") refresh(); }, 300000);
 })();

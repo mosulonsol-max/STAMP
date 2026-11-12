@@ -7,12 +7,12 @@ from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 from urllib.parse import urlsplit,quote,parse_qs
 try:
- from src.market_events import STAMP, dashboard_events, symbol as event_symbol
+ from src.market_events import STAMP, dashboard_events, pair_market_flow, symbol as event_symbol
  from src.operations import archive_view, worker_status
  from src.market_flow import market_flow_snapshot
  from src.market_updates import market_update
 except ModuleNotFoundError:
- from market_events import STAMP, dashboard_events, symbol as event_symbol
+ from market_events import STAMP, dashboard_events, pair_market_flow, symbol as event_symbol
  from operations import archive_view, worker_status
  from market_flow import market_flow_snapshot
  from market_updates import market_update
@@ -396,7 +396,12 @@ class Handler(BaseHTTPRequestHandler):
    return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
   if path=="/api/market-flow":
    try:
-    body=json.dumps(market_flow_snapshot(),ensure_ascii=False,allow_nan=False).encode("utf-8")
+    pair=parse_qs(urlsplit(self.path).query,keep_blank_values=True).get("symbol")
+    if pair is not None:
+     try: result=pair_market_flow(pair[0])
+     except ValueError: return self.send(400,b'{"error":"invalid_pair"}',"application/json; charset=utf-8")
+    else: result=market_flow_snapshot()
+    body=json.dumps(result,ensure_ascii=False,allow_nan=False).encode("utf-8")
     return self.send(200,body,"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"market_data_unavailable","detail":type(exc).__name__}).encode(),"application/json; charset=utf-8")

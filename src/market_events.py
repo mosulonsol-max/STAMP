@@ -79,13 +79,27 @@ def trade_sample(rows, pair, observed_utc):
                             "source": "MEXC Spot", "side": "sell" if maker else "buy",
                             "price": price, "quantity": quantity, "notional": notional}
     sample = list(trades.values())
+    first = min((e["time_ms"] for e in sample), default=None)
+    last = max((e["time_ms"] for e in sample), default=None)
+    width = max(1000, ((last - first + 12) // 12)) if sample else 1000
+    buckets = {}
+    for event in sample:
+        start = first + (event["time_ms"] - first) // width * width
+        bucket = buckets.setdefault(start, {"time_ms": start, "buy": 0.0, "sell": 0.0, "count": 0})
+        bucket[event["side"]] += event["notional"]
+        bucket["count"] += 1
+    flow = [buckets[key] for key in sorted(buckets)]
     largest = sorted(sample, key=lambda e: (-e["notional"], -e["time_ms"], e["id"]))
     events = largest[:min(16, (len(sample) + 9) // 10)]
     return {"status": "ok" if sample else "unavailable" if rows else "empty",
             "observed_utc": observed_utc, "sample_count": len(sample),
             "first_ms": min((e["time_ms"] for e in sample), default=None),
             "last_ms": max((e["time_ms"] for e in sample), default=None),
-            "selected_count": len(events), "events": events}
+            "selected_count": len(events), "events": events, "flow": {
+                "bucket_ms": width, "buckets": flow,
+                "buy": sum(bucket["buy"] for bucket in flow),
+                "sell": sum(bucket["sell"] for bucket in flow),
+            }}
 
 
 def archived_trade_sample(raw):
@@ -103,6 +117,12 @@ def live_trade_sample(pair, time_bucket):
     return trade_sample(rows, pair, utc())
 
 
+def pair_market_flow(value):
+    pair = symbol(value)
+    sample = live_trade_sample(pair, int(dt.datetime.now(dt.timezone.utc).timestamp() // 45))
+    return {"symbol": pair, "source": "MEXC Spot", **{k: v for k, v in sample.items() if k != "events"}}
+
+
 def merge_events(groups, cutoff_ms=0, limit=160):
     unique = {}
     for group in groups:
@@ -118,7 +138,7 @@ def dashboard_events(value, operations):
     archive = (operations.get("events") or {}) if pair == STAMP else {}
     records = merge_events((archive.get("records") or [], live["events"]))
     return {"symbol": pair, "records": records,
-            "trades": {k: v for k, v in live.items() if k != "events"},
+            "trades": {k: v for k, v in live.items() if k not in ("events", "flow")},
             "archived_trades": archive.get("trades"),
             "liquidity": archive.get("liquidity")}
 

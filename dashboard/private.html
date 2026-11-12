@@ -204,11 +204,43 @@
     <section class="market-section" id="globalMarketFlow" role="tabpanel" aria-labelledby="flowTab">
       <header class="section-header">
         <div>
-          <h2 id="flowTitle" data-copy="Global market flows">تدفقات السوق العالمية</h2>
-          <p data-copy="Crypto market size and changes in circulating stablecoin supply">حجم سوق العملات الرقمية وتغيّر المعروض المتداول من العملات المستقرة</p>
+          <h2 id="flowTitle" data-copy="Market flows">تدفقات السوق</h2>
+          <p data-copy="Global liquidity indicators and executed trades by pair">مؤشرات سيولة السوق والصفقات المنفذة لكل زوج</p>
         </div>
         <div class="section-meta" id="flowStatus" role="status">جارٍ جلب بيانات السوق</div>
       </header>
+      <div class="flow-scope">
+        <div class="frames" role="group" aria-label="نطاق تدفقات السوق">
+          <button id="flowWholeMode" type="button" aria-pressed="true" data-copy="Whole market">السوق بالكامل</button>
+          <button id="flowPairMode" type="button" aria-pressed="false" data-copy="One coin">عملة محددة</button>
+        </div>
+        <form id="flowPairForm" class="inline-controls" hidden>
+          <label for="flowPairInput" data-copy="USDT pair">زوج USDT</label>
+          <input id="flowPairInput" type="search" dir="ltr" list="flowPairCatalog" placeholder="SOL / USDT" maxlength="32" required>
+          <datalist id="flowPairCatalog"></datalist>
+          <button type="submit" data-copy="Follow pair">متابعة</button>
+          <button id="flowUseTrading" type="button" data-copy="Use trading pair">استخدم زوج التداول</button>
+        </form>
+      </div>
+      <section id="flowPairView" class="panel flow-pair-view" hidden aria-labelledby="flowPairTitle">
+        <header class="panel-header"><h3 id="flowPairTitle" dir="ltr">STAMP / USDT</h3><span id="flowPairStatus" role="status"></span></header>
+        <dl class="market-metrics flow-pair-totals">
+          <div><dt data-copy="Aggressive buy volume">قيمة صفقات الشراء</dt><dd id="flowPairBuy">—</dd></div>
+          <div><dt data-copy="Aggressive sell volume">قيمة صفقات البيع</dt><dd id="flowPairSell">—</dd></div>
+          <div><dt data-copy="Buy minus sell">فرق الشراء والبيع</dt><dd id="flowPairNet">—</dd></div>
+          <div><dt data-copy="Classified executions">الصفقات المصنّفة</dt><dd id="flowPairCount">—</dd></div>
+        </dl>
+        <div class="flow-pair-body">
+          <h3 data-copy="Buy and sell executions by interval">الشراء والبيع عبر الزمن</h3>
+          <p id="flowPairWindow" class="muted"></p>
+          <div id="flowPairPlot"></div>
+          <div class="history-table"><table><thead><tr>
+            <th data-copy="Interval start">بداية الفترة</th><th data-copy="Buy · USDT">شراء · USDT</th><th data-copy="Sell · USDT">بيع · USDT</th><th data-copy="Trades">الصفقات</th>
+          </tr></thead><tbody id="flowPairRows"></tbody></table></div>
+          <p class="muted" data-copy="MEXC Spot recent executions sample. Direction is the aggressor side. Coverage varies with activity.">عينة من أحدث الصفقات المنفذة على MEXC Spot، مصنّفة بحسب الطرف المبادر. تختلف الفترة المغطاة حسب نشاط الزوج.</p>
+        </div>
+      </section>
+      <div id="flowWholeView">
       <dl class="market-metrics flow-totals">
         <div><dt data-copy="Crypto market cap">القيمة السوقية للعملات الرقمية</dt><dd id="flowCap">—</dd></div>
         <div><dt data-copy="24h trading volume">حجم التداول خلال 24 ساعة</dt><dd id="flowVolume">—</dd></div>
@@ -249,6 +281,7 @@
       <div class="section-foot">
         <p data-copy="Supply changes use the daily USD value of circulating stablecoins as a liquidity proxy.">تغيّر المعروض يقيس الزيادة والنقص في القيمة اليومية للعملات المستقرة المتداولة، ويُستخدم كمؤشر تقريبي للسيولة.</p>
         <p id="flowSources"></p>
+      </div>
       </div>
     </section>
 
@@ -391,6 +424,6 @@
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
   <script src="/assets/app.js?v=venue-scene-4" defer></script>
-  <script src="/assets/market-flow.js?v=market-workspace-1" defer></script>
+  <script src="/assets/market-flow.js?v=market-flow-scope-2" defer></script>
 </body>
 </html>
