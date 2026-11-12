@@ -28,7 +28,7 @@
    catch { location.hash = tab.hash; }
   }
   if (tab === tabs[0]) window.scrollTo(0, 0);
-  else panelFor(tab).scrollIntoView({block:"start"});
+  else document.getElementById("mapTitle")?.scrollIntoView({block:"start"});
  }
  tabs.forEach((tab, index) => {
   tab.addEventListener("click", event => {

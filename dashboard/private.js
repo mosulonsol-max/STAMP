@@ -354,6 +354,7 @@ async function updateVenueNetwork(){
   metrics.textContent=err.message;
  }return}
  venueTopology=payload;
+ set("mapVenues",payload.available_venues+" / "+Object.keys(payload.venues).length+" · "+copy("مصادر استجابت","sources responded"));
  drawNeuralScene();
  status.textContent=ltr(symbol)+" · "+copy("المصادر المتاحة ","Sources available ")+ltr(payload.available_venues+" / "+Object.keys(payload.venues).length)+" · "+stamp(payload.retrieved_at_utc);
  metrics.replaceChildren();
@@ -820,6 +821,7 @@ function paintQuote(){
  set("status",status);
  el("status").className=fresh?"fresh":"stale";
  set("price",price(quote?.price??market?.price));
+ set("mapTrade",usable?price(quote?.price??market?.price)+" USDT · "+status:"—");
  set("change",pct(change));
  el("change").style.color=change===null?"":change>=0?"var(--up)":"var(--down)";
  set("volume",number(quote?.stats_at_utc?quote.volume_24h_usdt:market?.volume));
@@ -1013,6 +1015,12 @@ function render(result){
  if(selectedAsset==="STAMPUSDT"&&result.operations)operationsReport=result.operations;
  paintOperations();
  const liquidity=result.liquidity||{};
+ const flow=result.market?.trades;
+ set("mapFlow",n(flow?.net_aggressive_notional_usdt)!==null?number(flow.net_aggressive_notional_usdt)+" USDT · "+copy("فرق العينة","Sample difference"):
+  copy("السوق أو زوج محدد","Whole market or a pair"));
+ const lab=systemSnapshot?.laboratory, health=systemSnapshot?.health;
+ set("mapLab",lab?.evaluated!=null?number(lab.evaluated)+" · "+copy("تجربة مقيّمة","experiments evaluated"):"—");
+ set("mapSystem",health?.passed===true?copy("آخر دورة نجحت","Last run passed"):health?.passed===false?copy("آخر دورة لم تنجح","Last run failed"):"—");
  set("liquidity",money(liquidity.liquidity_usd));
  set("marketCap",money(liquidity.market_cap_usd));
  set("liquidityTime",liquidity.observed_utc?"DEX · "+stamp(liquidity.observed_utc)+(liquidity.source?" · "+liquidity.source:""):"");
@@ -1124,6 +1132,9 @@ async function selectAsset(symbol){
  resetMarketPoll();
  inspectingChart=false;
  venueTopology=null;
+ set("mapVenues","—");
+ set("mapTrade","—");
+ set("mapFlow","—");
  sceneFocus="validation";
  microRequest++;
  assetPending?.abort();
@@ -1219,6 +1230,11 @@ const originalCopy=new Map();
 function translate(){
  document.documentElement.lang=lang;
  document.documentElement.dir=lang==="ar"?"rtl":"ltr";
+ const mapLabels={tradeTab:"التداول",flowTab:"تدفقات السوق",venuesTab:"المنصات",labTab:"المختبر",systemTab:"النظام"};
+ for(const [id,label] of Object.entries(mapLabels)){
+  const node=el(id);
+  if(node?.dataset.labelEn)node.setAttribute("aria-label",copy(label,node.dataset.labelEn));
+ }
  document.querySelectorAll("[data-i18n]").forEach(node=>{node.textContent=t(node.dataset.i18n)});
  document.querySelectorAll("[data-copy], [data-placeholder]").forEach(node=>{
   const attribute=node.hasAttribute("data-placeholder")?"placeholder":null;

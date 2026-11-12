@@ -475,3 +475,42 @@ body { background: radial-gradient(ellipse at 90% 0%, #162638 0%, transparent 58
 .evidence-trail dt { color:var(--muted); font-size:.72rem; }
 .evidence-trail dd { color:#e6f1fb; overflow-wrap:anywhere; font-size:.82rem; }
 .evidence-actions { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; font-size:.8rem; }
+
+.stamp-map { position:relative; isolation:isolate; margin-block:12px 18px; border:1px solid #314d67; border-radius:18px; overflow:hidden; background:radial-gradient(ellipse at 48% 78%,#193d54,#101d30 48%,#0b1422 80%); }
+.map-heading { display:flex; justify-content:space-between; align-items:start; gap:12px; padding:16px 19px 0; }
+.map-heading h2 { font-size:clamp(1.2rem,2.6vw,2rem); }
+.map-heading p { color:#bed1e3; margin-top:3px; font-size:.85rem; }
+.map-heading .market-tools { width:auto; }
+#mapTitle { scroll-margin-top:80px; }
+.stamp-map .map-nodes {
+  display:grid; position:relative; inset:auto; grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-rows:repeat(3,minmax(61px,auto)); gap:6px 12px; width:min(100%,850px);
+  min-height:0; margin-inline:auto; padding:8px 18px 14px; border:0; background:transparent;
+  isolation:isolate; perspective:650px;
+}
+.map-plane { position:absolute; z-index:-2; inset:10% 8%; transform:rotateX(57deg) rotateZ(-10deg); border:1px solid #2a546a; border-radius:50%; background:repeating-radial-gradient(ellipse,transparent 0 14px,#31536a80 15px 16px); }
+.map-sphere { position:absolute; z-index:-1; width:clamp(70px,17vw,150px); aspect-ratio:1; inset:50% auto auto 50%; translate:-50% -50%; border-radius:50%; background:radial-gradient(circle at 34% 27%,#b2fff0,#4098a8 24%,#193e5c 60%,#0e1b31 83%); box-shadow:0 0 38px #56cdb759,inset -13px -10px 24px #061120; animation:map-float 6s ease-in-out infinite; }
+.map-sphere::after { content:""; position:absolute; inset:-14%; border:1px solid #83e2d6aa; border-radius:50%; transform:rotateX(63deg) rotateZ(20deg); }
+@keyframes map-float { 50% { transform:translateY(-6px) rotate(8deg); } }
+.stamp-map .map-nodes a {
+  display:flex; flex-direction:column; justify-content:center; align-items:center; gap:3px;
+  padding:6px 8px; min-width:0; min-height:54px; text-align:center; white-space:normal; font-size:.82rem;
+  border:1px solid #47637f; border-radius:10px; color:#edf5fc; background:linear-gradient(155deg,#21384e,#102137);
+  box-shadow:0 4px 0 #071522; transition:background .15s,border-color .15s,transform .15s;
+}
+.stamp-map .map-nodes a small { color:#b1c8dd; font-size:.71rem; overflow-wrap:anywhere; }
+.stamp-map .map-nodes a[aria-selected="true"] { border-color:#85efda; background:linear-gradient(155deg,#215256,#132d3e); transform:translateY(-3px); }
+.stamp-map .map-nodes a[aria-selected="true"]::after { display:none; }
+.map-nodes #tradeTab { grid-area:1 / 2; }
+.map-nodes #flowTab { grid-area:2 / 1; }
+.map-nodes #venuesTab { grid-area:2 / 3; }
+.map-nodes #labTab { grid-area:3 / 1; }
+.map-nodes #systemTab { grid-area:3 / 3; }
+@media(max-width:660px) {
+ .map-heading { flex-direction:column; padding:11px 10px 0; gap:7px; }
+ .map-heading .market-tools { width:100%; }
+ .stamp-map .map-nodes { padding-inline:8px; gap:5px; }
+ .stamp-map .map-nodes a { font-size:.74rem; padding:4px 3px; }
+ .stamp-map .map-nodes a small { font-size:.64rem; }
+}
+@media(prefers-reduced-motion:reduce) { .map-sphere { animation:none; } }
