@@ -137,9 +137,16 @@
   set("lensSell", trade ? money(sell) : "—");
   const count = (t?.aggressive_buy_count || 0) + (t?.aggressive_sell_count || 0);
   const net = buy - sell;
+  const balance = get("lensBalance");
+  balance.hidden = !trade || buy + sell <= 0;
+  if (!balance.hidden) {
+   balance.value = 100 * buy / (buy + sell);
+   balance.setAttribute("aria-label", copy("حصة الشراء من قيمة العينة","Buy share of sampled notional"));
+  }
   set("lensFlowDetail", trade ? "MEXC · " + count + " " + copy("صفقة مصنّفة","classified trades") +
    " · " + stamp(start,true) + " → " + stamp(end,true) + " · " +
-   copy("فرق قيمة الشراء والبيع في العينة","Buy minus sell in this sample") + " " + money(net) :
+   copy("فرق قيمة الشراء والبيع في العينة","Buy minus sell in this sample") + " " + money(net) +
+   (buy + sell > 0 ? " · " + copy("حصة الشراء","Buy share") + " " + (100 * buy / (buy + sell)).toFixed(1) + "%" : "") :
    copy(replay ? "العينة مرتبطة بالرصد الحالي" : "عينة الصفقات غير متاحة لهذا الزوج", replay ? "Trade sample belongs to the current observation" : "Trade sample unavailable for this pair"));
   set("lensLiquidity", !replay && valid(liquidity?.liquidity_usd) && liquidity.observed_utc ?
    copy("السيولة المرصودة في مجمّعات DEX","Observed liquidity in DEX pools") + " · $" +

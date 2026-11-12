@@ -23,7 +23,10 @@
  }
  function activate(tab) {
   show(tab);
-  if (location.hash !== tab.hash) location.hash = tab.hash;
+  if (location.hash !== tab.hash) {
+   try { history.pushState(null, "", tab.hash); }
+   catch { location.hash = tab.hash; }
+  }
   if (tab === tabs[0]) window.scrollTo(0, 0);
   else panelFor(tab).scrollIntoView({block:"start"});
  }
@@ -46,6 +49,7 @@
    tabs[next].focus({preventScroll:true});
   });
  });
+ window.addEventListener("popstate", sync);
  window.addEventListener("hashchange", sync);
  window.addEventListener("pageshow", sync);
  sync();

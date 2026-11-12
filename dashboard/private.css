@@ -385,3 +385,16 @@ body { background: radial-gradient(ellipse at 90% 0%, #162638 0%, transparent 58
 }
 
 .trade-grid > .market-overview, .trade-grid > .warning { grid-column: 1 / -1; }
+.lens-balance { display: block; width: calc(100% - 30px); height: 10px; margin: 0 15px 8px; }
+.lens-balance::-webkit-meter-bar { background: #a94463; border: 0; border-radius: 8px; }
+.lens-balance::-webkit-meter-optimum-value { background: #50d7ae; }
+.lens-balance::-moz-meter-bar { background: #50d7ae; }
+@media (max-width: 660px) {
+ .page-nav {
+  position: fixed; inset: auto 0 0; width: 100%; z-index: 2;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: #101a28; border-top: 1px solid #304359;
+ }
+ .page-nav a { font-weight: 650; }
+ .workspace { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+}

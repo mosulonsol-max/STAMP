@@ -1242,7 +1242,15 @@ if(!offline){
  setInterval(()=>{if(!document.hidden)updateVenueNetwork()},60000);
  setInterval(()=>{if(!document.hidden)updateWorkerStatus()},30000);
  document.addEventListener("stamp:tabchange",()=>{
-  if(!el("trading").hidden){paintMarketLens(true);refresh()}
+  if(!el("trading").hidden){
+   setTimeout(()=>{
+    if(el("trading").hidden)return;
+    updateFreshness();
+    if(window.StampMarket)pollMarket(true);
+    paintMarketLens(true);
+    refresh();
+   },0);
+  }
   if(!el("venuesSection").hidden)updateVenueNetwork();
   if(!el("labCenter").hidden)updateWorkerStatus();
  });
