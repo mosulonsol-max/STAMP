@@ -683,7 +683,7 @@ function drawQuoteLine(){
 }
 let nextLensPaint=0;
 function paintMarketLens(force=false){
- if(el("trading")?.hidden||(!force&&performance.now()<nextLensPaint))return;
+ if(!window.StampLens||el("trading")?.hidden||(!force&&performance.now()<nextLensPaint))return;
  nextLensPaint=performance.now()+1000;
  window.StampLens?.update({
   market:data?.market, quote:quoteLive, fresh:isFreshQuote(quoteLive),
