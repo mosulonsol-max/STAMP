@@ -9,12 +9,12 @@ from urllib.parse import urlsplit,quote,parse_qs
 try:
  from src.market_events import STAMP, dashboard_events, pair_market_flow, symbol as event_symbol
  from src.operations import archive_view, worker_status
- from src.market_flow import market_flow_snapshot
+ from src.market_flow import exchange_depth_snapshot, market_flow_snapshot
  from src.market_updates import market_update
 except ModuleNotFoundError:
  from market_events import STAMP, dashboard_events, pair_market_flow, symbol as event_symbol
  from operations import archive_view, worker_status
- from market_flow import market_flow_snapshot
+ from market_flow import exchange_depth_snapshot, market_flow_snapshot
  from market_updates import market_update
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
@@ -394,6 +394,17 @@ class Handler(BaseHTTPRequestHandler):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
    return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
+  if path=="/api/market-flow/depth":
+   try: pair=event_symbol(parse_qs(urlsplit(self.path).query).get("symbol",[""])[0])
+   except ValueError: return self.send(400,b'{"error":"invalid_pair"}',"application/json; charset=utf-8")
+   result=exchange_depth_snapshot(pair)
+   if pair==STAMP:
+    current=CACHE.get("payload") or read_embedded() or {}
+    events=(current.get("operations") or {}).get("events") or {}
+    result["chain"]={"coverage":events.get("liquidity"),
+      "records":[row for row in events.get("records",[]) if row.get("kind") in ("liquidity_add","liquidity_remove")][:12]}
+   body=json.dumps(result,allow_nan=False).encode("utf-8")
+   return self.send(200,body,"application/json; charset=utf-8")
   if path=="/api/market-flow":
    try:
     pair=parse_qs(urlsplit(self.path).query,keep_blank_values=True).get("symbol")

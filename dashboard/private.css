@@ -425,3 +425,26 @@ body { background: radial-gradient(ellipse at 90% 0%, #162638 0%, transparent 58
 #flowPairPlot { margin-block:12px; background:linear-gradient(165deg,#14283c,#0b1321); border-radius:10px; }
 #flowPairPlot svg { display:block; width:100%; height:clamp(140px,22vw,265px); }
 .flow-pair-body table { width:100%; }
+
+#globalMarketFlow { --flow-panel:#101c2d; --flow-border:#2a4059; }
+#globalMarketFlow .section-header { padding:24px 20px 18px; background:linear-gradient(120deg,#182c42,#101a29 68%); border:1px solid var(--flow-border); border-radius:16px 16px 0 0; margin-bottom:0; }
+#globalMarketFlow .section-header h2 { font-size:clamp(1.55rem,3vw,2.65rem); letter-spacing:-.035em; }
+#globalMarketFlow .flow-scope { border-radius:0 0 16px 16px; background:#101a29; border-top:0; padding-inline:20px; }
+#globalMarketFlow .flow-scope button[aria-pressed="true"], .flow-intervals button[aria-pressed="true"] { background:#78ddc6; color:#09201d; border-color:#78ddc6; }
+#globalMarketFlow .panel { background:var(--flow-panel); border-color:var(--flow-border); border-radius:15px; }
+#globalMarketFlow .market-metrics { gap:10px; }
+#globalMarketFlow .market-metrics > div { padding:15px; background:#0b1522; border:1px solid var(--flow-border); border-radius:10px; }
+#globalMarketFlow .market-metrics dd { font-size:clamp(1rem,2vw,1.55rem); }
+#flowPairBuy { color:#67dec0; }
+#flowPairSell { color:#ff9eb0; }
+.flow-depth-view { margin-top:14px; }
+.flow-depth-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(235px,100%),1fr)); gap:12px; padding:14px; }
+.flow-depth-cards article { display:grid; gap:8px; padding:13px; border:1px solid var(--flow-border); background:#0b1522; border-radius:9px; }
+.flow-depth-cards p,.flow-depth-view header span { font-size:.8rem; color:var(--muted); }
+.flow-depth-cards meter { width:100%; }
+.flow-intervals { display:flex; flex-wrap:wrap; gap:5px; margin-block:10px; }
+.flow-intervals button { min-width:36px; min-height:38px; padding:4px; }
+.flow-table-details { border-top:1px solid var(--flow-border); margin-top:12px; padding-top:8px; }
+#flowIntervalDetail { min-height:22px; color:#cde4f5; }
+.flow-chain { margin:0 14px 14px; padding:12px; background:#0b1522; border:1px solid var(--flow-border); border-radius:9px; }
+.flow-chain ul:empty { display:none; }

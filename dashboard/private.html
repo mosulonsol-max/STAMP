@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=venue-scene-4">
+  <link rel="stylesheet" href="/assets/style.css?v=market-flow-studio-3">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
@@ -234,16 +234,26 @@
           <h3 data-copy="Buy and sell executions by interval">الشراء والبيع عبر الزمن</h3>
           <p id="flowPairWindow" class="muted"></p>
           <div id="flowPairPlot"></div>
-          <div class="history-table"><table><thead><tr>
+          <p id="flowIntervalDetail" role="status"></p>
+          <div id="flowIntervals" class="flow-intervals" dir="ltr" aria-label="الفترات الزمنية"></div>
+          <details class="flow-table-details"><summary data-copy="Execution data table">جدول الصفقات</summary><div class="history-table"><table><thead><tr>
             <th data-copy="Interval start">بداية الفترة</th><th data-copy="Buy · USDT">شراء · USDT</th><th data-copy="Sell · USDT">بيع · USDT</th><th data-copy="Trades">الصفقات</th>
-          </tr></thead><tbody id="flowPairRows"></tbody></table></div>
+          </tr></thead><tbody id="flowPairRows"></tbody></table></div></details>
           <p class="muted" data-copy="MEXC Spot recent executions sample. Direction is the aggressor side. Coverage varies with activity.">عينة من أحدث الصفقات المنفذة على MEXC Spot، مصنّفة بحسب الطرف المبادر. تختلف الفترة المغطاة حسب نشاط الزوج.</p>
         </div>
+      </section>
+      <section id="flowDepthView" class="panel flow-depth-view" hidden>
+        <header class="panel-header"><h3 data-copy="Order book depth by venue">عمق دفتر الأوامر حسب المنصة</h3><span data-copy="Up to 20 levels per side">حتى 20 مستوى لكل جهة</span></header>
+        <div id="flowDepthCards" class="flow-depth-cards" role="status"></div>
+        <section id="flowChainView" class="flow-chain" hidden>
+          <h3 data-copy="Recorded on-chain liquidity changes">تغيّرات السيولة المسجلة على السلسلة</h3>
+          <p id="flowChainCoverage" class="muted"></p><ul id="flowChainEvents"></ul>
+        </section>
       </section>
       <div id="flowWholeView">
       <dl class="market-metrics flow-totals">
         <div><dt data-copy="Crypto market cap">القيمة السوقية للعملات الرقمية</dt><dd id="flowCap">—</dd></div>
-        <div><dt data-copy="24h trading volume">حجم التداول خلال 24 ساعة</dt><dd id="flowVolume">—</dd></div>
+        <div><dt data-copy="24h trading volume">حجم التداول خلال 24 ساعة</dt><dd id="flowVolume">—</dd><small id="flowTurnover" class="muted"></small></div>
         <div><dt data-copy="Circulating stablecoin value">قيمة العملات المستقرة المتداولة</dt><dd id="flowSupply">—</dd></div>
       </dl>
       <div id="flowError" class="warning" role="alert" hidden></div>
@@ -424,6 +434,6 @@
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
   <script src="/assets/app.js?v=venue-scene-4" defer></script>
-  <script src="/assets/market-flow.js?v=market-flow-scope-2" defer></script>
+  <script src="/assets/market-flow.js?v=market-flow-studio-3" defer></script>
 </body>
 </html>

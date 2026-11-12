@@ -221,6 +221,8 @@
     inspected = null;
     el("flowCap").textContent = formatMoney(payload?.market_cap_usd);
     el("flowVolume").textContent = formatMoney(payload?.volume_24h_usd);
+    el("flowTurnover").textContent = payload?.market_cap_usd > 0
+      ? (100 * payload.volume_24h_usd / payload.market_cap_usd).toFixed(2) + "% · " + copy("من القيمة السوقية","of market cap") : "";
     el("flowSupply").textContent = formatMoney(payload?.stablecoin_supply_usd);
     el("flowExpansion").textContent = formatMoney(deltas?.increase);
     el("flowContraction").textContent = formatMoney(deltas?.decrease);
@@ -276,6 +278,63 @@
   let mode = "whole", pair = "STAMPUSDT", pairRequest = null, pairData = null, pairFailed = false;
   const amount = new Intl.NumberFormat("en-US", {maximumFractionDigits: 2});
   const usdt = value => Number.isFinite(value) ? amount.format(value) + " USDT" : "—";
+  let selectedInterval = null, depthRequest = null, depthData = null;
+  function renderDepthCards() {
+    const root = el("flowDepthCards");
+    root.replaceChildren();
+    const chain = depthData?.chain, coverage = chain?.coverage;
+    el("flowChainView").hidden = pair !== "STAMPUSDT";
+    el("flowChainCoverage").textContent = coverage?.observed_utc
+      ? "PumpSwap · " + formatTime(coverage.observed_utc) + " · " + (coverage.inspected_count ?? "—") + " / " + (coverage.returned_count ?? "—") +
+       " " + copy("معاملات مفحوصة","transactions inspected")
+      : copy("تغطية السلسلة غير متاحة","On-chain coverage unavailable");
+    el("flowChainEvents").replaceChildren(...(chain?.records || []).map(event=>{
+      const li=document.createElement("li"), link=document.createElement("a");
+      link.textContent=(event.kind==="liquidity_add"?copy("إضافة سيولة","Liquidity addition"):copy("سحب سيولة","Liquidity withdrawal"))+
+        " · "+formatTime(new Date(event.time_ms).toISOString());
+      if (/^[1-9A-HJ-NP-Za-km-z]{80,90}$/.test(event.signature || "")) {
+        link.href="https://solscan.io/tx/"+event.signature; link.target="_blank"; link.rel="noopener noreferrer";
+      }
+      li.append(link); return li;
+    }));
+    if (!depthData?.venues?.length) {
+      root.textContent = depthRequest ? copy("جارٍ جلب دفاتر الأوامر…","Loading order books…") : copy("دفاتر الأوامر غير متاحة","Order books unavailable");
+      return;
+    }
+    for (const row of depthData.venues) {
+      const card = document.createElement("article"), label = document.createElement("strong"), detail = document.createElement("p");
+      label.textContent = row.venue;
+      card.append(label, detail);
+      if (row.status === "ok") {
+        const buy = row.bid_depth_usdt, sell = row.ask_depth_usdt;
+        detail.textContent = formatTime(row.observed_at_utc) + " · " + copy("الفارق","Spread") + " " + amount.format(row.spread_pct) + "%";
+        const bar = document.createElement("meter"), values = document.createElement("p");
+        bar.min = 0; bar.max = 1; bar.value = buy / (buy + sell);
+        bar.setAttribute("aria-label",copy("حصة أوامر الشراء","Bid depth share"));
+        values.textContent = copy("شراء ","Bid ") + usdt(buy) + " · " + copy("بيع ","Ask ") + usdt(sell);
+        card.append(bar, values);
+      } else detail.textContent = copy("تعذّر جلب العمق","Depth unavailable");
+      root.append(card);
+    }
+  }
+  async function refreshDepth() {
+    if (depthRequest) return;
+    const controller = new AbortController(), symbol = pair;
+    depthRequest = controller;
+    const timer = setTimeout(() => controller.abort(), 14000);
+    renderDepthCards();
+    try {
+      const response = await fetch("/api/market-flow/depth?symbol="+encodeURIComponent(symbol), {signal:controller.signal});
+      if (!response.ok) throw Error("depth unavailable");
+      const result = await response.json();
+      if (depthRequest === controller && result.symbol === symbol) depthData = result;
+    } catch {
+      if (depthRequest === controller) depthData = null;
+    } finally {
+      clearTimeout(timer);
+      if (depthRequest === controller) { depthRequest = null; renderDepthCards(); }
+    }
+  }
   function renderPair() {
     const data = pairData;
     const flow = data?.status === "ok" ? data.flow : null;
@@ -294,6 +353,18 @@
        " · " + copy("طول الفترة", "Interval size") + " " + amount.format(flow.bucket_ms / 1000) + "s"
       : data ? copy("العينة خالية من صفقات قابلة للتصنيف.", "No classifiable executions in the returned sample.") : "";
     const rows = (flow?.buckets || []).filter(row => [row.time_ms,row.buy,row.sell,row.count].every(Number.isFinite));
+    const selected = rows.find(row=>row.time_ms===selectedInterval) || rows.at(-1);
+    el("flowIntervalDetail").textContent = selected
+      ? formatTime(new Date(selected.time_ms).toISOString()) + " · " + copy("شراء ","Buy ") + usdt(selected.buy) +
+        " · " + copy("بيع ","Sell ") + usdt(selected.sell) + " · " + selected.count + " " + copy("صفقة","trades") : "";
+    el("flowIntervals").replaceChildren(...rows.map((row,i)=>{
+      const button=document.createElement("button");
+      button.type="button"; button.dataset.interval=String(row.time_ms);
+      button.textContent=String(i+1); button.title=formatTime(new Date(row.time_ms).toISOString());
+      button.setAttribute("aria-label",button.title);
+      button.setAttribute("aria-pressed",String(row===selected));
+      return button;
+    }));
     const max = Math.max(1, ...rows.flatMap(row => [row.buy,row.sell]));
     const bar = (x, value, color, top) => {
       if (value <= 0) return "";
@@ -306,7 +377,7 @@
       '<path d="M16 132H482 M16 96H482 M16 59H482 M16 22H482" stroke="#2c435c" fill="none"/>'+
       rows.map(row=>{
         const x=22+Math.round((row.time_ms-data.first_ms)/flow.bucket_ms)*38;
-        return bar(x,row.buy,"#41c7a1","#88efcf")+bar(x+15,row.sell,"#e57790","#ffc0ce");
+        return '<g opacity="'+(row===selected?1:.62)+'">'+bar(x,row.buy,"#41c7a1","#88efcf")+bar(x+15,row.sell,"#e57790","#ffc0ce")+'</g>';
       }).join("")+'</svg>' : "";
     const body = el("flowPairRows");
     body.replaceChildren(...rows.map(row => {
@@ -354,6 +425,7 @@
     if (next !== pair) {
       pairRequest?.abort();
       pairRequest = null;
+      depthRequest?.abort(); depthRequest = null; depthData = null; selectedInterval = null;
       pairData = null;
       pairFailed = false;
       pair = next;
@@ -361,6 +433,7 @@
     input.value = pair;
     renderPair();
     refreshPair();
+    refreshDepth();
   }
   const tradingPair = () => el("assetSelected").textContent;
   function switchMode(next) {
@@ -371,6 +444,7 @@
     el("flowWholeView").hidden = selected;
     el("flowStatus").hidden = selected;
     el("flowPairView").hidden = !selected;
+    el("flowDepthView").hidden = !selected;
     el("flowPairForm").hidden = !selected;
     if (selected) follow(el("flowPairInput").value || tradingPair());
     else { render(); refresh(); }
@@ -383,7 +457,17 @@
   for (const symbol of ["STAMPUSDT","SOLUSDT","BTCUSDT","ETHUSDT"]) {
     const option = document.createElement("option"); option.value = symbol; el("flowPairCatalog").append(option);
   }
-  const refreshScope = () => mode === "pair" ? refreshPair() : refresh();
+  el("flowIntervals").addEventListener("click",event=>{
+    const button=event.target.closest("button[data-interval]");
+    if (!button) return;
+    selectedInterval=Number(button.dataset.interval);
+    renderPair();
+    el("flowIntervals").querySelector('[aria-pressed="true"]')?.focus();
+  });
+  const refreshScope = () => {
+    if (mode === "pair") { refreshPair(); refreshDepth(); }
+    else refresh();
+  };
 
   periods.addEventListener("click", event => {
     const button = event.target.closest("button[data-days]");
@@ -450,6 +534,6 @@
   el("zoneSelect").addEventListener("change", () => { if (mode === "pair") renderPair(); else if (payload || loadFailed) render(); });
   if (!section.hidden) refreshScope();
   document.addEventListener("stamp:tabchange",()=>{if(!section.hidden)refreshScope()});
-  setInterval(() => { if (!document.hidden && !section.hidden && mode === "pair") refreshPair(); }, 45000);
+  setInterval(() => { if (!document.hidden && !section.hidden && mode === "pair") refreshScope(); }, 45000);
   setInterval(() => { if (!document.hidden && !section.hidden && mode === "whole") refresh(); }, 300000);
 })();

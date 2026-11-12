@@ -46,3 +46,23 @@ def market_flow_snapshot():
  result={"observed_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"market_observed_at_utc":market_observed,"market_cap_usd":cap,"volume_24h_usd":volume,"stablecoin_supply_usd":points[-1]["v"],"stablecoin_supply_observed_at_utc":dt.datetime.fromtimestamp(points[-1]["t"],dt.timezone.utc).isoformat(),"stablecoin_history":points,"sources":{"market":"CoinGecko","stablecoins":"DefiLlama"},"definitions":{"volume":"Gross traded value, not net inflow","stablecoin_delta":"Change in aggregate circulating USD supply; proxy only","market_cap":"Asset valuation, not available cash"}}
  with _LOCK:_CACHE.update(at=time.time(),value=result)
  return result
+
+def exchange_depth_snapshot(pair):
+ try:
+  from src.venue_microstructure import book
+ except ModuleNotFoundError:
+  from venue_microstructure import book
+
+ def measure(venue):
+  try:
+   depth=book(venue,pair)
+   return {"venue":venue,"status":"ok","observed_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),
+           **{key:depth[key] for key in ("bid_depth_usdt","ask_depth_usdt","spread_pct","levels")}}
+  except (OSError, ValueError, TypeError, KeyError, IndexError):
+   return {"venue":venue,"status":"unavailable"}
+
+ # Venue symbols alone do not establish cross-venue asset identity.
+ comparable=pair in {"SOLUSDT","BTCUSDT","ETHUSDT"}
+ venues=("MEXC","OKX","Binance") if comparable else ("MEXC",)
+ with ThreadPoolExecutor(max_workers=len(venues)) as pool:
+  return {"symbol":pair,"venues":list(pool.map(measure,venues))}
