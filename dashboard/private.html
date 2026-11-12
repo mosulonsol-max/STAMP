@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=project-ops-1">
+  <link rel="stylesheet" href="/assets/style.css?v=evidence-workspace-2">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
@@ -86,28 +86,6 @@
     </section>
     <div id="warning" class="warning" role="alert" hidden></div>
 
-      <section class="market-lens" aria-labelledby="lensTitle">
-        <header class="lens-header">
-          <div><h2 id="lensTitle" data-copy="Market pulse">نبض السوق</h2><p id="lensSummary"></p></div>
-          <button id="lensMotion" type="button" aria-pressed="true">إيقاف الحركة</button>
-        </header>
-        <div class="lens-scenes">
-          <figure class="lens-scene">
-            <figcaption><strong data-copy="Candle structure">حركة الشموع</strong><span id="lensPriceDetail"></span></figcaption>
-            <canvas id="lensPrice" aria-hidden="true"></canvas>
-          </figure>
-          <figure class="lens-scene">
-            <figcaption><strong data-copy="Executed trade pressure">ضغط الصفقات المنفذة</strong><span id="lensFlowDetail"></span></figcaption>
-            <canvas id="lensFlow" aria-hidden="true"></canvas>
-            <meter id="lensBalance" class="lens-balance" min="0" max="100" value="0" hidden aria-label="حصة الشراء من قيمة العينة"></meter>
-            <div class="lens-flow-values">
-              <div><span data-copy="Buyer initiated">بمبادرة المشترين</span><b id="lensBuy" dir="ltr">—</b></div>
-              <div><span data-copy="Seller initiated">بمبادرة البائعين</span><b id="lensSell" dir="ltr">—</b></div>
-            </div>
-          </figure>
-        </div>
-        <p class="lens-foot" id="lensLiquidity"></p>
-      </section>
       <section class="panel chart-panel" aria-labelledby="chartTitle">
         <header class="panel-header chart-header">
           <h2 id="chartTitle" data-copy="Price chart">الرسم السعري</h2>
@@ -148,6 +126,18 @@
           <button id="exportCandles" type="button" data-i18n="export">تنزيل الشموع CSV</button>
           <span id="chartHelp" class="sr-only" data-i18n="chartHelp"></span>
         </div>
+        <section id="candleEvidence" class="candle-evidence" aria-labelledby="evidenceTitle">
+          <header>
+            <div><h3 id="evidenceTitle" data-copy="What happened here?">ماذا حدث هنا؟</h3><p id="evidencePeriod" class="muted"></p></div>
+            <button id="evidenceLatest" type="button" data-copy="Latest candle">آخر شمعة</button>
+          </header>
+          <div id="evidenceTrail" class="evidence-trail"></div>
+          <nav class="evidence-actions" aria-label="تفاصيل أدلة السوق">
+            <a href="#globalMarketFlow" data-copy="Market flows">تدفقات السوق</a>
+            <a href="#venuesSection" data-copy="Source verification">التحقق من المصادر</a>
+            <a href="#labCenter" data-copy="Lab decisions">قرارات المختبر</a>
+          </nav>
+        </section>
         <section id="replayControls" class="replay-controls" aria-label="إعادة عرض الشموع" hidden>
           <div class="replay-actions">
             <button id="replayBack" type="button" data-copy="Previous candle">الشمعة السابقة</button>
@@ -214,6 +204,28 @@
           <div id="assuranceMetrics" class="history-table"></div>
         </details>
       </aside>
+      <section class="market-lens" aria-labelledby="lensTitle">
+        <header class="lens-header">
+          <div><h2 id="lensTitle" data-copy="Market pulse">نبض السوق</h2><p id="lensSummary"></p></div>
+          <button id="lensMotion" type="button" aria-pressed="true">إيقاف الحركة</button>
+        </header>
+        <div class="lens-scenes">
+          <figure class="lens-scene">
+            <figcaption><strong data-copy="Candle structure">حركة الشموع</strong><span id="lensPriceDetail"></span></figcaption>
+            <canvas id="lensPrice" aria-hidden="true"></canvas>
+          </figure>
+          <figure class="lens-scene">
+            <figcaption><strong data-copy="Executed trade pressure">ضغط الصفقات المنفذة</strong><span id="lensFlowDetail"></span></figcaption>
+            <canvas id="lensFlow" aria-hidden="true"></canvas>
+            <meter id="lensBalance" class="lens-balance" min="0" max="100" value="0" hidden aria-label="حصة الشراء من قيمة العينة"></meter>
+            <div class="lens-flow-values">
+              <div><span data-copy="Buyer initiated">بمبادرة المشترين</span><b id="lensBuy" dir="ltr">—</b></div>
+              <div><span data-copy="Seller initiated">بمبادرة البائعين</span><b id="lensSell" dir="ltr">—</b></div>
+            </div>
+          </figure>
+        </div>
+        <p class="lens-foot" id="lensLiquidity"></p>
+      </section>
     </div>
 
     <section class="market-section" id="globalMarketFlow" role="tabpanel" aria-labelledby="flowTab">
@@ -454,7 +466,7 @@
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
-  <script src="/assets/app.js?v=project-ops-1" defer></script>
+  <script src="/assets/app.js?v=evidence-workspace-2" defer></script>
   <script src="/assets/market-flow.js?v=market-flow-evidence-4" defer></script>
 </body>
 </html>

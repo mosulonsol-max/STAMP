@@ -84,7 +84,7 @@ function initChart(){
  chart.subscribeCrosshairMove(inspect);
  chart.subscribeClick?.(param=>{
   inspect(param);
-  if(eventEnabled&&typeof param.time==="number"&&param.seriesData?.get(candleSeries)){
+  if(typeof param.time==="number"&&param.seriesData?.get(candleSeries)){
    eventSelection=param.time*1000;
    renderChartEvents();
   }
@@ -506,6 +506,47 @@ function paintCandleContext(last,forming){
  set("activeCandle",forming?t("forming")+" · "+(forming.transport==="rest"?copy("تحديث احتياطي","REST"):"WebSocket")+" · "+stamp(forming.observed_utc):t("closedOnly"));
  if(last&&!inspectingChart)set("chartOHLC",formatChartTime(last.t/1000)+" · O "+price(last.o)+" H "+price(last.h)+" L "+price(last.l)+" C "+price(last.c));
 }
+function paintCandleEvidence(bars,records){
+ const root=el("evidenceTrail");
+ if(!root)return;
+ const bar=bars.find(item=>item.t===eventSelection)||bars.at(-1);
+ const end=bar?bar.t+FRAME_MS[frame]:null;
+ const closed=!!bar&&end<=Date.now();
+ const cutoff=closed?end:Date.now();
+ set("evidencePeriod",bar?selectedAsset+" · "+frame+" · "+stamp(bar.t,true)+" → "+stamp(end,true)+
+  (closed?"":" · "+copy("شمعة جارية","Open candle")):copy("بانتظار الشموع","Waiting for candles"));
+ const matches=bar?records.filter(event=>event.symbol===selectedAsset&&event.time_ms>=bar.t&&event.time_ms<end&&event.time_ms<=cutoff):[];
+ const forecasts=(data?.forecast_review?.rows||[]).filter(row=>{
+  const issued=Date.parse(row.created_utc),due=Date.parse(row.due_utc);
+  return bar&&row.horizon===horizon&&issued<cutoff&&due>=bar.t&&n(row.predicted_price)>0;
+ }).sort((a,b)=>Date.parse(b.created_utc)-Date.parse(a.created_utc));
+ const forecast=forecasts[0], actual=n(forecast?.actual_price), evaluated=Date.parse(forecast?.evaluated_utc);
+ const known=forecast&&actual>0&&Number.isFinite(evaluated)&&(!replay||
+  Math.max(evaluated,Date.parse(forecast.measurement_time_utc))<=cutoff);
+ const metric=(label,value)=>[label,value];
+ const candles=bar?[
+  metric(copy("الافتتاح ← الإغلاق","Open → close"),price(bar.o)+" → "+price(bar.c)+" USDT"),
+  metric(copy("التغيّر","Change"),pct((bar.c/bar.o-1)*100)),
+  metric(copy("الصفقات المسجّلة في العينة","Recorded executions in sample"),String(matches.filter(e=>e.kind==="trade").length)),
+  metric(copy("أحداث السيولة المسجّلة","Recorded liquidity events"),String(matches.filter(e=>["liquidity_add","liquidity_remove"].includes(e.kind)).length))
+ ]:[];
+ const prediction=forecast?[
+  metric(t("predicted"),price(forecast.predicted_price)+" USDT"),
+  metric(t("recordedAt"),stamp(forecast.created_utc,true)),
+  metric(t("due"),stamp(forecast.due_utc,true)),
+  metric(t("model"),forecast.model||"—")
+ ]:[metric(copy("أفق التوقع","Forecast horizon"),horizon),metric(copy("السجل المتاح","Available record"),copy("لا توقع مسجّل لهذه الشمعة وهذا الأفق","No recorded forecast for this candle and horizon"))];
+ const outcome=known?[
+  metric(t("measured"),price(actual)+" USDT"),
+  metric(copy("وقت القياس","Measurement time"),stamp(forecast.measurement_time_utc,true)),
+  metric(copy("خطأ التوقع / ثبات السعر · USDT","Forecast / no-change error · USDT"),
+   price(Math.abs(actual-forecast.predicted_price))+" / "+(n(forecast.reference_price)>0?price(Math.abs(actual-forecast.reference_price)):"—"))
+ ]:[metric(copy("النتيجة","Outcome"),forecast?copy("لا نتيجة موثّقة متاحة","No verified outcome available"):"—")];
+ const html=[[copy("رصد السوق","Market observations"),candles],[copy("التوقع وقت الشمعة","Forecast at the candle"),prediction],
+  [copy("النتيجة المقاسة","Measured outcome"),outcome]].map(([title,rows])=>'<article><h4>'+esc(title)+'</h4><dl>'+
+  rows.map(([k,v])=>'<div><dt>'+esc(k)+'</dt><dd dir="auto">'+esc(v)+'</dd></div>').join("")+'</dl></article>').join("");
+ if(root.innerHTML!==html)root.innerHTML=html;
+}
 function renderChartEvents(bars=eventBars){
  if(!window.StampEvents||!el("chartEvents"))return;
  eventBars=bars;
@@ -514,6 +555,7 @@ function renderChartEvents(bars=eventBars){
  const records=new Map((archive?.records||[]).map(event=>[event.id,event]));
  for(const event of payload.records)records.set(event.id,event);
  const sorted=[...records.values()].sort((a,b)=>b.time_ms-a.time_ms);
+ paintCandleEvidence(bars,sorted);
  const aligned=eventEnabled?window.StampEvents.align(sorted,bars,selectedAsset,FRAME_MS[frame]):[];
  const markers=window.StampEvents.markers(aligned);
  eventMarkers?.setMarkers(markers);
@@ -565,6 +607,8 @@ function focusEventCandle(start){
  const from=Math.max(eventBars[0].t,start-padding)/1000,to=Math.min(eventBars.at(-1).t,start+padding)/1000;
  if(to>from)chart.timeScale().setVisibleRange({from,to});
  chart.setCrosshairPosition?.(bar.c,start/1000,candleSeries);
+ eventSelection=start;
+ renderChartEvents();
  const node=el("chart");
  node.focus({preventScroll:true});
  node.scrollIntoView({block:"nearest"});
@@ -1298,6 +1342,7 @@ el("eventToggle")?.addEventListener("click",()=>{
  renderChartEvents();
  if(eventEnabled)pollChartEvents();
 });
+el("evidenceLatest")?.addEventListener("click",()=>{eventSelection=null;renderChartEvents()});
 el("eventAll")?.addEventListener("click",()=>{eventSelection=null;renderChartEvents()});
 el("chartEventList")?.addEventListener("click",event=>{
  const button=event.target.closest("button[data-event-candle]");
