@@ -969,6 +969,137 @@ function renderIntelligence(){
  set("labEvidence",lab.warning||"");
 }
 let systemSnapshot=null;
+const pipelineStages=[
+ ["monitor","الرصد","Collect","venuesSection",[-3,-1,0]],
+ ["archive","الأرشيف","Archive","trading",[-2,0,.55]],
+ ["evidence","التحقق","Verify","venuesSection",[-1,-1,0]],
+ ["research","التدريب","Train","trading",[0,0,.55]],
+ ["audit","قياس النتائج","Measure","trading",[1,-1,0]],
+ ["governance","الاعتماد","Review","systemCenter",[2,0,.55]],
+ ["dashboard","النشر","Publish","systemCenter",[3,-1,0]],
+ ["lab","المختبر","Lab","labCenter",[1,1.3,-.5]]
+];
+let pipelineSelected="monitor",pipelineRun=null,pipelineFrame=0,pipelineAngle=-.14,pipelinePoints=[];
+const traceOutcome=s=>s==="success"?copy("نجحت","Passed"):s==="failure"?copy("فشلت","Failed"):
+ s==="skipped"?copy("تُخطّيت","Skipped"):copy("بانتظار سجل","Awaiting evidence");
+function pipelineRecord(id){
+ return systemSnapshot?.health?.trace?.find(row=>row.stage===id);
+}
+function drawPipeline(pulse=null){
+ const canvas=el("traceCanvas"), ctx=canvas?.getContext?.("2d");
+ if(!ctx||!canvas.clientWidth||!canvas.clientHeight)return;
+ const w=canvas.clientWidth,h=canvas.clientHeight,dpr=Math.min(window.devicePixelRatio||1,2);
+ if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){
+  canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
+ }
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ const scale=Math.min(w/8.6,h/4.2), cos=Math.cos(pipelineAngle),sin=Math.sin(pipelineAngle);
+ const project=([x,y,z])=>{
+  const depth=z*cos+x*sin, shrink=9/(9+depth);
+  return [w*.5+(x*cos-z*sin)*scale*shrink,h*.55+(y+depth*.32)*scale*shrink];
+ };
+ const line=(a,b,color,width=1)=>{
+  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();
+ };
+ for(let grid=-4;grid<=4;grid++){
+  line(project([grid,1.8,-1.3]),project([grid,1.8,1.5]),"#223c50");
+ }
+ for(let z=-1.3;z<=1.6;z+=.45)line(project([-4,1.8,z]),project([4,1.8,z]),"#223c50");
+ pipelinePoints=pipelineStages.map(([id,ar,en,,pos])=>({id,name:copy(ar,en),p:project(pos),floor:project([pos[0],1.8,pos[2]])}));
+ const steps=systemSnapshot?.health?.steps||{};
+ for(let i=1;i<7;i++){
+  const a=pipelinePoints[i-1],b=pipelinePoints[i];
+  line(a.p,b.p,steps[a.id]==="success"&&steps[b.id]==="success"?"#4eae9e":"#3b5064",2);
+ }
+ ctx.setLineDash([4,5]);
+ line(pipelinePoints[6].p,pipelinePoints[7].p,"#977fbc");
+ ctx.setLineDash([]);
+ for(const node of pipelinePoints){
+  const [x,y]=node.p,active=node.id===pipelineSelected, state=steps[node.id];
+  const color=state==="success"?"#75e4cb":state==="failure"?"#ff8d9e":node.id==="lab"?"#bcabff":"#8ea3b8";
+  line(node.floor,node.p,"#3e5b72");
+  ctx.fillStyle="#081522";ctx.strokeStyle=active?"#ffffff":color;ctx.lineWidth=active?3:1.5;
+  ctx.beginPath();ctx.arc(x,y,active?14:11,0,2*Math.PI);ctx.fill();ctx.stroke();
+  ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,4,0,2*Math.PI);ctx.fill();
+  ctx.textAlign="center";ctx.font=(w<460?"10":"13")+"px system-ui";ctx.fillText(node.name,x,y-19);
+ }
+ if(pulse){
+  const target=pipelinePoints.find(p=>p.id===pulse.stage);
+  const index=pipelinePoints.indexOf(target), prior=pipelinePoints[index-1];
+  if(target){
+   const sameRun=prior&&pipelineRecord(prior.id)?.status==="success"&&index<7;
+   const a=sameRun?prior.p:target.p, b=target.p, mix=pulse.progress;
+   ctx.fillStyle=pulse.status==="success"?"#c3fff4":"#ff8d9e";
+   ctx.beginPath();ctx.arc(a[0]+(b[0]-a[0])*mix,a[1]+(b[1]-a[1])*mix,4+2*Math.sin(Math.PI*mix),0,2*Math.PI);ctx.fill();
+  }
+ }
+}
+function paintPipeline(){
+ const details=el("traceDetails");
+ if(!details)return;
+ const [id,ar,en,target]=pipelineStages.find(stage=>stage[0]===pipelineSelected)||pipelineStages[0];
+ const report=systemSnapshot, health=report?.health, entry=pipelineRecord(id);
+ const label=copy(ar,en),lab=report?.laboratory;
+ const rows=[[copy("الحالة","Status"),id==="lab"?(lab?.status||"—"):traceOutcome(health?.steps?.[id])],
+  [copy("بدأت","Started"),stamp(entry?.started_utc,true)],[copy("انتهت","Finished"),stamp(entry?.finished_utc,true)]];
+ if(id==="monitor")rows.push([copy("آخر رصد سوق STAMP","Last STAMP market observation"),stamp(report?.observed_utc,true)]);
+ if(id==="archive")rows.push([copy("شموع 15 دقيقة محفوظة","Archived 15m candles"),report?.candles?.["15m"]?.length??"—"]);
+ if(id==="evidence")rows.push([copy("مصادر مرصودة","Observed sources"),Object.keys(report?.source_health||{}).length]);
+ if(id==="research")rows.push([copy("آخر توقع مسجّل","Last recorded forecast"),stamp(report?.forecast_activity?.last_forecast_utc,true)]);
+ if(id==="audit")rows.push([copy("نتائج مقاسة في السجل","Measured outcomes in history"),report?.forecast_review?.rows?.filter(row=>n(row.actual_price)>0).length??"—"]);
+ if(id==="governance")rows.push([copy("آفاق معتمدة","Approved horizons"),Object.values(report?.model_decisions||{}).filter(row=>row?.status==="approved").length],
+  [copy("تشخيص الخطأ","Error diagnosis"),traceOutcome(health?.steps?.diagnosis)],
+  [copy("مراجعة الأزواج الأخرى","Multi-pair review"),traceOutcome(health?.steps?.multi_asset_governance)]);
+ if(id==="dashboard")rows.push([copy("فحص الإصدار المنشور","Production check"),traceOutcome(pipelineRecord("production_smoke")?.status)]);
+ if(id==="lab")rows.push([copy("وقت تدقيق المختبر","Lab audit time"),stamp(lab?.audited_at_utc,true)],[copy("تجارب مقيّمة","Evaluated experiments"),lab?.evaluated??"—"]);
+ set("traceStage",label);
+ set("traceRun",health?.run?"STAMP · "+copy("تشغيل","Run")+" "+health.run+" · "+stamp(health.at,true):copy("بانتظار سجل التشغيل","Awaiting run record"));
+ const html=rows.map(([k,v])=>"<div><dt>"+esc(k)+"</dt><dd>"+esc(v)+"</dd></div>").join("");
+ if(details.innerHTML!==html)details.innerHTML=html;
+ el("traceOpen").setAttribute("href","#"+target);
+ const keys=el("traceStageKeys"), buttons=pipelineStages.map(([key,a,b])=>
+  '<button type="button" data-trace-stage="'+key+'" aria-pressed="'+String(id===key)+'">'+esc(copy(a,b))+'</button>').join("");
+ if(keys.innerHTML!==buttons)keys.innerHTML=buttons;
+ const hasTrace=pipelineStages.some(([key])=>pipelineRecord(key)?.started_utc);
+ el("traceReplay").disabled=!hasTrace;
+ if(!hasTrace)el("traceReplay").title=copy("أوقات المراحل غير متاحة لهذا التشغيل","Step timings are unavailable for this run");
+ else el("traceReplay").title="";
+ drawPipeline();
+ if(hasTrace&&health.run!==pipelineRun){pipelineRun=health.run;playPipeline()}
+}
+function playPipeline(){
+ if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
+ const entries=pipelineStages.map(([id])=>pipelineRecord(id)).filter(row=>row&&Number.isFinite(Date.parse(row.started_utc)))
+  .sort((a,b)=>Date.parse(a.started_utc)-Date.parse(b.started_utc));
+ if(!entries.length)return;
+ if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
+ let begin=null;
+ const animate=time=>{
+  if(begin===null)begin=time;
+  const elapsed=time-begin,index=Math.floor(elapsed/650);
+  if(index>=entries.length){pipelineFrame=0;drawPipeline();return}
+  drawPipeline({...entries[index],progress:elapsed/650-index});
+  pipelineFrame=requestAnimationFrame(animate);
+ };
+ pipelineFrame=requestAnimationFrame(animate);
+}
+function setupPipeline(){
+ const canvas=el("traceCanvas"),keys=el("traceStageKeys");
+ if(!canvas?.getContext||!keys)return;
+ canvas.addEventListener("click",event=>{
+  const bounds=canvas.getBoundingClientRect();
+  const hit=pipelinePoints.find(({p})=>Math.hypot(p[0]-(event.clientX-bounds.left),p[1]-(event.clientY-bounds.top))<26);
+  if(hit){pipelineSelected=hit.id;paintPipeline()}
+ });
+ keys.addEventListener("click",event=>{
+  const button=event.target.closest("[data-trace-stage]");
+  if(button){pipelineSelected=button.dataset.traceStage;paintPipeline();keys.querySelector('[aria-pressed="true"]')?.focus()}
+ });
+ el("traceRotate").addEventListener("click",()=>{pipelineAngle=pipelineAngle>=.58?-.58:pipelineAngle+.28;drawPipeline()});
+ el("traceReplay").addEventListener("click",playPipeline);
+ if(typeof ResizeObserver!=="undefined")new ResizeObserver(()=>drawPipeline()).observe(canvas);
+ paintPipeline();
+}
 function paintSystem(){
  const root=el("systemStages");
  if(!root)return;
@@ -1011,6 +1142,7 @@ function render(result){
  data=result;
  if(selectedAsset==="STAMPUSDT")systemSnapshot=result;
  paintSystem();
+ paintPipeline();
  if(selectedAsset==="STAMPUSDT"&&result.laboratory)lastLaboratory=result.laboratory;
  if(selectedAsset==="STAMPUSDT"&&result.operations)operationsReport=result.operations;
  paintOperations();
@@ -1247,6 +1379,7 @@ function translate(){
  el("zoneSelect").value=zone;
  favoritesUi();
  paintSystem();
+ paintPipeline();
  paintOperations();
  if(chart)chart.applyOptions({localization:{timeFormatter:time=>formatChartTime(time)},timeScale:{tickMarkFormatter:(time,type)=>formatChartTime(time,type>2)}});
 }
@@ -1412,7 +1545,7 @@ el("venueForm")?.addEventListener("submit",event=>{
  event.preventDefault();
  loadMicrostructure(el("venueSelect").value);
 });
-translate();initializeSceneControls();refresh();
+translate();setupPipeline();initializeSceneControls();refresh();
 if(!offline){
  loadAssetUniverse();updateVenueNetwork();startStream();updateWorkerStatus();pollChartEvents(true);
  if(window.StampEvents)setInterval(()=>{if(!document.hidden){pollChartEvents();paintOperations()}},15000);

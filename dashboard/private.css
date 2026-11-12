@@ -514,3 +514,19 @@ body { background: radial-gradient(ellipse at 90% 0%, #162638 0%, transparent 58
  .stamp-map .map-nodes a small { font-size:.64rem; }
 }
 @media(prefers-reduced-motion:reduce) { .map-sphere { animation:none; } }
+.trace-workspace { display:grid; grid-template-columns:minmax(0,2.2fr) minmax(230px,1fr); gap:12px; padding:14px 18px 8px; }
+.trace-visual,.trace-inspector { min-width:0; border:1px solid #2f4d63; border-radius:12px; background:#0c1726; }
+.trace-visual canvas { display:block; width:100%; height:clamp(175px,27vw,315px); cursor:crosshair; }
+.trace-controls,.trace-stage-keys { display:flex; flex-wrap:wrap; gap:6px; padding:8px 12px; }
+.trace-controls button,.trace-stage-keys button { min-height:36px; font-size:.77rem; }
+.trace-stage-keys button[aria-pressed="true"] { border-color:#77ddca; background:#1b4149; }
+.trace-stage-keys { padding-inline:18px; }
+.trace-inspector { padding:12px; }
+.trace-inspector dl { margin-block:9px; display:grid; gap:6px; }
+.trace-inspector dl div { display:flex; justify-content:space-between; flex-wrap:wrap; gap:3px 8px; padding-bottom:4px; border-bottom:1px solid #203447; font-size:.82rem; }
+.trace-inspector dt,.trace-inspector p { color:var(--muted); font-size:.78rem; }
+.stamp-map .map-nodes { display:flex; flex-wrap:wrap; gap:6px; width:100%; padding:6px 18px 14px; }
+.stamp-map .map-nodes a { flex:1 1 104px; box-shadow:none; min-height:41px; }
+@media(max-width:680px) { .trace-workspace { grid-template-columns:1fr; padding-inline:9px; } .trace-stage-keys { padding-inline:9px; } }
+
+.trace-caption { padding:0 12px; color:var(--muted); font-size:.76rem; }

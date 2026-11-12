@@ -145,7 +145,7 @@ def build():
   market=dict(price=num(ticker.get("lastPrice")),change=num(ticker.get("priceChangePercent")),bid=num(ticker.get("bidPrice")),ask=num(ticker.get("askPrice")),volume=num(ticker.get("quoteVolume")),base_volume_24h=num(ticker.get("volume")),high_24h=num(ticker.get("highPrice")),low_24h=num(ticker.get("lowPrice")),book=a.get("order_book_features") or {},trades=a.get("recent_executed_trades") or {},book_at_utc=((raw.get("mexc") or {}).get("book") or {}).get("retrieved_at_utc"),trades_at_utc=((raw.get("mexc") or {}).get("trades") or {}).get("retrieved_at_utc"),flags=a.get("flags") or []),
   technical=a.get("advanced_indicators") or {},forecasts={tf:a.get("forecast_"+tf) for tf in ("1h","4h","24h","7d")},forecast_history=recent_forecasts(items["forecast_journal.jsonl"]),forecast_review=forecast_review_report(items["forecast_journal.jsonl"]),forecast_activity=activity,candles=frames,dex=pools[:10],learning=learning,scorecard=score,
   health=dict(passed=health.get("pipeline_passed"),production_smoke_passed=health.get("production_smoke_passed"),
-              at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {}),
+              at=health.get("timestamp_utc"),event=health.get("event_name"),run=health.get("run_id"),steps=health.get("steps") or {},trace=health.get("trace") or []),
   errors=errors,note="Research only. Experimental model outputs are not executable trading signals.")
  try:
   from src.market_overview import summarize

@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=stamp-interactive-map-1">
+  <link rel="stylesheet" href="/assets/style.css?v=stamp-pipeline-scene-2">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
@@ -24,8 +24,8 @@
   <main class="workspace" id="overview">
     <section class="stamp-map" aria-labelledby="mapTitle">
       <header class="map-heading">
-        <div><h2 id="mapTitle" data-copy="Market intelligence map">خريطة ستامب للسوق</h2>
-          <p data-copy="Select a node to inspect its data below.">اضغط على جزء من المجسّم لتظهر بياناته أسفله.</p></div>
+        <div><h2 id="mapTitle" data-copy="STAMP data flow">مسار البيانات في ستامب</h2>
+          <p data-copy="Select a stage to inspect its recorded evidence.">اضغط على مرحلة لفحص السجل الذي يثبت عملها.</p></div>
         <div class="market-tools">
           <div class="asset-controls">
             <button class="pair-picker-button" id="assetPickerButton" type="button" aria-haspopup="dialog" aria-controls="assetPicker">
@@ -40,8 +40,24 @@
           </div>
         </div>
       </header>
+      <div class="trace-workspace">
+        <div class="trace-visual">
+          <canvas id="traceCanvas" aria-label="مجسم مراحل معالجة البيانات"></canvas>
+          <p class="trace-caption" data-copy="Playback compresses the recorded sequence. The dashed link marks the separate lab workflow.">الحركة تعرض ترتيب المراحل المسجّلة بزمن مختصر. الخط المتقطع يشير إلى دورة المختبر المنفصلة.</p>
+          <div class="trace-controls">
+            <button id="traceRotate" type="button" data-copy="Rotate view">تدوير المشهد</button>
+            <button id="traceReplay" type="button" data-copy="Replay recorded events">إعادة الحركة المسجّلة</button>
+          </div>
+        </div>
+        <section class="trace-inspector" aria-labelledby="traceStage">
+          <h3 id="traceStage"></h3><p id="traceRun" class="muted"></p>
+          <dl id="traceDetails"></dl>
+          <a id="traceOpen" href="#systemCenter" data-copy="Open full section">افتح القسم بالتفصيل</a>
+        </section>
+      </div>
+      <div id="traceStageKeys" class="trace-stage-keys" aria-label="مراحل المعالجة"></div>
       <nav class="page-nav map-nodes" role="tablist" aria-label="خريطة أقسام ستامب">
-        <span class="map-plane" aria-hidden="true"></span><span class="map-sphere" aria-hidden="true"></span>
+
         <a id="tradeTab" href="#trading" role="tab" aria-controls="trading" aria-selected="true" aria-label="التداول" data-label-en="Trading">
           <span data-copy="Price and forecasts">السعر والتوقعات</span><small id="mapTrade">—</small>
         </a>
@@ -484,7 +500,7 @@
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
-  <script src="/assets/app.js?v=stamp-interactive-map-1" defer></script>
+  <script src="/assets/app.js?v=stamp-pipeline-scene-2" defer></script>
   <script src="/assets/market-flow.js?v=market-flow-evidence-4" defer></script>
 </body>
 </html>

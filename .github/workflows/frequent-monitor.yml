@@ -33,41 +33,41 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Acquire snapshot and analyze
         id: monitor
-        run: python src/monitor.py
+        run: python scripts/trace_stage.py monitor python src/monitor.py
       - name: Archive completed candles before evaluating forecast outcomes
         id: archive
-        run: python src/research_engine.py
+        run: python scripts/trace_stage.py archive python src/research_engine.py
       - name: Collect synchronized market correlations and finalized on-chain evidence
         id: evidence
-        run: python src/evidence_sources.py
+        run: python scripts/trace_stage.py evidence python src/evidence_sources.py
       - name: Retrain all research horizons before issuing forecasts
         id: research
-        run: python src/autonomous_research.py
+        run: python scripts/trace_stage.py research python src/autonomous_research.py
       - name: Evaluate due predictions using time-aligned historical candles, then journal next forecast
         id: audit
-        run: python src/forecast_audit.py
+        run: python scripts/trace_stage.py audit python src/forecast_audit.py
       - name: Rebuild scorecard after new forecast outcomes
         run: python -c "import sys; sys.path.insert(0,'src'); from research_engine import score; print(score())"
       - name: Reassess automatic model approval after newly matured outcomes
         id: governance
-        run: python src/model_governor.py
+        run: python scripts/trace_stage.py governance python src/model_governor.py
       - name: Diagnose model error against baselines and later time windows
         id: diagnosis
-        run: python src/model_diagnosis.py --source-commit "$GITHUB_SHA" --output data/model_diagnosis.json
+        run: python scripts/trace_stage.py diagnosis python src/model_diagnosis.py --source-commit "$GITHUB_SHA" --output data/model_diagnosis.json
       - name: Verify matured multi-asset predictions and record fresh forecasts
         id: multi_asset_governance
-        run: python src/multi_asset_governor.py
+        run: python scripts/trace_stage.py multi_asset_governance python src/multi_asset_governor.py
       - name: Verify forecast issuance and market freshness
         id: forecast_health
-        run: python src/forecast_health.py
+        run: python scripts/trace_stage.py forecast_health python src/forecast_health.py
       - name: Verify production HTTP endpoints
         id: production_smoke
         continue-on-error: true
-        run: python scripts/smoke_production.py
+        run: python scripts/trace_stage.py production_smoke python scripts/smoke_production.py
       - name: Build research dashboard
         id: dashboard
         if: always()
-        run: python src/build_dashboard.py
+        run: python scripts/trace_stage.py dashboard python src/build_dashboard.py
       - name: Commit data and health status
         id: persist
         # A PR checkout may be detached and its token read-only. Never push generated data from PRs.
@@ -82,6 +82,8 @@ jobs:
           steps={'tests':'${{ steps.tests.outcome }}','monitor':'${{ steps.monitor.outcome }}','audit':'${{ steps.audit.outcome }}','archive':'${{ steps.archive.outcome }}','forecast_health':'${{ steps.forecast_health.outcome }}','research':'${{ steps.research.outcome }}','governance':'${{ steps.governance.outcome }}','evidence':'${{ steps.evidence.outcome }}','diagnosis':'${{ steps.diagnosis.outcome }}','dashboard':'${{ steps.dashboard.outcome }}','multi_asset_governance':'${{ steps.multi_asset_governance.outcome }}'}
           production_smoke='${{ steps.production_smoke.outcome }}'
           record={'timestamp_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'event_name':os.environ.get('GITHUB_EVENT_NAME'),'run_id':os.environ.get('GITHUB_RUN_ID'),'run_attempt':os.environ.get('GITHUB_RUN_ATTEMPT'),'steps':steps,'pipeline_passed':all(v=='success' for v in steps.values()) and production_smoke=='success','production_smoke_passed':production_smoke=='success','production_smoke_outcome':production_smoke}
+          trace=pathlib.Path(os.environ["RUNNER_TEMP"])/"stamp-stage-trace.jsonl"
+          record["trace"]=[json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
           pathlib.Path('data/workflow_health.json').write_text(json.dumps(record,indent=2))
           print('WORKFLOW HEALTH:',json.dumps(record))
           PY
