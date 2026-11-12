@@ -1339,7 +1339,7 @@ function observeVenueFlow(event){
  };
  pipelineFrame=requestAnimationFrame(pulse);
 }
-window.addEventListener("stamp:venueflow",observeVenueFlow);
+window.addEventListener?.("stamp:venueflow",observeVenueFlow);
 function paintSystem(){
  const root=el("systemStages");
  if(!root)return;
