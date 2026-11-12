@@ -79,7 +79,8 @@
  }
  function animate(time) {
   raf = 0;
-  if (time - last >= 32) {
+  if (priceCanvas.closest("[hidden]")) return;
+  if (time - last >= 48) {
    last = time;
    angle = time / 1800;
    draw();
@@ -98,6 +99,7 @@
  motion.addEventListener("click", () => { moving = !moving; setMotion(); });
  reduced.addEventListener?.("change", event => { moving = !event.matches; setMotion(); });
  document.addEventListener("visibilitychange", schedule);
+ document.addEventListener("stamp:tabchange",schedule);
  if (typeof IntersectionObserver === "function") {
   new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; schedule(); }).observe(get("lensTitle").closest("section"));
  }

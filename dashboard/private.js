@@ -256,7 +256,7 @@ function initializeSceneControls(){
   let previous=0;
   const spin=time=>{
    if(!camera.auto){sceneAnimation=0;return}
-   if(!document.hidden&&time-previous>75){
+   if(!document.hidden&&!el("venuesSection").hidden&&time-previous>75){
     camera.yaw+=.009;
     drawNeuralScene();
     previous=time;
@@ -579,7 +579,7 @@ function renderChart(){
   for(const series of [candleSeries,volumeSeries,predictedSeries,measuredSeries,projectionSeries])series.setData([]);
   renderTechnical();
   renderChartEvents([]);
-  paintMarketLens();
+  paintMarketLens(true);
   paintReplay();
   viewKey="";
   return;
@@ -610,7 +610,7 @@ function renderChart(){
  paintReplay(historical);
  drawQuoteLine();
  paintCandleContext(displayBars.at(-1),forming);
- paintMarketLens();
+ paintMarketLens(true);
  renderTechnical();
  renderChartEvents(displayBars);
  el("chart").dataset.barCount=String(currentBars.length);el("chart").dataset.forecastPoints=String(predictions.length);el("chart").dataset.actualPoints=String(outcomes.length);el("chart").dataset.frame=frame;
@@ -681,7 +681,10 @@ function drawQuoteLine(){
   else livePriceLine=candleSeries.createPriceLine({price:quoteLive.price,color:"#a4bbc9",lineWidth:1,lineStyle:2,axisLabelVisible:true,title:"MEXC"});
  }else if(livePriceLine){candleSeries.removePriceLine(livePriceLine);livePriceLine=null}
 }
-function paintMarketLens(){
+let nextLensPaint=0;
+function paintMarketLens(force=false){
+ if(el("trading")?.hidden||(!force&&performance.now()<nextLensPaint))return;
+ nextLensPaint=performance.now()+1000;
  window.StampLens?.update({
   market:data?.market, quote:quoteLive, fresh:isFreshQuote(quoteLive),
   observed:data?.observed_utc, liquidity:data?.liquidity, bars:currentBars,
@@ -1238,10 +1241,15 @@ if(!offline){
  if(window.StampEvents)setInterval(()=>{if(!document.hidden){pollChartEvents();paintOperations()}},15000);
  setInterval(()=>{if(!document.hidden)updateVenueNetwork()},60000);
  setInterval(()=>{if(!document.hidden)updateWorkerStatus()},30000);
- setInterval(()=>{if(!document.hidden)refresh()},15000);
+ document.addEventListener("stamp:tabchange",()=>{
+  if(!el("trading").hidden){paintMarketLens(true);refresh()}
+  if(!el("venuesSection").hidden)updateVenueNetwork();
+  if(!el("labCenter").hidden)updateWorkerStatus();
+ });
+ setInterval(()=>{if(!document.hidden&&!el("trading").hidden)refresh()},60000);
  if(window.StampMarket){
   pollMarket(true);
-  setInterval(()=>{if(!document.hidden){updateFreshness();pollMarket();renderAssurance()}},1000);
+  setInterval(()=>{if(!document.hidden){if(!el("trading").hidden){updateFreshness();pollMarket()}}},1000);
   const pause=()=>{stream?.stop();resetMarketPoll();if(replayTimer){pauseReplay();renderChart()}};
   const resume=()=>{startStream();pollMarket(true);refresh()};
   document.addEventListener("visibilitychange",()=>{if(document.hidden)pause();else resume()});

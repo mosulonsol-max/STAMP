@@ -5,12 +5,17 @@
  const panelFor = tab => document.getElementById(tab.getAttribute("aria-controls"));
  if (!tabs.every(panelFor)) return;
 
+ let current;
  function show(tab) {
   for (const item of tabs) {
    const active = tab === item;
    item.setAttribute("aria-selected", String(active));
    item.tabIndex = active ? 0 : -1;
    panelFor(item).hidden = !active;
+  }
+  if (current !== tab) {
+   current = tab;
+   document.dispatchEvent(new Event("stamp:tabchange"));
   }
  }
  function sync() {
