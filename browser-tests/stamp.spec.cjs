@@ -152,6 +152,12 @@ test('stream changes price and candle, falls back automatically, and follows a n
   }});
  });
  await page.route('**/api/assets/universe',route=>route.fulfill({json:{pairs:['STAMPUSDT','BTCUSDT']}}));
+ await page.route('**/api/assets/snapshot?symbol=BTCUSDT',route=>route.fulfill({json:{
+  symbol:'BTCUSDT',venue:'MEXC',available_venues:['MEXC'],source:'MEXC public spot REST',
+  retrieved_at_utc:new Date().toISOString(),
+  ticker:{symbol:'BTCUSDT',lastPrice:'67500',priceChangePercent:'1',quoteVolume:'50000',highPrice:'70000',lowPrice:'66000',closeTime:Date.now()},
+  candles:{'15m':[],'1h':[],'4h':[],'1d':[]}
+ }}));
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(HOST+'/');await page.locator('#user').fill('test-user');await page.locator('#password').fill('long-test-password');await page.locator('form[action="/login"] button').click();
  await expect(page.locator('#chart canvas').first()).toBeVisible({timeout:25000});
@@ -466,8 +472,11 @@ test('market flows switch between the whole market and a selected pair',async({p
  const now=Date.now(), ts=new Date(now).toISOString();
  await page.route('**/api/market-flow**',route=>{
   const symbol=new URL(route.request().url()).searchParams.get('symbol');
-  return route.fulfill({json:symbol?{symbol,source:'MEXC Spot',status:'ok',observed_utc:ts,first_ms:now-1000,last_ms:now,
-   sample_count:2,flow:{buy:symbol==='SOLUSDT'?200:50,sell:40,bucket_ms:1000,buckets:[{time_ms:now-1000,buy:50,sell:40,count:2}]}}
+  const buy=symbol==='SOLUSDT'?200:50,flow={buy,sell:40,bucket_ms:1000,buckets:[{time_ms:now-1000,buy,sell:40,count:2}]};
+  return route.fulfill({json:symbol?{symbol,source:'public spot executions',status:'ok',observed_utc:ts,first_ms:now-1000,last_ms:now,
+   identity_status:symbol==='SOLUSDT'?'major_pair_symbol_match':'cross_venue_identity_unverified',
+   available_venues:1,sample_count:2,venues:{MEXC:{status:'ok',observed_utc:ts,first_ms:now-1000,last_ms:now,sample_count:2,flow}},
+   flow:symbol==='SOLUSDT'?flow:null}
    :{market_cap_usd:3e12,volume_24h_usd:100e9,stablecoin_supply_usd:200e9,market_observed_at_utc:ts,
    stablecoin_supply_observed_at_utc:ts,stablecoin_history:[{t:now/1000-86400,v:199e9},{t:now/1000,v:200e9}]}});
  });
@@ -478,7 +487,9 @@ test('market flows switch between the whole market and a selected pair',async({p
  await page.locator('#flowTab').click();
  await expect(page.locator('#flowCap')).toHaveText('$3T');
  await page.locator('#flowPairMode').click();
- await expect(page.locator('#flowPairBuy')).toHaveText('50 USDT');
+ await expect(page.locator('#flowVenueSelect')).toHaveValue('all');
+ await expect(page.locator('#flowPairPlot .flow-venue-lane')).toContainText('50 USDT');
+ await expect(page.locator('#flowPairNet')).toHaveText('—');
  await page.locator('#flowPairInput').fill('SOL');
  await page.locator('#flowPairForm button[type="submit"]').click();
  await expect(page.locator('#flowPairTitle')).toHaveText('SOL / USDT');

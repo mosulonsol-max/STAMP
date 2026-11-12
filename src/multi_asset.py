@@ -333,6 +333,7 @@ def venue_diagnostics(pair):
           "bid":v.get("bid"),"ask":v.get("ask"),"spread_pct":v.get("spread_pct")})
     return {"symbol":data["symbol"],"connected":sum(x["connected"] for x in rows),
       "total":len(rows),"connectors":rows,"identity_status":data["identity_status"],
-      "retrieved_at_utc":data["retrieved_at_utc"],"analysis_source":"MEXC only",
-      "model_status":"research_only","cross_venue_ingestion":False,
-      "warning":"Connector status is measured per request. Multi-venue ingestion and asset identity verification are not implemented."}
+      "retrieved_at_utc":data["retrieved_at_utc"],
+      "analysis_source":"One responding spot venue per selected pair; STAMP research: MEXC",
+      "model_status":"research_only","cross_venue_flow":True,"cross_venue_model_ingestion":False,
+      "warning":"Venue trade samples are shown separately for unverified assets. A responding quote is not proof that same-named tokens have identical contracts or networks."}

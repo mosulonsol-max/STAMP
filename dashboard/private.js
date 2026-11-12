@@ -445,7 +445,7 @@ async function auditVenueConnections(){
    const detail=document.createElement("small");detail.textContent=v.connected?"Bid "+v.bid+" / Ask "+v.ask+" · "+v.retrieved_at_utc:"فشل الاتصال: "+v.error;
    item.append(name,state,detail);target.appendChild(item);
   }
-  if(engine)engine.textContent="نجاح الموصلات: "+d.connected+"/"+d.total+" | مصادر الشموع المستخدمة في المحرك: "+d.analysis_source+" | حالة النموذج: "+d.model_status+" | دمج متعدد المنصات: "+(d.cross_venue_ingestion?"مفعّل":"غير منفذ")+" | هوية الأصل: "+d.identity_status;
+  if(engine)engine.textContent="نجاح الموصلات: "+d.connected+"/"+d.total+" | مصدر شموع التوقع: "+d.analysis_source+" | تدفق صفقات متعدد المنصات: "+(d.cross_venue_flow?"متاح حسب التغطية":"غير متاح")+" | دمج المنصات داخل النموذج: "+(d.cross_venue_model_ingestion?"مفعّل":"غير منفذ")+" | هوية الأصل: "+d.identity_status;
  }catch(err){target.textContent="تعذر إتمام اختبار المنصات: "+err.message;if(engine)engine.textContent="لا توجد نتيجة فحص موثقة."}
  finally{if(button)button.disabled=false}
 }
@@ -1577,7 +1577,7 @@ function showSelectedAsset(){
  const alternate={market,candles:snapshot.candles||{},asset_research_forecasts:snapshot.research_forecasts||{},observed_utc:observed};
  render(alternate);
  set("venueLine",snapshot.venue+" · "+(snapshot.available_venues||[]).join(" / "));
- acceptQuote({status:"snapshot",source:snapshot.source,transport:"rest",symbol,price:px,provider_at_utc:observed,
+ acceptQuote({status:"snapshot",source:snapshot.source,transport:"rest",symbol:selectedAsset,price:px,provider_at_utc:observed,
   retrieved_at_utc:snapshot.retrieved_at_utc,stats_at_utc:observed,change_24h_pct:pct24,
   volume_24h_usdt:n(q.quoteVolume),high_24h:n(q.highPrice),low_24h:n(q.lowPrice)});
  set("assetMessage",Object.values(snapshot.candles||{}).reduce((total,rows)=>total+rows.length,0)+copy(" شمعة مسترجعة"," candles retrieved"));
