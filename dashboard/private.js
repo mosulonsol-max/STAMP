@@ -1241,7 +1241,7 @@ if(!offline){
  if(window.StampEvents)setInterval(()=>{if(!document.hidden){pollChartEvents();paintOperations()}},15000);
  setInterval(()=>{if(!document.hidden)updateVenueNetwork()},60000);
  setInterval(()=>{if(!document.hidden)updateWorkerStatus()},30000);
- document.addEventListener("stamp:tabchange",()=>{
+ document.addEventListener?.("stamp:tabchange",()=>{
   if(!el("trading").hidden){
    setTimeout(()=>{
     if(el("trading").hidden)return;
