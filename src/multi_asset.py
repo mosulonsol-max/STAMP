@@ -1,5 +1,5 @@
 """Authenticated on-demand multi-pair market comparisons; descriptive, not causal."""
-import json,math,re,datetime as dt
+import json,math,re,datetime as dt,threading,time
 from concurrent.futures import ThreadPoolExecutor
 from urllib.request import Request,urlopen
 from urllib.parse import urlencode
@@ -7,6 +7,48 @@ from urllib.parse import urlencode
 BASE="https://api.mexc.com/api/v3/"
 ALLOWED=re.compile(r"^[A-Z0-9]{1,22}USDT$")
 INTERVALS={"15m","30m","60m","4h","1d"}
+VENUES=("MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget")
+_CATALOG={"at":0.0,"value":None}
+_CATALOG_LOCK=threading.Lock()
+def public_json(url, timeout=6, limit=20000000):
+    req=Request(url,headers={"Accept":"application/json","User-Agent":"STAMP-Research/1.0"})
+    with urlopen(req,timeout=timeout) as res:raw=res.read(limit+1)
+    if len(raw)>limit:raise ValueError("oversized_catalog")
+    return json.loads(raw)
+def venue_symbols(venue):
+    """Spot USDT instruments that the venue reports as tradeable now."""
+    if venue=="MEXC":
+        obj=fetch("exchangeInfo",timeout=6)
+        rows=obj["symbols"]
+        return {r["symbol"] for r in rows if isinstance(r,dict) and str(r.get("status","1")).upper() in ("1","ENABLED","TRADING","TRUE") and ALLOWED.fullmatch(str(r.get("symbol","")))}
+    if venue=="Binance":
+        rows=public_json("https://api.binance.com/api/v3/exchangeInfo")["symbols"]
+        return {r["symbol"] for r in rows if r.get("status")=="TRADING" and r.get("isSpotTradingAllowed",True) and ALLOWED.fullmatch(str(r.get("symbol","")))}
+    if venue=="OKX":
+        rows=public_json("https://www.okx.com/api/v5/public/instruments?instType=SPOT")["data"]
+        return {r["baseCcy"]+"USDT" for r in rows if r.get("quoteCcy")=="USDT" and r.get("state")=="live" and ALLOWED.fullmatch(str(r.get("baseCcy",""))+"USDT")}
+    if venue=="Bybit":
+        rows=[];cursor=""
+        for _ in range(20):
+            obj=public_json("https://api.bybit.com/v5/market/instruments-info?"+urlencode({"category":"spot","limit":1000,**({"cursor":cursor} if cursor else {})}))
+            if obj.get("retCode")!=0:raise ValueError("bybit_catalog_error")
+            result=obj["result"];rows.extend(result["list"])
+            next_cursor=result.get("nextPageCursor") or ""
+            if not next_cursor or next_cursor==cursor:break
+            cursor=next_cursor
+        return {r["symbol"] for r in rows if r.get("status")=="Trading" and ALLOWED.fullmatch(str(r.get("symbol","")))}
+    if venue=="KuCoin":
+        obj=public_json("https://api.kucoin.com/api/v2/symbols")
+        if str(obj.get("code"))!="200000":raise ValueError("kucoin_catalog_error")
+        return {r["baseCurrency"]+"USDT" for r in obj["data"] if r.get("quoteCurrency")=="USDT" and r.get("enableTrading") is True and ALLOWED.fullmatch(str(r.get("baseCurrency",""))+"USDT")}
+    if venue=="Gate":
+        rows=public_json("https://api.gateio.ws/api/v4/spot/currency_pairs")
+        return {r["base"]+"USDT" for r in rows if r.get("quote")=="USDT" and r.get("trade_status")=="tradable" and ALLOWED.fullmatch(str(r.get("base",""))+"USDT")}
+    if venue=="Bitget":
+        obj=public_json("https://api.bitget.com/api/v2/spot/public/symbols")
+        if obj.get("code")!="00000":raise ValueError("bitget_catalog_error")
+        return {r["symbol"] for r in obj["data"] if r.get("quoteCoin")=="USDT" and r.get("status")=="online" and ALLOWED.fullmatch(str(r.get("symbol","")))}
+    raise ValueError("unsupported_venue")
 def fetch(endpoint,params=None,timeout=12):
     url=BASE+endpoint+("?" + urlencode(params) if params else "")
     req=Request(url,headers={"Accept":"application/json","User-Agent":"STAMP-Research/1.0"})
@@ -39,14 +81,27 @@ def universe(timeout=12):
     ), "MEXC exchangeInfo")
 
 def dashboard_universe():
-    try:
-        return universe(timeout=6)
-    except (OSError, ValueError):
-        info = fetch("defaultSymbols", timeout=5)
-        rows = info.get("data") if isinstance(info, dict) and str(info.get("code")) == "200" else None
-        if not isinstance(rows, list):
-            raise OSError("invalid_mexc_api_symbols")
-        return pair_catalog(rows, "MEXC defaultSymbols")
+    with _CATALOG_LOCK:
+        if _CATALOG["value"] and time.monotonic()-_CATALOG["at"]<300:return _CATALOG["value"]
+    def query(venue):
+        try:
+            values=venue_symbols(venue)
+            if not values:raise ValueError("empty_venue_catalog")
+            return venue,values,None
+        except (OSError,ValueError,KeyError,TypeError,IndexError) as exc:
+            return venue,set(),type(exc).__name__
+    with ThreadPoolExecutor(max_workers=len(VENUES)) as pool:
+        results=list(pool.map(query,VENUES))
+    sources={venue:{"status":"ok" if values else "unavailable","count":len(values),**({"reason":error} if error else {})}
+             for venue,values,error in results}
+    by_pair={}
+    for venue,values,_ in results:
+        for pair in values:by_pair.setdefault(pair,[]).append(venue)
+    if not by_pair:raise OSError("all_venue_catalogs_unavailable")
+    result={"pairs":sorted(by_pair),"count":len(by_pair),"venues":by_pair,"sources":sources,
+            "source":"connected spot USDT exchange catalogs","retrieved_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
+    with _CATALOG_LOCK:_CATALOG.update(at=time.monotonic(),value=result)
+    return result
 
 def candles(pair,interval="60m",limit=300,timeout=12):
     pair=symbol(pair)
@@ -67,9 +122,20 @@ def corr(xs,ys):
     xm=sum(xs)/len(xs);ym=sum(ys)/len(ys)
     den=math.sqrt(sum((x-xm)**2 for x in xs)*sum((y-ym)**2 for y in ys))
     return round(sum((x-xm)*(y-ym) for x,y in zip(xs,ys))/den,5) if den>0 else None
+def comparison_candles(pair):
+    """Select an observed venue for an hourly pair history, including non-MEXC pairs."""
+    with _CATALOG_LOCK:catalog=_CATALOG["value"]
+    venues=catalog.get("venues",{}).get(pair) if catalog else None
+    candidates=venues or VENUES
+    for venue in candidates:
+        try:
+            rows=candles(pair) if venue=="MEXC" else venue_candles(venue,pair,"1h")
+            if len(rows)>=30:return rows,venue
+        except (OSError,ValueError,KeyError,TypeError,IndexError):continue
+    raise OSError("hourly_pair_history_unavailable")
 def compare(primary,secondary):
     primary=symbol(primary);secondary=symbol(secondary)
-    a=candles(primary);b=candles(secondary)
+    a,primary_venue=comparison_candles(primary);b,secondary_venue=comparison_candles(secondary)
     def returns(series):
         out={}
         for previous,current in zip(series,series[1:]):
@@ -85,7 +151,8 @@ def compare(primary,secondary):
         lagged[str(k)]=dict(correlation=corr([x for x,y in joined],[y for x,y in joined]),samples=len(joined))
     return {"primary":primary,"secondary":secondary,"hourly_samples":len(aligned),
       "correlation":corr(vals,other),"lead_lag_hours":lagged,
-      "source":"MEXC public 1h closed-candle log returns",
+      "source":primary_venue+" / "+secondary_venue+" public 1h closed-candle log returns",
+      "primary_venue":primary_venue,"secondary_venue":secondary_venue,
       "interpretation":"Associations are not evidence of causation or predictive skill; overlapping windows and market-wide factors can create spurious correlations.",
       "observed_through_utc":dt.datetime.fromtimestamp(aligned[-1]/1000,dt.timezone.utc).isoformat() if aligned else None}
 
@@ -120,30 +187,104 @@ def forecast_frame(rows,frame):
 def forecasts(frames):
     return {frame:forecast_frame(rows,frame) for frame,rows in frames.items() if frame in ("15m","1h","4h","1d")}
 
+def venue_ticker(venue,pair):
+    base=pair[:-4]
+    if venue=="MEXC":return fetch("ticker/24hr",{"symbol":pair},timeout=5)
+    if venue=="Binance":
+        obj=public_json("https://api.binance.com/api/v3/ticker/24hr?"+urlencode({"symbol":pair}))
+        return {"symbol":obj["symbol"],"lastPrice":obj["lastPrice"],"priceChangePercent":obj["priceChangePercent"],"quoteVolume":obj["quoteVolume"],"highPrice":obj["highPrice"],"lowPrice":obj["lowPrice"],"closeTime":obj.get("closeTime")}
+    if venue=="OKX":
+        obj=public_json("https://www.okx.com/api/v5/market/ticker?"+urlencode({"instId":base+"-USDT"}))
+        if obj.get("code")!="0":raise ValueError("okx_ticker_error")
+        row=obj["data"][0];last=float(row["last"]);open24=float(row["open24h"])
+        return {"symbol":pair,"lastPrice":last,"priceChangePercent":100*(last/open24-1) if open24>0 else None,
+                "quoteVolume":float(row["volCcy24h"]),"highPrice":row["high24h"],"lowPrice":row["low24h"],"closeTime":int(row["ts"])}
+    if venue=="Bybit":
+        obj=public_json("https://api.bybit.com/v5/market/tickers?"+urlencode({"category":"spot","symbol":pair}))
+        if obj.get("retCode")!=0:raise ValueError("bybit_ticker_error")
+        row=obj["result"]["list"][0]
+        return {"symbol":pair,"lastPrice":row["lastPrice"],"priceChangePercent":float(row["price24hPcnt"])*100,
+                "quoteVolume":row["turnover24h"],"highPrice":row["highPrice24h"],"lowPrice":row["lowPrice24h"]}
+    if venue=="KuCoin":
+        obj=public_json("https://api.kucoin.com/api/v1/market/stats?"+urlencode({"symbol":base+"-USDT"}))
+        if str(obj.get("code"))!="200000":raise ValueError("kucoin_ticker_error")
+        row=obj["data"]
+        return {"symbol":pair,"lastPrice":row["last"],"priceChangePercent":float(row["changeRate"])*100,
+                "quoteVolume":row["volValue"],"highPrice":row["high"],"lowPrice":row["low"],"closeTime":obj.get("time")}
+    if venue=="Gate":
+        row=public_json("https://api.gateio.ws/api/v4/spot/tickers?"+urlencode({"currency_pair":base+"_USDT"}))[0]
+        return {"symbol":pair,"lastPrice":row["last"],"priceChangePercent":row.get("change_percentage"),
+                "quoteVolume":row.get("quote_volume"),"highPrice":row.get("high_24h"),"lowPrice":row.get("low_24h")}
+    if venue=="Bitget":
+        obj=public_json("https://api.bitget.com/api/v2/spot/market/tickers?"+urlencode({"symbol":pair}))
+        if obj.get("code")!="00000":raise ValueError("bitget_ticker_error")
+        row=obj["data"][0]
+        return {"symbol":pair,"lastPrice":row["lastPr"],"priceChangePercent":float(row["change24h"])*100,
+                "quoteVolume":row["usdtVolume"],"highPrice":row["high24h"],"lowPrice":row["low24h"],"closeTime":row.get("ts")}
+    raise ValueError("unsupported_venue")
+
+def venue_candles(venue,pair,frame):
+    if venue=="MEXC":return candles(pair,{"1h":"60m"}.get(frame,frame),timeout=6)
+    base=pair[:-4];interval={"15m":"15m","1h":"1h","4h":"4h","1d":"1d"}[frame]
+    if venue=="Binance":
+        rows=public_json("https://api.binance.com/api/v3/klines?"+urlencode({"symbol":pair,"interval":interval,"limit":300}))
+        values=[(r[0],r[1],r[2],r[3],r[4],r[5]) for r in rows]
+    elif venue=="OKX":
+        rows=public_json("https://www.okx.com/api/v5/market/candles?"+urlencode({"instId":base+"-USDT","bar":{"1h":"1H","4h":"4H","1d":"1D"}.get(frame,"15m"),"limit":300}))["data"]
+        values=[(r[0],r[1],r[2],r[3],r[4],r[5]) for r in rows if len(r)>8 and r[8]=="1"]
+    elif venue=="Bybit":
+        obj=public_json("https://api.bybit.com/v5/market/kline?"+urlencode({"category":"spot","symbol":pair,"interval":{"15m":"15","1h":"60","4h":"240","1d":"D"}[frame],"limit":300}))
+        if obj.get("retCode")!=0:raise ValueError("bybit_candle_error")
+        values=[(r[0],r[1],r[2],r[3],r[4],r[5]) for r in obj["result"]["list"]]
+    elif venue=="KuCoin":
+        obj=public_json("https://api.kucoin.com/api/v1/market/candles?"+urlencode({"symbol":base+"-USDT","type":{"15m":"15min","1h":"1hour","4h":"4hour","1d":"1day"}[frame]}))
+        if str(obj.get("code"))!="200000":raise ValueError("kucoin_candle_error")
+        values=[(int(r[0])*1000,r[1],r[3],r[4],r[2],r[5]) for r in obj["data"][:300]]
+    elif venue=="Gate":
+        rows=public_json("https://api.gateio.ws/api/v4/spot/candlesticks?"+urlencode({"currency_pair":base+"_USDT","interval":frame,"limit":300}))
+        values=[(int(r[0])*1000,r[5],r[3],r[4],r[2],r[1]) for r in rows]
+    elif venue=="Bitget":
+        obj=public_json("https://api.bitget.com/api/v2/spot/market/candles?"+urlencode({"symbol":pair,"granularity":{"15m":"15min","1h":"1h","4h":"4h","1d":"1day"}[frame],"limit":300}))
+        if obj.get("code")!="00000":raise ValueError("bitget_candle_error")
+        values=[(r[0],r[1],r[2],r[3],r[4],r[5]) for r in obj["data"]]
+    else:raise ValueError("unsupported_venue")
+    out={}
+    for raw in values:
+        try:
+            t=int(raw[0]);o,h,l,c,v=map(float,raw[1:]);
+            if t>0 and all(math.isfinite(x) for x in (o,h,l,c,v)) and min(o,h,l,c)>0 and h>=max(o,c) and l<=min(o,c) and v>=0:
+                out[t]={"t":t,"o":o,"h":h,"l":l,"c":c,"v":v}
+        except (ValueError,TypeError,IndexError):continue
+    return [out[t] for t in sorted(out)]
+
 def snapshot(pair):
     pair = symbol(pair)
-    intervals = {"15m": "15m", "1h": "60m", "4h": "4h", "1d": "1d"}
-    with ThreadPoolExecutor(max_workers=5) as pool:
-        ticker_task = pool.submit(fetch, "ticker/24hr", {"symbol": pair}, timeout=6)
-        tasks = {frame: pool.submit(candles, pair, interval, timeout=6) for frame, interval in intervals.items()}
+    with _CATALOG_LOCK:catalog=_CATALOG["value"]
+    candidates=(catalog.get("venues",{}).get(pair,[]) if catalog else list(VENUES))
+    if not candidates:candidates=list(VENUES)
+    # A venue's actual response, not a catalog entry alone, establishes availability.
+    def probe(name):
         try:
-            ticker = ticker_task.result()
-        except (OSError, ValueError):
-            ticker = None
-        frames = {}
-        for frame, task in tasks.items():
-            try:
-                frames[frame] = task.result()
-            except (OSError, ValueError):
-                frames[frame] = []
-
-    if not isinstance(ticker, dict) or ticker.get("symbol") != pair:
-        ticker = {}
-    if not ticker and not any(frames.values()):
-        raise OSError("mexc_pair_data_unavailable")
+            item=venue_ticker(name,pair)
+            if item.get("symbol")!=pair or not math.isfinite(float(item["lastPrice"])) or float(item["lastPrice"])<=0:return None
+            return item
+        except (OSError,ValueError,KeyError,TypeError,IndexError):return None
+    with ThreadPoolExecutor(max_workers=len(candidates)) as pool:
+        responses=dict(zip(candidates,pool.map(probe,candidates)))
+    available=[name for name in candidates if responses[name] is not None]
+    venue=available[0] if available else None
+    ticker=responses.get(venue) if venue else None
+    if venue is None:raise OSError("all_venue_pair_data_unavailable")
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        tasks={frame:pool.submit(venue_candles,venue,pair,frame) for frame in ("15m","1h","4h","1d")}
+        frames={}
+        for frame,task in tasks.items():
+            try:frames[frame]=task.result()
+            except (OSError,ValueError,KeyError,TypeError,IndexError):frames[frame]=[]
     return {
         "symbol": pair, "ticker": ticker, "candles": frames,
-        "research_forecasts": forecasts(frames), "source": "MEXC public REST",
+        "research_forecasts": forecasts(frames), "source": venue+" public spot REST","venue":venue,
+        "available_venues":available,"venue_identity":"symbol_match_only" if pair not in {"BTCUSDT","ETHUSDT","SOLUSDT"} else "major_pair",
         "retrieved_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
 

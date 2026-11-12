@@ -828,7 +828,7 @@ function paintQuote(){
  set("high24",price(quote?.stats_at_utc?quote.high_24h:market?.high_24h));
  set("low24",price(quote?.stats_at_utc?quote.low_24h:market?.low_24h));
  const method=quote?.transport==="websocket"?" · WebSocket":quote?.transport==="rest"?" · REST":"";
- set("observed",usable?"MEXC"+method+" · "+stamp(measured):"");
+ set("observed",usable?(quote?.source||assetCache?.source||"MEXC")+method+" · "+stamp(measured):"");
  el("warning").hidden=fresh||!usable;
  set("warning",fresh||!usable?"":quote?copy("يظهر آخر سعر متاح مع توقيته.","Showing the last available price and its timestamp."):
   copy("تعذّر جلب السعر المباشر. القراءة المعروضة مؤرشفة.","Live quote unavailable. Showing the latest archive."));
@@ -845,7 +845,8 @@ function updateFreshness(){
  ].filter(Boolean).join(" · "));
  const streamReady=streamState==="live";
  const fallback=isFreshQuote(q)&&q?.transport==="rest";
- set("streamStatus",streamReady?t("streamLive"):fallback?copy("MEXC · تحديث احتياطي","MEXC · REST fallback"):
+ set("streamStatus",assetCache?.venue&&assetCache.venue!=="MEXC"?assetCache.venue+" · REST · "+stamp(assetCache.retrieved_at_utc):
+  streamReady?t("streamLive"):fallback?copy("MEXC · تحديث احتياطي","MEXC · REST fallback"):
   streamState==="connecting"||streamState==="subscribing"?t("streamConnecting"):t("streamFallback"));
  el("streamStatus").className=streamReady||fallback?"fresh":"stale";
  paintQuote();
@@ -894,7 +895,7 @@ function mergeClosed(tf,bars){
  return changed;
 }
 async function pollMarket(force=false){
- if(offline||document.hidden||marketRequest||!force&&Date.now()<nextMarketPoll)return;
+ if(offline||document.hidden||marketRequest||(selectedAsset!=="STAMPUSDT"&&assetCache?.venue!=="MEXC")||!force&&Date.now()<nextMarketPoll)return;
  const symbol=selectedAsset,tf=FRAME_SOURCE[frame]||frame;
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),7000);
  marketRequest=controller;
@@ -933,7 +934,7 @@ function startStream(){
  stream?.stop();
  stream=null;
  streamState="reconnecting";
- if(!window.StampMarket||!window.WebSocket||offline||document.hidden)return;
+ if(!window.StampMarket||!window.WebSocket||offline||document.hidden||(selectedAsset!=="STAMPUSDT"&&assetCache?.venue!=="MEXC"))return;
  const symbol=selectedAsset;
  const connection=new window.StampMarket.Stream({symbol,onState:state=>{
   if(stream!==connection)return;
@@ -970,17 +971,34 @@ function renderIntelligence(){
 }
 let systemSnapshot=null;
 const pipelineStages=[
- ["monitor","الرصد","Collect","venuesSection",[-3,-1,0]],
- ["archive","الأرشيف","Archive","trading",[-2,0,.55]],
- ["evidence","التحقق","Verify","venuesSection",[-1,-1,0]],
- ["research","التدريب","Train","trading",[0,0,.55]],
- ["audit","قياس النتائج","Measure","trading",[1,-1,0]],
- ["governance","الاعتماد","Review","systemCenter",[2,0,.55]],
- ["dashboard","النشر","Publish","systemCenter",[3,-1,0]],
- ["lab","المختبر","Lab","labCenter",[1,1.3,-.5]]
+ ["monitor","الرصد","Collect","venuesSection",[-2.9,-1.35,-.3]],
+ ["archive","الأرشيف","Archive","trading",[-1.9,-.15,.3]],
+ ["evidence","التحقق","Verify","venuesSection",[-.9,-1.35,-.3]],
+ ["research","التدريب","Train","trading",[.1,-.15,.3]],
+ ["audit","قياس النتائج","Measure","trading",[1.1,-1.35,-.3]],
+ ["governance","الاعتماد","Review","systemCenter",[2.1,-.15,.3]],
+ ["dashboard","النشر","Publish","systemCenter",[3.1,-1.35,-.3]],
+ ["lab","المختبر","Lab","labCenter",[1.1,1.5,-.9]],
+ ["diagnosis","تشخيص الخطأ","Diagnose","systemCenter",[2.7,1.2,.9]],
+ ["multi_asset_governance","مراجعة الأزواج","Pairs review","systemCenter",[1.4,1.2,.9]],
+ ["forecast_health","فحص التوقعات","Forecast check","systemCenter",[.1,1.2,.9]],
+ ["production_smoke","فحص النشر","Production check","systemCenter",[-1.2,1.2,.9]],
+ ["market_view","تدفق السوق","Market flow","globalMarketFlow",[3.1,1.5,-.9]],
+ ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map((venue,index)=>
+  ["venue_"+venue.toLowerCase(),venue,venue,"globalMarketFlow",[-3.95,-1.8+index*.6,-1.65+index*.5]])
 ];
-let pipelineSelected="monitor",pipelineRun=null,pipelineFrame=0,pipelineAngle=-.14,pipelinePoints=[];
-let selectedHandoff=null, pipelineLinks=[];
+const pipelineTopology=[
+ ["monitor","archive"],["archive","evidence"],["evidence","research"],["research","audit"],
+ ["audit","governance"],["governance","diagnosis"],["diagnosis","multi_asset_governance"],
+ ["multi_asset_governance","forecast_health"],["forecast_health","production_smoke"],["production_smoke","dashboard"],
+ ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map(venue=>["venue_"+venue.toLowerCase(),"market_view"])
+];
+let pipelineSelected="monitor",pipelineRun=null,pipelineFrame=0,pipelineAngle=-.14,pipelinePitch=.32,pipelineZoom=1,pipelinePoints=[];
+let selectedHandoff=null, pipelineLinks=[],pipelineLive=null,liveObservation=null,pipelinePinned=false;
+const livePipelineEvents=new Map();
+const liveObservations=new Map();
+const pipelineWorld=window.StampPipeline3D?.create(document.getElementById("traceWorld"));
+let pipelineSequence=0,pipelineEventRequest=false;
 function pipelineTransfers(){
  const ids=new Set(pipelineStages.map(stage=>stage[0]));
  return (systemSnapshot?.health?.trace||[]).flatMap(row=>row.handoffs||[])
@@ -1004,33 +1022,52 @@ function drawPipeline(pulse=null){
   canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);
  }
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ const worldReady=!!pipelineWorld?.available();
+ if(worldReady)pipelineWorld.configure(w,h,pipelineAngle,pipelinePitch,pipelineZoom);
  const scale=Math.min(w/8.6,h/4.2), cos=Math.cos(pipelineAngle),sin=Math.sin(pipelineAngle);
  const project=([x,y,z])=>{
+  if(worldReady){const p=pipelineWorld.project([x,y,z]);return [p.x,p.y]}
   const depth=z*cos+x*sin, shrink=9/(9+depth);
   return [w*.5+(x*cos-z*sin)*scale*shrink,h*.55+(y+depth*.32)*scale*shrink];
  };
  const line=(a,b,color,width=1)=>{
   ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();
  };
- for(let grid=-4;grid<=4;grid++){
-  line(project([grid,1.8,-1.3]),project([grid,1.8,1.5]),"#223c50");
- }
- for(let z=-1.3;z<=1.6;z+=.45)line(project([-4,1.8,z]),project([4,1.8,z]),"#223c50");
+ if(!worldReady){for(let grid=-4;grid<=4;grid++)line(project([grid,1.8,-1.3]),project([grid,1.8,1.5]),"#223c50");
+ for(let z=-1.3;z<=1.6;z+=.45)line(project([-4,1.8,z]),project([4,1.8,z]),"#223c50");}
  pipelinePoints=pipelineStages.map(([id,ar,en,,pos])=>({id,name:copy(ar,en),p:project(pos),floor:project([pos[0],1.8,pos[2]])}));
  const steps=systemSnapshot?.health?.steps||{};
  const transfers=pipelineTransfers();
  const edges=new Map();
  for(const event of transfers)edges.set(event.from+"|"+event.to,event);
+ for(const event of livePipelineEvents.values())edges.set(event.from+"|"+event.to,{...event,live:true});
+ for(const [id,observation] of liveObservations)edges.set(id+"|market_view",{from:id,to:"market_view",artifact:"spot_execution_observation",live:true,...observation});
  pipelineLinks=[...edges.values()].map(event=>({
   event,a:pipelinePoints.find(node=>node.id===event.from).p,b:pipelinePoints.find(node=>node.id===event.to).p
  }));
+ if(worldReady){
+  const states={};
+  for(const node of pipelinePoints){
+   const recent=liveObservations.get(node.id);
+   states[node.id]=pipelineLive?.status==="in_progress"&&pipelineLive?.stages?.[node.id]?.status==="in_progress"?"running":
+    recent&&age(recent.observed_utc)<90?"running":steps[node.id];
+  }
+  pipelineWorld.draw(pipelineStages.map(([id,,,,pos])=>({id,pos})),pipelineLinks.map(({event})=>event),
+    pulse?(Array.isArray(pulse)?pulse:[pulse]):[],selectedHandoff||{id:pipelineSelected},states,pipelineTopology);
+  ctx.textAlign="center";ctx.font=(w<550?"10":"12")+"px system-ui";
+  for(const node of pipelinePoints){
+   ctx.fillStyle=node.id===pipelineSelected?"#fff":"#c4e6ec";
+   ctx.fillText(node.name,node.p[0],node.p[1]+24);
+  }
+  return;
+ }
  const arch=({a,b})=>[.5*(a[0]+b[0]),Math.max(13,Math.min(a[1],b[1])-Math.min(58,Math.abs(a[0]-b[0])*.14))];
  const at=(a,c,b,t)=>[(1-t)**2*a[0]+2*t*(1-t)*c[0]+t*t*b[0],(1-t)**2*a[1]+2*t*(1-t)*c[1]+t*t*b[1]];
  for(const link of pipelineLinks){
   const {a,b,event}=link,c=arch(link);
   link.c=c;
   const active=selectedHandoff?.from===event.from&&selectedHandoff?.to===event.to;
-  ctx.strokeStyle=active?"#9bffe4":"#4eae9e";ctx.lineWidth=active?2.6:1.3;
+  ctx.strokeStyle=active?"#9bffe4":event.live?(age(event.observed_utc)<90?"#6ecff3":"#486779"):"#4eae9e";ctx.lineWidth=active?2.6:1.3;
   ctx.beginPath();ctx.moveTo(...a);ctx.quadraticCurveTo(...c,...b);ctx.stroke();
   const tip=at(a,c,b,.76),left=at(a,c,b,.71),angle=Math.atan2(tip[1]-left[1],tip[0]-left[0]);
   line(tip,[tip[0]-5*Math.cos(angle-.55),tip[1]-5*Math.sin(angle-.55)],"#a4f3df");
@@ -1043,7 +1080,9 @@ function drawPipeline(pulse=null){
  };
  for(const node of pipelinePoints){
   const [x,y]=node.p,active=node.id===pipelineSelected&&!selectedHandoff,state=steps[node.id];
-  const color=state==="success"?"#75e4cb":state==="failure"?"#ff8d9e":node.id==="lab"?"#bcabff":"#8ea3b8";
+  const running=pipelineLive?.status==="in_progress"&&pipelineLive?.stages?.[node.id]?.status==="in_progress";
+  const liveNode=(node.id.startsWith("venue_")||node.id==="market_view")&&liveObservation&&age(liveObservation.observed_utc)<90;
+  const color=running||liveNode?"#83e7ff":state==="success"?"#75e4cb":state==="failure"?"#ff8d9e":node.id==="lab"?"#bcabff":"#8ea3b8";
   const left=[x-size,y-size*.35],top=[x,y-size*.8],right=[x+size,y-size*.35],middle=[x,y+size*.1];
   line(node.floor,node.p,"#3e5b72");
   face([left,middle,[x,y+size],[x-size,y+size*.55]],"#153348",color);
@@ -1051,10 +1090,10 @@ function drawPipeline(pulse=null){
   face([left,top,right,middle],active?"#376b73":"#203d53",active?"#fff":color);
   ctx.fillStyle=color;ctx.textAlign="center";ctx.font=(w<460?"10":"13")+"px system-ui";ctx.fillText(node.name,x,y+size+13);
  }
- if(pulse){
-  const link=pipelineLinks.find(({event})=>event.from===pulse.from&&event.to===pulse.to);
+ for(const moving of pulse?(Array.isArray(pulse)?pulse:[pulse]):[]){
+  const link=pipelineLinks.find(({event})=>event.from===moving.from&&event.to===moving.to);
   if(link){
-   const [x,y]=at(link.a,link.c,link.b,pulse.progress);
+   const [x,y]=at(link.a,link.c,link.b,moving.progress);
    face([[x-5,y],[x,y-3],[x+5,y],[x,y+3]],"#d9fff5","#fff");
    face([[x-5,y],[x,y+3],[x,y+8],[x-5,y+5]],"#58dfbb","#d9fff5");
    face([[x,y+3],[x+5,y],[x+5,y+5],[x,y+8]],"#268870","#d9fff5");
@@ -1068,8 +1107,13 @@ function paintPipeline(){
  const report=systemSnapshot, health=report?.health, entry=pipelineRecord(id);
  if(pipelineRun!==null&&health?.run!==pipelineRun)selectedHandoff=null;
  const label=copy(ar,en),lab=report?.laboratory;
- const rows=[[copy("الحالة","Status"),id==="lab"?(lab?.status||"—"):traceOutcome(health?.steps?.[id])],
+ const running=pipelineLive?.status==="in_progress"&&pipelineLive?.stages?.[id]?.status==="in_progress";
+ const observed=id==="market_view"?liveObservation:liveObservations.get(id);
+ const rows=[[copy("الحالة","Status"),id.startsWith("venue_")||id==="market_view"?observed?copy("آخر اتصال موثّق","Last observed response"):copy("بانتظار الاستجابة","Awaiting response"):running?copy("تعمل الآن","Running now"):id==="lab"?(lab?.status||"—"):traceOutcome(health?.steps?.[id])],
   [copy("بدأت","Started"),stamp(entry?.started_utc,true)],[copy("انتهت","Finished"),stamp(entry?.finished_utc,true)]];
+ if(id.startsWith("venue_")||id==="market_view")rows.push([copy("الزوج","Pair"),observed?.symbol||"—"],
+  [copy("المنصة","Venue"),observed?.venue||"—"],[copy("وقت آخر صفقة","Last execution"),stamp(observed?.last_ms,true)],
+  [copy("استُقبلت الاستجابة","Response received"),stamp(observed?.observed_utc,true)]);
  if(id==="monitor")rows.push([copy("آخر رصد سوق STAMP","Last STAMP market observation"),stamp(report?.observed_utc,true)]);
  if(id==="archive")rows.push([copy("شموع 15 دقيقة محفوظة","Archived 15m candles"),report?.candles?.["15m"]?.length??"—"]);
  if(id==="evidence")rows.push([copy("مصادر مرصودة","Observed sources"),Object.keys(report?.source_health||{}).length]);
@@ -1081,12 +1125,21 @@ function paintPipeline(){
  if(id==="dashboard")rows.push([copy("فحص الإصدار المنشور","Production check"),traceOutcome(pipelineRecord("production_smoke")?.status)]);
  if(id==="lab")rows.push([copy("وقت تدقيق المختبر","Lab audit time"),stamp(lab?.audited_at_utc,true)],[copy("تجارب مقيّمة","Evaluated experiments"),lab?.evaluated??"—"]);
  set("traceStage",label);
- set("traceRun",health?.run?"STAMP · "+copy("تشغيل","Run")+" "+health.run+" · "+stamp(health.at,true):copy("بانتظار سجل التشغيل","Awaiting run record"));
+ set("traceRun",health?.run?"STAMP · "+copy("دورة محفوظة","Archived run")+" "+health.run+" · "+stamp(health.at,true):copy("بانتظار سجل التشغيل","Awaiting run record"));
  if(selectedHandoff){
   const e=selectedHandoff;
   set("traceStage",stageName(e.from)+" → "+stageName(e.to));
-  rows.splice(0,rows.length,[copy("الملف","Artifact"),e.artifact],[copy("حجم الدفعة","Batch size"),number(e.bytes)+" B"],
-   [copy("وقت القراءة","Read time"),stamp(e.observed_utc,true)],["SHA-256",e.sha256]);
+  if(e.kind==="artifact_handoff"){
+   set("traceRun",copy("دورة جارية","Current run")+" "+e.run+" · "+stamp(e.received_at_utc,true));
+   rows.splice(0,rows.length,[copy("الملف المقروء","Read artifact"),e.artifact],
+    [copy("الحجم","Bytes"),number(e.bytes)+" B"],[copy("وقت القراءة","Read time"),stamp(e.observed_utc,true)],
+    [copy("وقت وصول القياس","Telemetry received"),stamp(e.received_at_utc,true)],["SHA-256",e.sha256]);
+  }else rows.splice(0,rows.length,...(e.live?[
+   [copy("الزوج","Pair"),e.symbol],[copy("المنصة","Venue"),e.venue],
+   [copy("وقت أحدث صفقة مرصودة","Last observed trade"),stamp(e.last_ms,true)],
+   [copy("وقت استجابة الواجهة","UI response time"),stamp(e.observed_utc,true)]]:[
+   [copy("الملف","Artifact"),e.artifact],[copy("حجم الدفعة","Batch size"),number(e.bytes)+" B"],
+   [copy("وقت القراءة","Read time"),stamp(e.observed_utc,true)],["SHA-256",e.sha256]]));
  }
  const html=rows.map(([k,v])=>"<div><dt>"+esc(k)+"</dt><dd>"+esc(v)+"</dd></div>").join("");
  if(details.innerHTML!==html)details.innerHTML=html;
@@ -1101,15 +1154,17 @@ function paintPipeline(){
   const index=selectedHandoff?transfers.findIndex(e=>e.from===selectedHandoff.from&&e.to===selectedHandoff.to&&e.artifact===selectedHandoff.artifact&&e.observed_utc===selectedHandoff.observed_utc):-1;
   slider.value=String(Math.max(0,index));
  }
- set("traceTransferCount",hasTrace?number(transfers.length)+" · "+copy("عمليات تسليم موثّقة","verified handoffs"):copy("لا توجد عمليات تسليم مسجّلة لهذه الدورة","No recorded handoffs for this run"));
+ set("traceTransferCount",(hasTrace?number(transfers.length)+" · "+copy("وصلات محفوظة","archived links"):copy("لا توجد وصلات محفوظة","No archived links"))+
+  (livePipelineEvents.size?" · "+number(livePipelineEvents.size)+" · "+copy("وصلات مرصودة أثناء التشغيل","links observed during run"):""));
  el("traceReplay").disabled=!hasTrace;
  if(!hasTrace)el("traceReplay").title=copy("لا توجد عمليات تسليم مسجّلة","No recorded handoffs");
  else el("traceReplay").title="";
  drawPipeline();
- if(hasTrace&&health.run!==pipelineRun){pipelineRun=health.run;playPipeline()}
+ if(hasTrace&&health.run!==pipelineRun)pipelineRun=health.run;
 }
 function playPipeline(){
  if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
+ pipelinePinned=true;
  const entries=pipelineTransfers();
  if(!entries.length)return;
  if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
@@ -1132,22 +1187,54 @@ function playPipeline(){
 function setupPipeline(){
  const canvas=el("traceCanvas"),keys=el("traceStageKeys");
  if(!canvas?.getContext||!keys)return;
+ let gesture=null,suppressClick=false;
+ canvas.style.touchAction="none";
+ canvas.addEventListener("pointerdown",event=>{
+  if(event.button!==0)return;
+  gesture={x:event.clientX,y:event.clientY,yaw:pipelineAngle,pitch:pipelinePitch,moved:false};
+  canvas.setPointerCapture(event.pointerId);
+ });
+ canvas.addEventListener("pointermove",event=>{
+  if(!gesture)return;
+  const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;
+  if(Math.abs(dx)+Math.abs(dy)>5)gesture.moved=true;
+  if(!gesture.moved)return;
+  pipelineAngle=gesture.yaw+dx*.006;
+  pipelinePitch=Math.max(-.35,Math.min(1.15,gesture.pitch+dy*.005));
+  drawPipeline();
+ });
+ canvas.addEventListener("pointerup",()=>{suppressClick=!!gesture?.moved;gesture=null});
+ canvas.addEventListener("pointercancel",()=>{gesture=null});
+ canvas.addEventListener("wheel",event=>{
+  event.preventDefault();pipelineZoom=Math.max(.65,Math.min(2.2,pipelineZoom*(event.deltaY>0?.91:1.09)));drawPipeline();
+ },{passive:false});
  canvas.addEventListener("click",event=>{
+  if(suppressClick){suppressClick=false;return}
   const bounds=canvas.getBoundingClientRect();
-  const hit=pipelinePoints.find(({p})=>Math.hypot(p[0]-(event.clientX-bounds.left),p[1]-(event.clientY-bounds.top))<26);
-  if(hit){selectedHandoff=null;pipelineSelected=hit.id;paintPipeline();return}
+  const hit=[...pipelinePoints].reverse().find(({p})=>Math.hypot(p[0]-(event.clientX-bounds.left),p[1]-(event.clientY-bounds.top))<20);
+  if(hit){pipelinePinned=true;selectedHandoff=null;pipelineSelected=hit.id;paintPipeline();return}
   const x=event.clientX-bounds.left,y=event.clientY-bounds.top;
-  const link=pipelineLinks.find(({a,b,c})=>Array.from({length:25},(_,i)=>i/24).some(t=>
-   Math.hypot((1-t)**2*a[0]+2*t*(1-t)*c[0]+t*t*b[0]-x,(1-t)**2*a[1]+2*t*(1-t)*c[1]+t*t*b[1]-y)<9));
-  if(link){selectedHandoff=link.event;pipelineSelected=link.event.to;paintPipeline()}
+  const link=pipelineLinks.find(({a,b,c,event:edge})=>Array.from({length:29},(_,i)=>i/28).some(t=>{
+   let point;
+   if(pipelineWorld?.available()){
+    const start=pipelineStages.find(row=>row[0]===edge.from)?.[4],end=pipelineStages.find(row=>row[0]===edge.to)?.[4];
+    if(!start||!end)return false;
+    const mid=[(start[0]+end[0])/2,Math.min(start[1],end[1])-.55,(start[2]+end[2])/2];
+    const world=[0,1,2].map(k=>(1-t)**2*start[k]+2*(1-t)*t*mid[k]+t*t*end[k]);
+    const projected=pipelineWorld.project(world);point=[projected.x,projected.y];
+   }else point=[(1-t)**2*a[0]+2*t*(1-t)*c[0]+t*t*b[0],(1-t)**2*a[1]+2*t*(1-t)*c[1]+t*t*b[1]];
+   return Math.hypot(point[0]-x,point[1]-y)<9;
+  }));
+  if(link){pipelinePinned=true;selectedHandoff=link.event;pipelineSelected=link.event.to;paintPipeline()}
  });
  keys.addEventListener("click",event=>{
   const button=event.target.closest("[data-trace-stage]");
-  if(button){selectedHandoff=null;pipelineSelected=button.dataset.traceStage;paintPipeline();keys.querySelector('[aria-pressed="true"]')?.focus()}
+  if(button){pipelinePinned=true;selectedHandoff=null;pipelineSelected=button.dataset.traceStage;paintPipeline();keys.querySelector('[aria-pressed="true"]')?.focus()}
  });
- el("traceRotate").addEventListener("click",()=>{pipelineAngle=pipelineAngle>=.58?-.58:pipelineAngle+.28;drawPipeline()});
+ el("traceRotate").addEventListener("click",()=>{pipelineAngle+=.28;drawPipeline()});
  el("traceReplay").addEventListener("click",playPipeline);
  el("traceSeek")?.addEventListener("input",event=>{
+  pipelinePinned=true;
   if(pipelineFrame){cancelAnimationFrame(pipelineFrame);pipelineFrame=0}
   selectedHandoff=pipelineTransfers()[Number(event.target.value)]||null;
   if(selectedHandoff)pipelineSelected=selectedHandoff.to;
@@ -1157,6 +1244,102 @@ function setupPipeline(){
  if(typeof ResizeObserver!=="undefined")new ResizeObserver(()=>drawPipeline()).observe(canvas);
  paintPipeline();
 }
+async function pollPipelineLive(){
+ if(offline||document.hidden)return;
+ try{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),7000);
+  let response;
+  try{response=await fetch("/api/pipeline/live",{credentials:"same-origin",cache:"no-store",signal:controller.signal})}
+  finally{clearTimeout(timer)}
+  if(!response.ok)throw Error("live_status_unavailable");
+  const current=await response.json();
+  pipelineLive=current;
+  if(current.latest?.trace?.length&&systemSnapshot?.health&&(
+    current.latest.run!==systemSnapshot.health.run&&Date.parse(current.latest.at)>Date.parse(systemSnapshot.health.at)||
+    current.latest.run===systemSnapshot.health.run&&current.latest.trace.length>systemSnapshot.health.trace?.length)){
+    systemSnapshot.health=current.latest;
+  }
+  const active=Object.entries(current.stages||{}).find(([,v])=>v.status==="in_progress");
+  const state=current.status==="in_progress"?"active":current.status==="unavailable"?"unavailable":"idle";
+  const label=current.status==="in_progress"?(active?
+   copy("تعمل الآن: ","Running now: ")+stageName(active[0]):copy("الدورة جارية، ولم تُرصد مرحلة نشطة بعد.","Workflow running; no active stage reported yet.")):
+   current.status==="unavailable"?copy("تعذّر التحقق من حالة التشغيل الجارية.","Current workflow state unavailable."):
+   copy("لا توجد دورة معالجة نشطة الآن؛ الوصلات المعروضة من آخر دورة محفوظة.","No processing run active; shown links belong to the last archived run.");
+  const status=el("traceLiveStatus");
+  status.dataset.state=state;
+  status.textContent=label+" · "+stamp(current.checked_at_utc,true);
+  paintPipeline();
+ }catch{
+  const status=el("traceLiveStatus");status.dataset.state="unavailable";
+  status.textContent=copy("تعذّر التحقق من حالة التشغيل الجارية.","Current workflow state unavailable.");
+ }
+}
+async function pollPipelineEvents(){
+ if(offline||document.hidden||pipelineEventRequest)return;
+ pipelineEventRequest=true;
+ try{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),6500);
+  let response;
+  try{response=await fetch("/api/pipeline/events?after="+pipelineSequence,{credentials:"same-origin",cache:"no-store",signal:controller.signal})}
+  finally{clearTimeout(timer)}
+  if(!response.ok)throw Error("worker_telemetry_unavailable");
+  const payload=await response.json();
+  if(payload.source!=="worker_runtime_telemetry"||!Array.isArray(payload.events))throw Error("invalid_worker_telemetry");
+  const relay=el("traceRelayStatus");relay.dataset.state=payload.events.length?"active":"idle";
+  relay.textContent=payload.events.length?
+   copy("وصلت قراءات ملفات موثّقة أثناء التشغيل · ","Observed file reads arrived during processing · ")+stamp(payload.checked_at_utc,true):
+   copy("بث انتقالات الملفات متصل · لا انتقالات جديدة الآن · ","File handoff feed connected · no new transfers now · ")+stamp(payload.checked_at_utc,true);
+  if(payload.sequence<pipelineSequence)pipelineSequence=0;
+  else pipelineSequence=payload.sequence;
+  const nodes=new Set(pipelineStages.map(row=>row[0]));
+  const recent=[];
+  for(const event of payload.events){
+   if(!nodes.has(event.from)||!nodes.has(event.to)||!event.artifact||!Number.isFinite(Date.parse(event.observed_utc)))continue;
+   const item={...event,kind:"artifact_handoff",live:true};
+   livePipelineEvents.set(item.from+"|"+item.to,item);
+   if(age(item.observed_utc)<8)recent.push(item);
+  }
+  if(payload.events.length){
+   if(!pipelinePinned&&recent.length){selectedHandoff=recent.at(-1);pipelineSelected=selectedHandoff.to}
+   paintPipeline();
+   if(recent.length&&!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
+    if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
+    const started=performance.now(),moving=recent.slice(-12);
+    const animate=now=>{
+     const progress=Math.min(1,(now-started)/900);
+     drawPipeline(moving.map(item=>({...item,progress})));
+     if(progress<1)pipelineFrame=requestAnimationFrame(animate);
+     else{pipelineFrame=0;drawPipeline()}
+    };
+    pipelineFrame=requestAnimationFrame(animate);
+   }
+  }
+ }catch{
+  const relay=el("traceRelayStatus");relay.dataset.state="unavailable";
+  relay.textContent=copy("بث انتقالات الملفات غير متاح؛ لا يمكن إثبات حركة فورية الآن.","File handoff feed unavailable; live motion cannot be verified now.");
+ }finally{pipelineEventRequest=false}
+}
+function observeVenueFlow(event){
+ const update=event.detail;
+ if(!update?.venue||!update?.symbol||!Number.isFinite(update.last_ms)||Date.now()-update.last_ms>30000)return;
+ const source="venue_"+update.venue.toLowerCase();
+ if(!pipelineStages.some(row=>row[0]===source))return;
+ liveObservation=update;
+ liveObservations.set(source,update);
+ if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
+ const moving={from:source,to:"market_view",artifact:"spot_execution_observation",live:true,...update};
+ if(!pipelinePinned){selectedHandoff=moving;pipelineSelected="market_view"}
+ paintPipeline();
+ if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
+ const start=performance.now(),pulse=now=>{
+  const progress=Math.min(1,(now-start)/900);
+  drawPipeline({...moving,progress});
+  if(progress<1)pipelineFrame=requestAnimationFrame(pulse);
+  else{pipelineFrame=0;drawPipeline()}
+ };
+ pipelineFrame=requestAnimationFrame(pulse);
+}
+window.addEventListener("stamp:venueflow",observeVenueFlow);
 function paintSystem(){
  const root=el("systemStages");
  if(!root)return;
@@ -1213,7 +1396,7 @@ function render(result){
  set("liquidity",money(liquidity.liquidity_usd));
  set("marketCap",money(liquidity.market_cap_usd));
  set("liquidityTime",liquidity.observed_utc?"DEX · "+stamp(liquidity.observed_utc)+(liquidity.source?" · "+liquidity.source:""):"");
- set("sourceLine","MEXC / USDT · "+t("candles")+" · "+stamp(result.model_observed_utc||result.observed_utc));
+ set("sourceLine",(assetCache?.venue||"MEXC")+" / USDT · "+t("candles")+" · "+stamp(result.model_observed_utc||result.observed_utc));
  set("chartZone",zone);
  if(result.live_quote?.status==="fresh")acceptQuote(result.live_quote);
  renderIntelligence();renderForecasts();renderChart();renderAssurance();renderInputs();
@@ -1224,7 +1407,7 @@ const PAIR_SYMBOL=/^[A-Z0-9]{1,22}USDT$/;
 const starterPairs=["STAMPUSDT","BTCUSDT","ETHUSDT","SOLUSDT"];
 const pairLabel=pair=>pair.replace(/USDT$/," / USDT");
 let selectedAsset="STAMPUSDT",assetCache=null,assetPending=null,lastLaboratory={};
-let assetPairs=starterPairs,catalogState="loading",catalogPending=false,catalogObserved=null,visiblePairs=60;
+let assetPairs=starterPairs,assetVenueMap={},catalogSources={},catalogState="loading",catalogPending=false,catalogObserved=null,visiblePairs=60;
 const pairCatalog=values=>Array.isArray(values)?[...new Set(values.filter(value=>typeof value==="string"&&PAIR_SYMBOL.test(value)))].sort():[];
 let favorites=[];
 try{
@@ -1233,6 +1416,8 @@ try{
  const savedPairs=pairCatalog(saved?.pairs);
  if(savedPairs.length){
   assetPairs=pairCatalog([...starterPairs,...savedPairs]);
+  assetVenueMap=saved.venues||{};
+  catalogSources=saved.sources||{};
   catalogState="cached";
   catalogObserved=saved.observed;
  }
@@ -1262,13 +1447,13 @@ function renderAssetPicker(){
  if(direct)choices.push(exact);
  el("assetResults").innerHTML=choices.map(pair=>'<li><button type="button" data-pair="'+esc(pair)+'"'+
   (pair===selectedAsset?' aria-current="true"':'')+'><bdi>'+esc(pairLabel(pair))+'</bdi>'+
-  (direct?'<small>'+copy("جلب بيانات الزوج","Load pair data")+'</small>':pair===selectedAsset?'<small>'+copy("محدد","Selected")+'</small>':'')+
+  (direct?'<small>'+copy("جلب بيانات الزوج","Load pair data")+'</small>':pair===selectedAsset?'<small>'+copy("محدد","Selected")+'</small>':assetVenueMap[pair]?.length?'<small>'+esc(assetVenueMap[pair].join(" · "))+'</small>':'')+
   '</button></li>').join("");
  el("assetMore").hidden=matches.length<=visiblePairs;
  el("assetNoResults").hidden=choices.length>0;
  set("assetNoResults",query?copy("لم يُعثر على زوج بهذا الرمز","No pair matches this symbol"):"");
  const state=catalogState==="ready"
-  ? (query?matches.length:assetPairs.length)+copy(" زوج"," pairs")
+  ? (query?matches.length:assetPairs.length)+copy(" زوج · "," pairs · ")+Object.values(catalogSources).filter(row=>row.status==="ok").length+" / 7 "+copy("منصات استجابت","venues responded")
   : catalogState==="cached"?copy("القائمة المحفوظة · ","Saved catalog · ")+stamp(catalogObserved)
   : catalogState==="loading"?copy("جارٍ تحميل قائمة الأزواج","Loading pair catalog")
   : copy("تعذّر تحديث القائمة. يمكنك إدخال رمز الزوج.","Catalog unavailable. Enter a pair symbol to load it.");
@@ -1285,9 +1470,11 @@ async function loadAssetUniverse(){
   const result=await response.json(),pairs=pairCatalog(result.pairs);
   if(!pairs.length)throw Error("empty catalog");
   assetPairs=pairCatalog([...starterPairs,...pairs]);
+  assetVenueMap=result.venues||{};
+  catalogSources=result.sources||{};
   catalogState="ready";
   catalogObserved=result.retrieved_at_utc;
-  try{localStorage.setItem("stamp_asset_catalog",JSON.stringify({pairs,observed:catalogObserved}))}catch{}
+  try{localStorage.setItem("stamp_asset_catalog",JSON.stringify({pairs,venues:assetVenueMap,sources:catalogSources,observed:catalogObserved}))}catch{}
  }catch{
   if(catalogState!=="cached")catalogState="unavailable";
  }finally{
@@ -1306,6 +1493,7 @@ async function selectAsset(symbol){
  if(!PAIR_SYMBOL.test(symbol)||symbol===selectedAsset||offline)return;
  stopReplay();
  selectedAsset=symbol;
+ window.dispatchEvent(new CustomEvent("stamp:assetchange",{detail:{symbol}}));
  eventRequest?.abort();
  eventRequest=null;
  eventPayload=null;
@@ -1330,7 +1518,7 @@ async function selectAsset(symbol){
  assetPending=null;
  set("coinName",pairLabel(symbol));
  set("assetSelected",pairLabel(symbol));
- set("venueLine",symbol==="STAMPUSDT"?"MEXC · Solana":"MEXC");
+ set("venueLine",(assetVenueMap[symbol]||[]).join(" · ")||"—");
  for(const id of ["price","change","volume","high24","low24","liquidity","marketCap","forecastSummary"])set(id,"—");
  for(const id of ["observed","liquidityTime","dataAge","streamStatus","forecastCards","assetCorrelation","sceneNodeDetail","venueMetrics","connectorAudit","engineAudit","microStatus","microMetrics"])set(id,"");
  el("warning").hidden=true;
@@ -1339,7 +1527,6 @@ async function selectAsset(symbol){
  set("assetMessage",copy("جارٍ تحميل البيانات","Loading data"));
  el("forecastHorizon").disabled=symbol!=="STAMPUSDT";
  startStream();
- pollMarket(true);
  const loadingPair=refresh();
  renderForecasts();renderChart();renderAssurance();renderInputs();
  pollChartEvents(true);
@@ -1363,6 +1550,7 @@ async function loadSelectedAsset(){
   if(fetched.symbol!==symbol||!fetched.ticker)throw Error("Invalid pair snapshot");
   assetCache=fetched;
   showSelectedAsset();
+  if(fetched.venue==="MEXC"){startStream();pollMarket(true)}
  }catch{
   if(assetPending!==controller||symbol!==selectedAsset)return;
   set("assetMessage",copy("تعذّر تحميل سجل الزوج","Pair history could not be loaded"));
@@ -1379,11 +1567,15 @@ function showSelectedAsset(){
  if(selectedAsset==="STAMPUSDT"||!assetCache)return;
  const snapshot=assetCache,q=snapshot.ticker||{};
  const px=n(q.lastPrice),pct24=n(q.priceChangePercent);
- const market={price:px,change:pct24,volume:n(q.quoteVolume),high_24h:n(q.highPrice),low_24h:n(q.lowPrice)};
+ const market={price:px,change:pct24===null?null:pct24/100,volume:n(q.quoteVolume),high_24h:n(q.highPrice),low_24h:n(q.lowPrice)};
  const time=n(q.closeTime),now=Date.now();
- const observed=time&&time>0&&time<=now+5000?new Date(time).toISOString():null;
+ const observed=time&&time>0&&time<=now+5000?new Date(time).toISOString():snapshot.retrieved_at_utc;
  const alternate={market,candles:snapshot.candles||{},asset_research_forecasts:snapshot.research_forecasts||{},observed_utc:observed};
  render(alternate);
+ set("venueLine",snapshot.venue+" · "+(snapshot.available_venues||[]).join(" / "));
+ acceptQuote({status:"snapshot",source:snapshot.source,transport:"rest",symbol,price:px,provider_at_utc:observed,
+  retrieved_at_utc:snapshot.retrieved_at_utc,stats_at_utc:observed,change_24h_pct:pct24,
+  volume_24h_usdt:n(q.quoteVolume),high_24h:n(q.highPrice),low_24h:n(q.lowPrice)});
  set("assetMessage",Object.values(snapshot.candles||{}).reduce((total,rows)=>total+rows.length,0)+copy(" شمعة مسترجعة"," candles retrieved"));
 }
 async function compareAssets(){
@@ -1604,7 +1796,9 @@ el("venueForm")?.addEventListener("submit",event=>{
 });
 translate();setupPipeline();initializeSceneControls();refresh();
 if(!offline){
- loadAssetUniverse();updateVenueNetwork();startStream();updateWorkerStatus();pollChartEvents(true);
+ loadAssetUniverse();updateVenueNetwork();startStream();updateWorkerStatus();pollChartEvents(true);pollPipelineLive();pollPipelineEvents();
+ setInterval(()=>{if(!document.hidden)pollPipelineLive()},60000);
+ setInterval(()=>{if(!document.hidden)pollPipelineEvents()},5000);
  if(window.StampEvents)setInterval(()=>{if(!document.hidden){pollChartEvents();paintOperations()}},15000);
  setInterval(()=>{if(!document.hidden)updateVenueNetwork()},60000);
  setInterval(()=>{if(!document.hidden)updateWorkerStatus()},30000);

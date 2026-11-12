@@ -33,22 +33,50 @@ class MultiAssetTests(unittest.TestCase):
   self.assertGreater(forecast["upper_1sigma"],forecast["lower_1sigma"])
   self.assertIn("RESEARCH",forecast["warning"].upper() if "research" in forecast["warning"].lower() else "RESEARCH")
  def test_selected_asset_uses_isolated_timeframes(self):
+  assets._CATALOG.update(at=__import__("time").monotonic(),value={"venues":{"BTCUSDT":["MEXC"]}})
   with patch.object(assets,"fetch",return_value={"symbol":"BTCUSDT","lastPrice":"100"}),patch.object(assets,"candles",return_value=[{"t":0,"o":1,"h":1,"l":1,"c":1,"v":1}]):
    result=assets.snapshot("BTCUSDT")
   self.assertEqual(set(result["candles"]),{"15m","1h","4h","1d"})
   self.assertEqual(result["symbol"],"BTCUSDT")
- def test_dashboard_catalog_falls_back_to_official_api_symbols(self):
-  with patch.object(assets,"fetch",side_effect=[ValueError("not JSON"),{"code":200,"data":["BTCUSDT","SUSDT","BTCUSDT","XUSDC"]}]):
-   result=assets.dashboard_universe()
-  self.assertEqual(result["pairs"],["BTCUSDT","SUSDT"])
-  self.assertEqual(result["source"],"MEXC defaultSymbols")
+  assets._CATALOG.update(at=0,value=None)
+ def test_dashboard_catalog_merges_live_exchange_listings_and_records_failures(self):
+  assets._CATALOG.update(at=0,value=None)
+  def listings(venue):
+   if venue=="MEXC":return {"BTCUSDT"}
+   if venue=="OKX":return {"BTCUSDT","XAUTUSDT"}
+   raise OSError("not reachable")
+  with patch.object(assets,"venue_symbols",side_effect=listings):result=assets.dashboard_universe()
+  self.assertEqual(result["pairs"],["BTCUSDT","XAUTUSDT"])
+  self.assertEqual(result["venues"]["XAUTUSDT"],["OKX"])
+  self.assertEqual(result["sources"]["Binance"]["status"],"unavailable")
+  assets._CATALOG.update(at=0,value=None)
  def test_snapshot_keeps_healthy_periods_when_a_source_fails(self):
+  assets._CATALOG.update(at=__import__("time").monotonic(),value={"venues":{"SUSDT":["MEXC"]}})
   def frame(_,interval,**kwargs):
    if interval=="4h":raise OSError("temporary upstream failure")
    return [{"t":0,"o":1,"h":1,"l":1,"c":1,"v":1}]
-  with patch.object(assets,"fetch",return_value={"symbol":"BTCUSDT","lastPrice":"10"}),patch.object(assets,"candles",side_effect=frame):
+  with patch.object(assets,"fetch",return_value={"symbol":"SUSDT","lastPrice":"10"}),patch.object(assets,"candles",side_effect=frame):
    result=assets.snapshot("SUSDT")
-  self.assertEqual(result["ticker"],{})
+  self.assertEqual(result["ticker"]["lastPrice"],"10")
   self.assertEqual(result["candles"]["4h"],[])
   self.assertEqual(len(result["candles"]["1h"]),1)
+  assets._CATALOG.update(at=0,value=None)
+ def test_gold_pair_can_use_non_mexc_venue_without_mislabelling_source(self):
+  assets._CATALOG.update(at=__import__("time").monotonic(),value={"venues":{"XAUTUSDT":["OKX"]}})
+  row={"t":1730000000000,"o":2,"h":3,"l":1,"c":2,"v":5}
+  with patch.object(assets,"venue_ticker",return_value={"symbol":"XAUTUSDT","lastPrice":"2"}),patch.object(assets,"venue_candles",return_value=[row]):
+   result=assets.snapshot("XAUTUSDT")
+  self.assertEqual(result["venue"],"OKX")
+  self.assertEqual(result["source"],"OKX public spot REST")
+  self.assertEqual(result["candles"]["15m"],[row])
+  assets._CATALOG.update(at=0,value=None)
+ def test_gold_pair_comparison_uses_its_listing_venue(self):
+  assets._CATALOG.update(at=__import__("time").monotonic(),value={"venues":{"XAUTUSDT":["OKX"],"BTCUSDT":["MEXC"]}})
+  rows=[{"t":i*3600000,"c":100+i,"o":100+i,"h":100+i,"l":100+i,"v":1} for i in range(100)]
+  with patch.object(assets,"venue_candles",return_value=rows) as other,patch.object(assets,"candles",return_value=rows):
+   comparison=assets.compare("XAUTUSDT","BTCUSDT")
+  self.assertEqual(comparison["primary_venue"],"OKX")
+  self.assertEqual(comparison["secondary_venue"],"MEXC")
+  other.assert_called_once_with("OKX","XAUTUSDT","1h")
+  assets._CATALOG.update(at=0,value=None)
 if __name__=="__main__":unittest.main()

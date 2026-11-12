@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=stamp-artifact-flow-3">
+  <link rel="stylesheet" href="/assets/style.css?v=stamp-venues-live-5">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
@@ -42,8 +42,10 @@
       </header>
       <div class="trace-workspace">
         <div class="trace-visual">
-          <canvas id="traceCanvas" aria-label="مجسم مراحل معالجة البيانات"></canvas>
-          <p class="trace-caption" data-copy="Links show matched artifact fingerprints. Playback compresses time.">تظهر الوصلة عند تطابق بصمة الملف المنتج مع الملف الذي قرأته المرحلة التالية. تُعرض الحركة بزمن مختصر.</p>
+          <div class="trace-stage-world"><canvas id="traceWorld" aria-hidden="true"></canvas><canvas id="traceCanvas" tabindex="0" aria-label="مجسم ثلاثي الأبعاد تفاعلي يربط مكونات المشروع وفق أحداث نقل البيانات المرصودة"></canvas></div>
+          <p class="trace-caption" data-copy="Dim paths show configured routes. Bright links show matched file reads or observed exchange executions. Packets move only when a new event arrives; archived playback requires a click.">المسارات الرمادية تبين الربط المهيأ. الوصلات المضيئة تثبت قراءة ملف مطابقًا لبصمته أو صفقة مرصودة. لا تتحرك البيانات إلا مع حدث جديد، وإعادة السجل تبدأ بطلبك.</p>
+          <p id="traceLiveStatus" class="trace-live-status" role="status">جارٍ التحقق من حالة التشغيل الحالية…</p>
+          <p id="traceRelayStatus" class="trace-live-status" role="status">جارٍ الاتصال ببث انتقالات الملفات…</p>
           <div class="trace-controls">
             <button id="traceRotate" type="button" data-copy="Rotate view">تدوير المشهد</button>
             <button id="traceReplay" type="button" data-copy="Replay recorded events">إعادة الحركة المسجّلة</button>
@@ -288,6 +290,7 @@
       <div id="flowCoverage" class="flow-coverage" role="list" aria-label="تغطية مصادر البيانات"></div>
       <section id="flowPairView" class="panel flow-pair-view" hidden aria-labelledby="flowPairTitle">
         <header class="panel-header"><h3 id="flowPairTitle" dir="ltr">STAMP / USDT</h3><span id="flowPairStatus" role="status"></span></header>
+        <div class="flow-venue-picker"><label for="flowVenueSelect" data-copy="Trade source">مصدر الصفقات</label><select id="flowVenueSelect" aria-label="منصة الصفقات"></select><span id="flowVenueNote" class="muted"></span></div>
         <dl class="market-metrics flow-pair-totals">
           <div><dt data-copy="Aggressive buy volume">قيمة صفقات الشراء</dt><dd id="flowPairBuy">—</dd></div>
           <div><dt data-copy="Aggressive sell volume">قيمة صفقات البيع</dt><dd id="flowPairSell">—</dd></div>
@@ -306,9 +309,9 @@
           <p id="flowIntervalDetail" role="status"></p>
           <div id="flowIntervals" class="flow-intervals" dir="ltr" aria-label="الفترات الزمنية"></div>
           <details class="flow-table-details"><summary data-copy="Execution data table">جدول الصفقات</summary><div class="history-table"><table><thead><tr>
-            <th data-copy="Interval start">بداية الفترة</th><th data-copy="Buy · USDT">شراء · USDT</th><th data-copy="Sell · USDT">بيع · USDT</th><th data-copy="Trades">الصفقات</th>
+            <th data-copy="Exchange">المنصة</th><th data-copy="Interval start">بداية الفترة</th><th data-copy="Buy · USDT">شراء · USDT</th><th data-copy="Sell · USDT">بيع · USDT</th><th data-copy="Trades">الصفقات</th>
           </tr></thead><tbody id="flowPairRows"></tbody></table></div></details>
-          <p class="muted" data-copy="MEXC Spot recent executions sample. Direction is the aggressor side. Coverage varies with activity.">عينة من أحدث الصفقات المنفذة على MEXC Spot، مصنّفة بحسب الطرف المبادر. تختلف الفترة المغطاة حسب نشاط الزوج.</p>
+          <p class="muted" data-copy="Recent spot execution samples from each responding exchange. Direction is the aggressor side. Coverage varies by venue and activity.">عينات من أحدث الصفقات الفورية المنفذة في كل منصة تستجيب، مصنّفة بحسب الطرف المبادر. تختلف فترة التغطية بحسب المنصة والنشاط.</p>
         </div>
       </section>
       <section id="flowDepthView" class="panel flow-depth-view" hidden>
@@ -502,7 +505,8 @@
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
-  <script src="/assets/app.js?v=stamp-artifact-flow-3" defer></script>
-  <script src="/assets/market-flow.js?v=market-flow-evidence-4" defer></script>
+  <script src="/assets/pipeline-3d.js?v=stamp-venues-live-5" defer></script>
+  <script src="/assets/app.js?v=stamp-venues-live-5" defer></script>
+  <script src="/assets/market-flow.js?v=stamp-venues-live-5" defer></script>
 </body>
 </html>

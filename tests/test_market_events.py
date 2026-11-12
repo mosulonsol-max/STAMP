@@ -47,10 +47,26 @@ class MarketEventTests(unittest.TestCase):
         row = {"id": 1, "time": CHECKED - 1, "price": "1", "qty": "20", "isBuyerMaker": False}
         stamp = events.trade_sample([row], events.STAMP, OBSERVED)
         btc = events.trade_sample([row], "BTCUSDT", OBSERVED)
-        with patch.object(events, "live_trade_sample", return_value=btc):
+        with patch.object(events, "multi_venue_trade_samples", return_value={"MEXC":btc}):
             result = events.dashboard_events("BTCUSDT", {"events": {"records": stamp["events"]}})
         self.assertEqual([e["symbol"] for e in result["records"]], ["BTCUSDT"])
         self.assertIsNone(result["liquidity"])
+
+    def test_independent_venue_sides_and_identity_gate(self):
+        rows={"OKX":{"code":"0","data":[{"ts":str(CHECKED-1000),"px":"100","sz":"2","side":"buy","tradeId":"one"}]},
+              "Bybit":{"retCode":0,"result":{"list":[{"time":str(CHECKED-900),"price":"100","size":"3","side":"Sell","execId":"two"}]}},
+              "Gate":[{"create_time_ms":str(CHECKED-800),"price":"100","amount":"4","side":"buy","id":"three"}]}
+        with patch("src.multi_asset.public_json",side_effect=lambda url,**kw:next(value for key,value in rows.items() if key.lower() in url.lower())):
+            samples=[events.trade_sample(events.venue_trade_rows(venue,"BTCUSDT"),"BTCUSDT",OBSERVED,venue) for venue in rows]
+        flow,count,_,_=events.aggregate_samples(samples)
+        self.assertEqual([s["events"][0]["side"] for s in samples],["buy","sell","buy"])
+        self.assertEqual((count,flow["buy"],flow["sell"]),(3,600.0,300.0))
+        with patch.object(events,"multi_venue_trade_samples",return_value=dict(zip(rows,samples))):
+            stamp_result=events.pair_market_flow("STAMPUSDT")
+            btc_result=events.pair_market_flow("BTCUSDT")
+        self.assertIsNone(stamp_result["flow"])
+        self.assertEqual(btc_result["available_venues"],3)
+        self.assertEqual(btc_result["flow"]["buy"],600.0)
 
     def test_pump_amm_instructions_require_success_exact_pool_program_and_mints(self):
         accounts = [POOL, "", "", events.MINT, QUOTE, "", "", "", "", "", ""]

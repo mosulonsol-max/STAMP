@@ -3,6 +3,7 @@ import datetime as dt,json,logging,os,pathlib,signal,time,threading
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import urlsplit,parse_qs
 from multi_asset_governor import cycle,load,audit_records
+import pipeline_telemetry
 STOP=False
 def stop(*_):
  global STOP
@@ -12,8 +13,23 @@ signal.signal(signal.SIGINT,stop)
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 LAST={"success":None,"attempt":None,"error":None,"cycles":0,"failures":0,"running":False,"discovered":0,"processed":0}
 class Health(BaseHTTPRequestHandler):
+ def do_POST(self):
+  if urlsplit(self.path).path!="/pipeline/events":return self.respond(404,{"error":"not_found"})
+  try:
+   length=int(self.headers.get("Content-Length","0"))
+   if not 0<length<=2048:return self.respond(400,{"error":"invalid_event_size"})
+   auth=self.headers.get("Authorization","")
+   if not auth.startswith("Bearer "):return self.respond(401,{"error":"token_required"})
+   payload=json.loads(self.rfile.read(length))
+   result=pipeline_telemetry.accept(auth[7:],payload)
+   return self.respond(200,result)
+  except (ValueError,TypeError,KeyError):return self.respond(400,{"error":"invalid_event"})
+  except Exception:return self.respond(503,{"error":"telemetry_verification_unavailable"})
  def do_GET(self):
   path=urlsplit(self.path).path
+  if path=="/pipeline/events":
+   try:return self.respond(200,pipeline_telemetry.read(parse_qs(urlsplit(self.path).query).get("after",["0"])[0]))
+   except ValueError:return self.respond(400,{"error":"invalid_cursor"})
   if path=="/research/measurements":
    pair=parse_qs(urlsplit(self.path).query).get("symbol",["BTCUSDT"])[0].upper()
    if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
@@ -73,7 +89,7 @@ class Health(BaseHTTPRequestHandler):
   return self.respond(200 if self.path=="/healthz" else (200 if fresh else 503),payload)
  def respond(self,code,data):
   body=json.dumps(data).encode()
-  self.send_response(code);self.send_header("Content-Type","application/json");self.send_header("Content-Length",str(len(body)));self.end_headers();self.wfile.write(body)
+  self.send_response(code);self.send_header("Content-Type","application/json");self.send_header("Cache-Control","no-store");self.send_header("Content-Length",str(len(body)));self.end_headers();self.wfile.write(body)
  def log_message(self,*_):pass
 def serve():
  server=ThreadingHTTPServer(("0.0.0.0",int(os.getenv("PORT","10000"))),Health)

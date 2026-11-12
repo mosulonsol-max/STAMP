@@ -276,7 +276,8 @@
     }
   }
 
-  let mode = "whole", pair = "STAMPUSDT", pairRequest = null, pairData = null, pairFailed = false;
+  let mode = "whole", pair = "STAMPUSDT", pairRequest = null, pairData = null, pairFailed = false, chosenVenue = null;
+  const observedTrades=new Map();
   const amount = new Intl.NumberFormat("en-US", {maximumFractionDigits: 2});
   const usdt = value => Number.isFinite(value) ? amount.format(value) + " USDT" : "—";
   let selectedInterval = null, depthRequest = null, depthData = null;
@@ -288,12 +289,15 @@
     };
     const ageLabel = (timestamp, maxAge) => !timestamp ? missing : fresh(timestamp,maxAge) ? ready : copy("قراءة متأخرة","Delayed observation");
     const chain = depthData?.chain?.coverage, venues = depthData?.venues || [];
+    const tradeVenues=Object.entries(pairData?.venues||{});
     const records = mode === "whole" ? [
       ["CoinGecko",copy("تقييم السوق وحجم التداول الإجمالي","Market valuation and gross traded value"),ageLabel(payload?.market_observed_at_utc,1800000),payload?.market_observed_at_utc],
       ["DefiLlama",copy("معروض العملات المستقرة · رصد يومي","Stablecoin supply · daily observation"),ageLabel(payload?.stablecoin_supply_observed_at_utc,172800000),payload?.stablecoin_supply_observed_at_utc]
     ] : [
-      ["MEXC Spot",copy("عينة الصفقات المنفّذة حسب الطرف المبادر","Executed sample by aggressor side"),
-       pairData?.status==="ok"?ageLabel(pairData.observed_utc,120000):missing,pairData?.observed_utc],
+      ...tradeVenues.map(([name,item])=>[name+" Spot",copy("صفقات منفّذة مرصودة ","Observed executed trades ")+(item.sample_count||0),
+       item.status==="ok"?ageLabel(item.observed_utc,120000):item.status==="stale"?copy("آخر صفقة قديمة","Last trade delayed"):
+       item.status==="unlisted"?copy("الزوج غير مدرج","Pair unlisted"):missing,
+       item.last_ms?new Date(item.last_ms).toISOString():item.observed_utc]),
       [copy("دفتر الأوامر","Order books"),copy("عمق أوامر الشراء والبيع المفتوحة","Resting bid and ask depth"),
        venues.length?venues.filter(v=>v.status==="ok").length+" / "+venues.length+" · "+copy("مصادر استجابت","venues responded"):missing,null],
       ...(pair==="STAMPUSDT"?[["PumpSwap",copy("إضافة وسحب سيولة موثّقان بمعاملات","Transaction-backed liquidity changes"),
@@ -367,24 +371,86 @@
       if (depthRequest === controller) { depthRequest = null; renderDepthCards(); }
     }
   }
+  function renderSeparateVenues(venues) {
+    const displayed = venues.filter(([,row]) => row.flow?.buckets?.length);
+    el("flowPairBuy").textContent = copy("حسب المنصة أدناه", "By venue below");
+    el("flowPairSell").textContent = copy("حسب المنصة أدناه", "By venue below");
+    el("flowPairNet").textContent = "—";
+    el("flowPairNet").className = "";
+    el("flowPairCount").textContent = displayed.reduce((total,[,row])=>total+(row.sample_count||0),0);
+    el("flowPairWindow").textContent = copy("عينات الصفقات المرصودة من كل منصة، مع مقياس منفصل لكل صف. لا تُجمع الأصول التي لم تُتحقق هويتها بين المنصات.",
+      "Observed execution samples from every venue, scaled independently by row. Assets without verified cross-venue identity are not summed.");
+    el("flowIntervals").replaceChildren();
+    el("flowIntervalDetail").textContent = copy("الأعمدة الخضراء شراء منفّذ والوردية بيع منفّذ؛ انظر التوقيت والعدد في الجدول.",
+      "Green bars are executed buys and pink bars executed sells; see times and counts in the table.");
+    const plot=el("flowPairPlot");
+    plot.replaceChildren();
+    const body=el("flowPairRows");
+    body.replaceChildren();
+    for(const [name,row] of displayed){
+      const buckets=row.flow.buckets.filter(item=>[item.time_ms,item.buy,item.sell,item.count].every(Number.isFinite));
+      const lane=document.createElement("section"),heading=document.createElement("h4");
+      lane.className="flow-venue-lane";
+      heading.textContent=name+" · "+copy("شراء ","Buy ")+usdt(row.flow.buy)+" · "+copy("بيع ","Sell ")+usdt(row.flow.sell);
+      lane.append(heading);
+      const max=Math.max(1,...buckets.flatMap(item=>[item.buy,item.sell]));
+      const width=540, step=width/Math.max(1,buckets.length), barWidth=Math.max(2,Math.min(12,step*.3));
+      const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+      svg.setAttribute("viewBox","0 0 600 126");
+      svg.setAttribute("role","img");
+      svg.setAttribute("aria-label",name+" · "+buckets.length+" "+copy("فترات صفقات","trade intervals"));
+      for(const [index,bucket] of buckets.entries()){
+        const x=46+index*step, y=108;
+        for(const [offset,value,color] of [[0,bucket.buy,"#56d6af"],[barWidth+2,bucket.sell,"#f480a1"]]){
+          const rect=document.createElementNS("http://www.w3.org/2000/svg","rect");
+          const height=86*value/max;
+          for(const [key,val] of Object.entries({x:x+offset,y:y-height,width:barWidth,height,fill:color}))rect.setAttribute(key,String(val));
+          const title=document.createElementNS("http://www.w3.org/2000/svg","title");
+          title.textContent=formatTime(new Date(bucket.time_ms).toISOString())+" · "+name+" · "+usdt(value);
+          rect.append(title);svg.append(rect);
+        }
+        const tr=document.createElement("tr");
+        for(const value of [name,formatTime(new Date(bucket.time_ms).toISOString()),amount.format(bucket.buy),amount.format(bucket.sell),String(bucket.count)]){
+          const td=document.createElement("td");td.textContent=value;tr.append(td);
+        }
+        body.append(tr);
+      }
+      lane.append(svg);plot.append(lane);
+    }
+    if(!displayed.length)plot.textContent=copy("لا توجد صفقات حديثة قابلة للتصنيف من المنصات المتصلة.","No recent classifiable executions from connected venues.");
+  }
   function renderPair() {
     renderCoverage();
     const data = pairData;
-    const flow = data?.status === "ok" ? data.flow : null;
+    const venues=Object.entries(data?.venues||{}).filter(([,row])=>row.status==="ok");
+    const verified=data?.identity_status==="major_pair_symbol_match";
+    const choices=[...(venues.length?[["all",verified?copy("جميع المنصات المرصودة","All observed venues"):copy("كل المنصات · عرض منفصل","All venues · separate lanes")]]:[]),...venues.map(([name])=>[name,name])];
+    if(!choices.some(([name])=>name===chosenVenue))chosenVenue=choices[0]?.[0]||null;
+    const selector=el("flowVenueSelect");
+    selector.replaceChildren(...choices.map(([key,label])=>{const option=document.createElement("option");option.value=key;option.textContent=label;return option}));
+    if(chosenVenue)selector.value=chosenVenue;
+    selector.disabled=!choices.length;
+    const view=chosenVenue==="all"?data:data?.venues?.[chosenVenue];
+    const flow = view?.status === "ok" || chosenVenue==="all" ? view?.flow : null;
+    const first=view?.first_ms,last=view?.last_ms;
+    el("flowVenueNote").textContent=!verified
+      ? copy("تظهر جميع المنصات على رسم واحد في مسارات مستقلة؛ لا يثبت الرمز تطابق الأصل بين المنصات.","All responding venues appear in separate lanes; a symbol alone does not prove asset identity.")
+      : copy("الإجمالي يجمع عينات الصفقات المرصودة فقط، وقد تختلف نوافذ التغطية.","Totals cover observed trade samples only; venue windows may differ.");
     const net = flow ? flow.buy - flow.sell : null;
     el("flowPairTitle").textContent = pair.replace(/USDT$/, " / USDT");
     el("flowPairStatus").textContent = pairFailed
       ? (data ? copy("تعذّر التحديث · آخر عينة محفوظة", "Refresh failed · previous sample") : copy("تعذّر جلب الصفقات", "Could not retrieve executions"))
-      : data?.observed_utc ? "MEXC Spot · " + formatTime(data.observed_utc) : copy("جارٍ جلب الصفقات…", "Loading executions…");
+      : data?.observed_utc ? (data.available_venues||0)+" / "+Object.keys(data.venues||{}).length+" "+copy("منصات بصفقات مرصودة","venues with observed executions")+" · "+formatTime(data.observed_utc) : copy("جارٍ جلب الصفقات…", "Loading executions…");
+    if(chosenVenue==="all"&&!verified){renderSeparateVenues(venues);return}
     el("flowPairBuy").textContent = usdt(flow?.buy);
     el("flowPairSell").textContent = usdt(flow?.sell);
     el("flowPairNet").textContent = (net > 0 ? "+" : "") + usdt(net);
     el("flowPairNet").className = net > 0 ? "positive" : net < 0 ? "negative" : "";
-    el("flowPairCount").textContent = data?.sample_count ?? "—";
+    el("flowPairCount").textContent = view?.sample_count ?? "—";
     el("flowPairWindow").textContent = flow
-      ? formatTime(new Date(data.first_ms).toISOString()) + " → " + formatTime(new Date(data.last_ms).toISOString()) +
-       " · " + copy("طول الفترة", "Interval size") + " " + amount.format(flow.bucket_ms / 1000) + "s"
-      : data ? copy("العينة خالية من صفقات قابلة للتصنيف.", "No classifiable executions in the returned sample.") : "";
+      ? formatTime(new Date(first).toISOString()) + " → " + formatTime(new Date(last).toISOString()) +
+       " · " + copy("عينات محدودة · عرض الحاوية", "Bounded samples · bucket width") + " " + amount.format(flow.bucket_ms / 1000) + "s"
+      : data ? copy("لا توجد عينة حديثة قابلة للتصنيف. افحص حالة كل منصة أعلاه.", "No recent classifiable sample. Inspect each venue's status above.") : "";
     const rows = (flow?.buckets || []).filter(row => [row.time_ms,row.buy,row.sell,row.count].every(Number.isFinite));
     const selected = rows.find(row=>row.time_ms===selectedInterval) || rows.at(-1);
     el("flowIntervalDetail").textContent = selected
@@ -399,7 +465,7 @@
       return button;
     }));
     const max = Math.max(1, ...rows.flatMap(row => [row.buy,row.sell]));
-    const xAt = row => 65 + Math.round((row.time_ms-data.first_ms)/flow.bucket_ms)*43;
+    const xAt = row => 65 + (last>first?(row.time_ms-first)/(last-first)*485:240);
     const bar = (x,value,color) => {
       const h=110*value/max;
       return '<rect x="'+x+'" y="'+(136-h)+'" width="12" height="'+h+'" rx="2" fill="'+color+'"/>';
@@ -422,7 +488,7 @@
     const body = el("flowPairRows");
     body.replaceChildren(...rows.map(row => {
       const tr = document.createElement("tr");
-      for (const value of [formatTime(new Date(row.time_ms).toISOString()),amount.format(row.buy),amount.format(row.sell),String(row.count)]) {
+      for (const value of [chosenVenue==="all"?copy("المنصات المرصودة","Observed venues"):chosenVenue||"—",formatTime(new Date(row.time_ms).toISOString()),amount.format(row.buy),amount.format(row.sell),String(row.count)]) {
         const td = document.createElement("td");
         td.textContent = value;
         tr.append(td);
@@ -443,6 +509,13 @@
       if (data.status === "unavailable") throw Error("sample unavailable");
       pairData = data;
       pairFailed = false;
+      for(const [venue,row] of Object.entries(data.venues||{})){
+        const key=symbol+":"+venue,previous=observedTrades.get(key),latest=row.status==="ok"?row.last_ms:null;
+        if(latest && (!previous||latest>previous)){
+          observedTrades.set(key,latest);
+          if(previous && Date.now()-latest<30000)window.dispatchEvent(new CustomEvent("stamp:venueflow",{detail:{venue,symbol,last_ms:latest,count:row.sample_count,observed_utc:row.observed_utc}}));
+        }
+      }
     } catch {
       if (pairRequest === controller) pairFailed = true;
     } finally {
@@ -467,6 +540,7 @@
       pairRequest = null;
       depthRequest?.abort(); depthRequest = null; depthData = null; selectedInterval = null;
       pairData = null;
+      chosenVenue = null;
       pairFailed = false;
       pair = next;
     }
@@ -494,6 +568,7 @@
   el("flowPairInput").addEventListener("input",event=>event.target.setCustomValidity(""));
   el("flowPairForm").addEventListener("submit",event=>{event.preventDefault(); follow(el("flowPairInput").value)});
   el("flowUseTrading").addEventListener("click",()=>{el("flowPairInput").setCustomValidity("");follow(tradingPair())});
+  el("flowVenueSelect").addEventListener("change",event=>{chosenVenue=event.target.value;selectedInterval=null;renderPair()});
   for (const symbol of ["STAMPUSDT","SOLUSDT","BTCUSDT","ETHUSDT"]) {
     const option = document.createElement("option"); option.value = symbol; el("flowPairCatalog").append(option);
   }
@@ -508,6 +583,14 @@
     if (mode === "pair") { refreshPair(); refreshDepth(); }
     else refresh();
   };
+  window.addEventListener("stamp:assetchange",event=>{
+    const symbol=event.detail?.symbol;
+    if(!/^[A-Z0-9]{1,22}USDT$/.test(symbol))return;
+    if(mode==="pair"){follow(symbol);return}
+    pairRequest?.abort();pairRequest=null;
+    pair=symbol;pairData=null;chosenVenue=null;
+    refreshPair();
+  });
 
   periods.addEventListener("click", event => {
     const button = event.target.closest("button[data-days]");
@@ -573,7 +656,11 @@
   el("langSelect").addEventListener("change", () => { if (mode === "pair") renderPair(); else if (payload || loadFailed) render(); });
   el("zoneSelect").addEventListener("change", () => { if (mode === "pair") renderPair(); else if (payload || loadFailed) render(); });
   if (!section.hidden) refreshScope();
+  // Background polling observes *new* public executions even while another tab is open.
+  // No visual pulse is emitted for the initial historic sample or a quiet venue.
+  refreshPair();
   document.addEventListener("stamp:tabchange",()=>{if(!section.hidden)refreshScope()});
-  setInterval(() => { if (!document.hidden && !section.hidden && mode === "pair") refreshScope(); }, 45000);
+  setInterval(() => { if (!document.hidden) refreshPair(); }, 15000);
+  setInterval(() => { if (!document.hidden && !section.hidden && mode === "pair") refreshDepth(); }, 45000);
   setInterval(() => { if (!document.hidden && !section.hidden && mode === "whole") refresh(); }, 300000);
 })();

@@ -46,7 +46,7 @@ def positive(value):
         return None
 
 
-def trade_sample(rows, pair, observed_utc):
+def trade_sample(rows, pair, observed_utc, venue="MEXC"):
     """Rank recent executions by quote value within this returned sample."""
     checked = milliseconds(observed_utc)
     if not isinstance(rows, list) or checked is None:
@@ -74,9 +74,9 @@ def trade_sample(rows, pair, observed_utc):
             fingerprint = (int(when), price, quantity, maker)
             occurrences[fingerprint] += 1
             key = hashlib.sha256(repr((fingerprint, occurrences[fingerprint])).encode()).hexdigest()[:24]
-        event_id = f"mexc:{pair}:{key}"
+        event_id = f"{venue.lower()}:{pair}:{key}"
         trades[event_id] = {"id": event_id, "kind": "trade", "symbol": pair, "time_ms": int(when),
-                            "source": "MEXC Spot", "side": "sell" if maker else "buy",
+                            "source": venue+" Spot", "side": "sell" if maker else "buy",
                             "price": price, "quantity": quantity, "notional": notional}
     sample = list(trades.values())
     first = min((e["time_ms"] for e in sample), default=None)
@@ -91,11 +91,13 @@ def trade_sample(rows, pair, observed_utc):
     flow = [buckets[key] for key in sorted(buckets)]
     largest = sorted(sample, key=lambda e: (-e["notional"], -e["time_ms"], e["id"]))
     events = largest[:min(16, (len(sample) + 9) // 10)]
-    return {"status": "ok" if sample else "unavailable" if rows else "empty",
+    freshness = checked - last if last is not None else None
+    return {"status": "ok" if sample and -5000 <= freshness <= 120000 else "stale" if sample else "unavailable" if rows else "empty",
             "observed_utc": observed_utc, "sample_count": len(sample),
+            "latest_execution_age_ms": freshness,
             "first_ms": min((e["time_ms"] for e in sample), default=None),
             "last_ms": max((e["time_ms"] for e in sample), default=None),
-            "selected_count": len(events), "events": events, "flow": {
+            "selected_count": len(events), "events": events, "_executions": sample, "flow": {
                 "bucket_ms": width, "buckets": flow,
                 "buy": sum(bucket["buy"] for bucket in flow),
                 "sell": sum(bucket["sell"] for bucket in flow),
@@ -117,10 +119,77 @@ def live_trade_sample(pair, time_bucket):
     return trade_sample(rows, pair, utc())
 
 
+def venue_trade_rows(venue,pair):
+    """Read public spot executions; explicit taker side is retained per venue."""
+    from urllib.parse import urlencode
+    try:from src.multi_asset import public_json
+    except ImportError:from multi_asset import public_json
+    base=pair[:-4]
+    routes={
+      "Binance":("https://api.binance.com/api/v3/trades?"+urlencode({"symbol":pair,"limit":250}),lambda x:x),
+      "OKX":("https://www.okx.com/api/v5/market/trades?"+urlencode({"instId":base+"-USDT","limit":100}),lambda x:x["data"] if x.get("code")=="0" else None),
+      "Bybit":("https://api.bybit.com/v5/market/recent-trade?"+urlencode({"category":"spot","symbol":pair,"limit":250}),lambda x:x["result"]["list"] if x.get("retCode")==0 else None),
+      "KuCoin":("https://api.kucoin.com/api/v1/market/histories?"+urlencode({"symbol":base+"-USDT"}),lambda x:x["data"] if str(x.get("code"))=="200000" else None),
+      "Gate":("https://api.gateio.ws/api/v4/spot/trades?"+urlencode({"currency_pair":base+"_USDT","limit":250}),lambda x:x),
+      "Bitget":("https://api.bitget.com/api/v3/market/fills?"+urlencode({"category":"SPOT","symbol":pair,"limit":100}),lambda x:x["data"] if x.get("code")=="00000" else None),
+    }
+    if venue=="MEXC":return fetch("trades",{"symbol":pair,"limit":TRADE_LIMIT},timeout=5)
+    url,extract=routes[venue]
+    rows=extract(public_json(url,timeout=5,limit=3000000))
+    if not isinstance(rows,list):raise ValueError("invalid_venue_trades")
+    result=[]
+    for row in rows:
+      if not isinstance(row,dict):continue
+      if venue=="Binance":result.append(row);continue
+      try:
+        if venue=="OKX":t,p,q,side,key=row["ts"],row["px"],row["sz"],row["side"],row["tradeId"]
+        elif venue=="Bybit":t,p,q,side,key=row["time"],row["price"],row["size"],row["side"],row["execId"]
+        elif venue=="KuCoin":t,p,q,side,key=row["time"],row["price"],row["size"],row["side"],row["sequence"]
+        elif venue=="Gate":t,p,q,side,key=row["create_time_ms"],row["price"],row["amount"],row["side"],row["id"]
+        else:t,p,q,side,key=row["ts"],row["price"],row["size"],row["side"],row["execId"]
+        direction=str(side).lower()
+        if direction not in ("buy","sell"):continue
+        result.append({"time":t,"price":p,"qty":q,"id":key,"isBuyerMaker":direction=="sell"})
+      except (KeyError,TypeError):continue
+    return result
+
+@lru_cache(maxsize=80)
+def multi_venue_trade_samples(pair,time_bucket):
+    try:from src.multi_asset import VENUES, _CATALOG, _CATALOG_LOCK
+    except ImportError:from multi_asset import VENUES, _CATALOG, _CATALOG_LOCK
+    with _CATALOG_LOCK:catalog=_CATALOG["value"]
+    available=set(catalog.get("venues",{}).get(pair,VENUES) if catalog else VENUES)
+    def sample(venue):
+        if venue not in available:return venue,{"status":"unlisted","sample_count":0,"events":[]}
+        observed=utc()
+        try:return venue,trade_sample(venue_trade_rows(venue,pair),pair,observed,venue)
+        except (OSError,ValueError,KeyError,TypeError,IndexError) as exc:
+            return venue,{"status":"unavailable","reason":type(exc).__name__,"observed_utc":observed,"sample_count":0,"events":[]}
+    with ThreadPoolExecutor(max_workers=len(VENUES)) as pool:return dict(pool.map(sample,VENUES))
+
+def aggregate_samples(samples):
+    events={event["id"]:event for row in samples if row.get("status")=="ok" for event in row.get("_executions",[])}
+    if not events:return None,0,None,None
+    start=min(e["time_ms"] for e in events.values());end=max(e["time_ms"] for e in events.values())
+    width=max(1000,((end-start+12)//12));buckets={}
+    for event in events.values():
+        slot=start+(event["time_ms"]-start)//width*width
+        row=buckets.setdefault(slot,{"time_ms":slot,"buy":0.0,"sell":0.0,"count":0})
+        row[event["side"]]+=event["notional"];row["count"]+=1
+    return {"bucket_ms":width,"buckets":[buckets[t] for t in sorted(buckets)],
+            "buy":sum(row["buy"] for row in buckets.values()),"sell":sum(row["sell"] for row in buckets.values())},len(events),start,end
+
 def pair_market_flow(value):
-    pair = symbol(value)
-    sample = live_trade_sample(pair, int(dt.datetime.now(dt.timezone.utc).timestamp() // 45))
-    return {"symbol": pair, "source": "MEXC Spot", **{k: v for k, v in sample.items() if k != "events"}}
+    pair=symbol(value)
+    samples=multi_venue_trade_samples(pair,int(dt.datetime.now(dt.timezone.utc).timestamp()//10))
+    venues={venue:{k:v for k,v in item.items() if k not in ("events","_executions")} for venue,item in samples.items()}
+    identity=pair in {"BTCUSDT","ETHUSDT","SOLUSDT"}
+    eligible=[item for item in samples.values() if item.get("status")=="ok"]
+    flow,count,first,last=aggregate_samples(eligible) if identity else (None,0,None,None)
+    return {"symbol":pair,"source":"public spot executions","status":"ok" if eligible else "unavailable",
+            "observed_utc":utc(),"identity_status":"major_pair_symbol_match" if identity else "cross_venue_identity_unverified",
+            "aggregate_note":"Observed recent trade samples only; venue windows and caps differ. Not complete market volume.",
+            "venues":venues,"available_venues":len(eligible),"sample_count":count,"flow":flow,"first_ms":first,"last_ms":last}
 
 
 def merge_events(groups, cutoff_ms=0, limit=160):
@@ -134,11 +203,14 @@ def merge_events(groups, cutoff_ms=0, limit=160):
 
 def dashboard_events(value, operations):
     pair = symbol(value)
-    live = live_trade_sample(pair, int(dt.datetime.now(dt.timezone.utc).timestamp() // 45))
+    samples=multi_venue_trade_samples(pair,int(dt.datetime.now(dt.timezone.utc).timestamp()//10))
+    live=samples.get("MEXC",{})
     archive = (operations.get("events") or {}) if pair == STAMP else {}
-    records = merge_events((archive.get("records") or [], live["events"]))
+    records = merge_events([archive.get("records") or [],*(row.get("events") or [] for row in samples.values())])
     return {"symbol": pair, "records": records,
-            "trades": {k: v for k, v in live.items() if k not in ("events", "flow")},
+            "trades": {k: v for k, v in live.items() if k not in ("events", "flow", "_executions")},
+            "venue_trades":{venue:{"status":row.get("status"),"sample_count":row.get("sample_count"),"last_ms":row.get("last_ms")}
+                            for venue,row in samples.items()},
             "archived_trades": archive.get("trades"),
             "liquidity": archive.get("liquidity")}
 

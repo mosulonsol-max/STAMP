@@ -61,8 +61,15 @@ def exchange_depth_snapshot(pair):
   except (OSError, ValueError, TypeError, KeyError, IndexError):
    return {"venue":venue,"status":"unavailable"}
 
- # Venue symbols alone do not establish cross-venue asset identity.
- comparable=pair in {"SOLUSDT","BTCUSDT","ETHUSDT"}
- venues=("MEXC","OKX","Binance") if comparable else ("MEXC",)
+ # Show independent books, including for assets absent from MEXC. No cross-venue
+ # depth sum is formed for symbols with unverified token identity.
+ try:
+  from src.multi_asset import VENUES, _CATALOG, _CATALOG_LOCK
+ except ModuleNotFoundError:
+  from multi_asset import VENUES, _CATALOG, _CATALOG_LOCK
+ with _CATALOG_LOCK:catalog=_CATALOG["value"]
+ available=set(catalog.get("venues",{}).get(pair,VENUES) if catalog else VENUES)
+ venues=tuple(v for v in VENUES if v in available)
+ if not venues:return {"symbol":pair,"venues":[]}
  with ThreadPoolExecutor(max_workers=len(venues)) as pool:
   return {"symbol":pair,"venues":list(pool.map(measure,venues))}

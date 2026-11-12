@@ -40,7 +40,7 @@ class PrivateDashboardTests(unittest.TestCase):
    worker.start()
    try:
     conn=http.client.HTTPConnection("127.0.0.1",server.server_address[1],timeout=3)
-    for path in ("/api/dashboard","/assets/app.js"):
+    for path in ("/api/dashboard","/api/pipeline/live","/api/pipeline/events","/assets/app.js"):
      conn.request("GET",path)
      res=conn.getresponse()
      self.assertEqual(res.status,401)
