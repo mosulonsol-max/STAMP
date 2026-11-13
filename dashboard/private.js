@@ -62,7 +62,7 @@ function formatChartTime(time,short=false){const ms=chartTime(time);if(!Number.i
 function initChart(){
  if(chart)return true;
  const L=window.LightweightCharts;if(!L?.createChart){el("chartEmpty").hidden=false;set("chartEmpty",t("chartUnavailable"));return false}
- chart=L.createChart(el("chart"),{autoSize:true,layout:{background:{type:"solid",color:"#10161e"},textColor:"#a3b0c1",attributionLogo:false,fontFamily:"system-ui, sans-serif"},grid:{vertLines:{color:"#1a2330"},horzLines:{color:"#242e3c"}},rightPriceScale:{borderColor:"#243347",scaleMargins:{top:.08,bottom:.22}},timeScale:{borderColor:"#243347",timeVisible:true,secondsVisible:false,rightOffset:6,tickMarkFormatter:(time,type)=>formatChartTime(time,type>2)},localization:{locale:"en-US",timeFormatter:time=>formatChartTime(time)},crosshair:{mode:L.CrosshairMode.Normal},handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false},handleScale:{axisPressedMouseMove:true,mouseWheel:true,pinch:true}});
+ chart=L.createChart(el("chart"),{autoSize:true,layout:{background:{type:"solid",color:"#10161e"},textColor:"#a3b0c1",attributionLogo:false,fontFamily:"system-ui, sans-serif"},grid:{vertLines:{color:"#1a2330"},horzLines:{color:"#242e3c"}},rightPriceScale:{borderColor:"#243347",scaleMargins:{top:.08,bottom:.22}},timeScale:{borderColor:"#243347",timeVisible:true,secondsVisible:false,rightOffset:6,lockVisibleTimeRangeOnResize:true,tickMarkFormatter:(time,type)=>formatChartTime(time,type>2)},localization:{locale:"en-US",timeFormatter:time=>formatChartTime(time)},crosshair:{mode:L.CrosshairMode.Normal},handleScroll:{mouseWheel:true,pressedMouseMove:true,horzTouchDrag:true,vertTouchDrag:false},handleScale:{axisPressedMouseMove:true,mouseWheel:true,pinch:true}});
  candleSeries=chart.addSeries(L.CandlestickSeries,{upColor:"#5ad9a4",downColor:"#ff909d",borderVisible:false,wickUpColor:"#5ad9a4",wickDownColor:"#ff909d",priceFormat:{type:"price",precision:8,minMove:.00000001}});
  volumeSeries=chart.addSeries(L.HistogramSeries,{priceScaleId:"",priceFormat:{type:"volume"},priceLineVisible:false,lastValueVisible:false});volumeSeries.priceScale().applyOptions({scaleMargins:{top:.83,bottom:0}});
  const options={priceFormat:{type:"price",precision:8,minMove:.00000001},priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:true,lineWidth:2,pointMarkersVisible:true,pointMarkersRadius:3};
@@ -98,7 +98,7 @@ function navigateChart(action){
  if(!range||!Number.isFinite(range.from)||!Number.isFinite(range.to))return;
  const width=range.to-range.from,center=(range.from+range.to)/2;
  if(action==="in"||action==="out"){
-  const next=Math.max(8,Math.min(10000,width*(action==="in"?.7:1/.7)));
+  const next=Math.max(3,Math.min(10000,width*(action==="in"?.7:1/.7)));
   scale.setVisibleLogicalRange({from:center-next/2,to:center+next/2});
  }else{const shift=width*.25*(action==="earlier"?-1:1);scale.setVisibleLogicalRange({from:range.from+shift,to:range.to+shift})}
 }
