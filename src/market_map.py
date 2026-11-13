@@ -162,7 +162,16 @@ def pair_window(pair, period, venues, bucket):
             rows = multi_asset.venue_candles(venue, pair, WINDOWS[period][0])
             summary = summarize(rows, period, now_ms)
             if summary is not None:
-                return {"pair": pair, "venue": venue, **summary}
+                result = {"pair": pair, "venue": venue, **summary}
+                try:
+                    quote = multi_asset.venue_ticker(venue, pair)
+                    last_price = float(quote["lastPrice"])
+                    if isfinite(last_price) and last_price > 0:
+                        result.update(last_price=last_price,
+                                      quote_received_at=datetime.now(timezone.utc).isoformat())
+                except (OSError, ValueError, KeyError, TypeError, IndexError):
+                    pass
+                return result
         except (OSError, ValueError, KeyError, TypeError, IndexError):
             continue
     return {"pair": pair}

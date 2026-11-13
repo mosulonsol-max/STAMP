@@ -545,3 +545,48 @@ body { background: radial-gradient(ellipse at 90% 0%, #162638 0%, transparent 58
 #traceSeek { flex:1 1 115px; accent-color:#78ead1; }
 #traceTransferCount { flex-basis:100%; font-size:.77rem; }
 .trace-inspector dd { overflow-wrap:anywhere; min-width:0; }
+
+/* Unified spatial workspace */
+:root { --bg:#070f18; --panel:#0e1c2b; --surface:#0a1623; --raised:#142537; --border:#263e53; --accent:#82e7d7; }
+body { background:radial-gradient(ellipse at 85% 0,#17395165,transparent 55%),#070f18; }
+.topbar { background:#091420ed; backdrop-filter:blur(16px); border-color:#284154; }
+.topbar-inner,.workspace { max-width:1660px; padding-inline:clamp(12px,2.5vw,36px); }
+.stamp-map { background:linear-gradient(135deg,#102434b3,#0b1829); border-color:#314f65; box-shadow:0 16px 70px #0005,inset 0 1px 0 #ffffff0a; }
+.map-heading { padding:20px 22px 12px; align-items:center; gap:20px; }
+.map-heading h2 { font-size:clamp(1.25rem,2vw,1.9rem); font-weight:650; }
+.map-heading p { color:#9ab6cb; margin-top:5px; font-size:.8rem; }
+.stamp-map .map-nodes { padding:10px 18px; border-block:1px solid #29475b; background:#0a1827a6; gap:5px; }
+.stamp-map .map-nodes a { min-height:48px; border:1px solid transparent; border-radius:9px; background:transparent; transform:none; transition:background .2s,border-color .2s; }
+.stamp-map .map-nodes a[aria-selected=true] { transform:none; background:linear-gradient(135deg,#255669,#143347); border-color:#5b9ba4; box-shadow:inset 0 1px 0 #c2fff51a; }
+.trace-workspace { grid-template-columns:minmax(0,1fr) 270px; padding:12px; gap:10px; }
+.trace-visual { overflow:hidden; background:#07131e; }
+.trace-scene-toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:11px 14px; border-bottom:1px solid #233c4f; background:#102235; }
+.trace-scene-toolbar button { min-height:30px; padding:4px 9px; font-size:.73rem; background:#102235; }
+#projectContext { font-family:var(--number); font-size:.85rem; color:#c5f7e9; }
+.trace-stage-world { height:410px; background:radial-gradient(#152c3c,#07131e); }
+.trace-inspector { border-color:#31536a; padding:18px; background:linear-gradient(155deg,#19354a8c,#0c1928); display:flex; flex-direction:column; gap:10px; }
+.trace-inspector h3 { font-size:1.2rem; color:#cbfff2; }
+.trace-inspector dl { display:flex; flex-direction:column; gap:10px; margin:0; }
+.trace-inspector dl div { display:block; padding-bottom:9px; }
+.trace-inspector dt { font-size:.72rem; color:#97b3c9; }
+.trace-inspector dd { margin-top:3px; font-size:.82rem; overflow-wrap:anywhere; }
+#traceOpen { display:block; margin-top:auto; padding:10px; text-align:center; border:1px solid #4a8c98; border-radius:8px; text-decoration:none; background:#1c485a; }
+.trace-evidence,.trace-module-list { border-top:1px solid #264358; padding:9px 12px; font-size:.77rem; color:#aac3d6; }
+.trace-evidence summary,.trace-module-list summary { cursor:pointer; color:#bfd7e7; }
+.trace-live-status { margin-block:7px; font-size:.72rem; }
+.market-section,.market-overview,.chart-panel,.evidence-panel,.panel { border-color:#2a465b; background:linear-gradient(145deg,#102235,#0c1827); box-shadow:0 12px 45px #0002; }
+.market-metrics>div,.flow-metrics article,.lab-metrics>div { background:linear-gradient(145deg,#173247,#102030); border-color:#345268; box-shadow:inset 0 1px 0 #ffffff0b,0 6px 18px #0002; }
+body[data-workspace=marketMap] .trace-stage-world { height:300px; }
+body[data-workspace=marketMap] .trace-inspector { max-height:370px; overflow:auto; }
+@media(max-width:900px) {
+ .trace-workspace { grid-template-columns:minmax(0,1fr); }
+ .trace-inspector { display:grid; grid-template-columns:1fr 1fr; padding:12px; }
+ .trace-inspector dl { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .trace-inspector #traceOpen { grid-column:1/-1; }
+ .trace-stage-world { height:330px; }
+ .map-heading { padding:15px; }
+ .stamp-map .map-nodes a { min-width:85px; min-height:43px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .stamp-map .map-nodes a { transition:none; }
+}

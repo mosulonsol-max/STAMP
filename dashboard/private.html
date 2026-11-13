@@ -6,8 +6,8 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=stamp-venues-live-5">
-  <link rel="stylesheet" href="/assets/market-map.css?v=1">
+  <link rel="stylesheet" href="/assets/style.css?v=spatial-2">
+  <link rel="stylesheet" href="/assets/market-map.css?v=spatial-2">
 </head>
 <body class="dashboard-page">
   <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
@@ -25,8 +25,8 @@
   <main class="workspace" id="overview">
     <section class="stamp-map" aria-labelledby="mapTitle">
       <header class="map-heading">
-        <div><h2 id="mapTitle" data-copy="STAMP data flow">مسار البيانات في ستامب</h2>
-          <p data-copy="Select a stage to inspect its recorded evidence.">اضغط على مرحلة لفحص السجل الذي يثبت عملها.</p></div>
+        <div><h2 id="mapTitle" data-copy="Market and STAMP engine">السوق ومحرك ستامب</h2>
+          <p data-copy="Select a module to inspect its data and open its linked workspace.">اختر مجسمًا لتتبع بياناته وفتح القسم المرتبط به.</p></div>
         <div class="market-tools">
           <div class="asset-controls">
             <button class="pair-picker-button" id="assetPickerButton" type="button" aria-haspopup="dialog" aria-controls="assetPicker">
@@ -41,26 +41,6 @@
           </div>
         </div>
       </header>
-      <div class="trace-workspace">
-        <div class="trace-visual">
-          <div class="trace-stage-world"><canvas id="traceWorld" aria-hidden="true"></canvas><canvas id="traceCanvas" tabindex="0" aria-label="مجسم ثلاثي الأبعاد تفاعلي يربط مكونات المشروع وفق أحداث نقل البيانات المرصودة"></canvas></div>
-          <p class="trace-caption" data-copy="Dim paths show configured routes. Bright links show matched file reads or observed exchange executions. Packets move only when a new event arrives; archived playback requires a click.">المسارات الرمادية تبين الربط المهيأ. الوصلات المضيئة تثبت قراءة ملف مطابقًا لبصمته أو صفقة مرصودة. لا تتحرك البيانات إلا مع حدث جديد، وإعادة السجل تبدأ بطلبك.</p>
-          <p id="traceLiveStatus" class="trace-live-status" role="status">جارٍ التحقق من حالة التشغيل الحالية…</p>
-          <p id="traceRelayStatus" class="trace-live-status" role="status">جارٍ الاتصال ببث انتقالات الملفات…</p>
-          <div class="trace-controls">
-            <button id="traceRotate" type="button" data-copy="Rotate view">تدوير المشهد</button>
-            <button id="traceReplay" type="button" data-copy="Replay recorded events">إعادة الحركة المسجّلة</button>
-            <input type="range" id="traceSeek" min="0" max="0" value="0" aria-label="تصفح عمليات التسليم" disabled>
-            <span id="traceTransferCount" class="muted"></span>
-          </div>
-        </div>
-        <section class="trace-inspector" aria-labelledby="traceStage">
-          <h3 id="traceStage"></h3><p id="traceRun" class="muted"></p>
-          <dl id="traceDetails"></dl>
-          <a id="traceOpen" href="#systemCenter" data-copy="Open full section">افتح القسم بالتفصيل</a>
-        </section>
-      </div>
-      <div id="traceStageKeys" class="trace-stage-keys" aria-label="مراحل المعالجة"></div>
       <nav class="page-nav map-nodes" role="tablist" aria-label="خريطة أقسام ستامب">
 
         <a id="tradeTab" href="#trading" role="tab" aria-controls="trading" aria-selected="true" aria-label="التداول" data-label-en="Trading">
@@ -82,6 +62,33 @@
           <span data-copy="System operation">تشغيل النظام</span><small id="mapSystem">—</small>
         </a>
       </nav>
+      <div class="trace-workspace">
+        <div class="trace-visual">
+          <div class="trace-scene-toolbar">
+            <span id="projectContext" dir="auto">STAMP / USDT</span>
+            <div><button id="traceOrbit" type="button" aria-pressed="false" data-copy="Orbit camera">دوران الكاميرا</button><button id="traceReset" type="button" data-copy="Reset view">إعادة الزاوية</button></div>
+          </div>
+          <div class="trace-stage-world"><canvas id="traceWorld" aria-hidden="true"></canvas><canvas id="traceCanvas" tabindex="0" aria-label="مجسم ثلاثي الأبعاد تفاعلي يربط مكونات المشروع وفق أحداث نقل البيانات المرصودة"></canvas></div>
+          <details class="trace-evidence"><summary data-copy="Transfer evidence and timeline">سجل النقل والتوقيت</summary>
+          <p class="trace-caption" data-copy="Dim paths show configured routes. Bright links show matched file reads or observed exchange executions. Packets move only when a new event arrives; archived playback requires a click.">المسارات الرمادية تبين الربط المهيأ. الوصلات المضيئة تثبت قراءة ملف مطابقًا لبصمته أو صفقة مرصودة. لا تتحرك البيانات إلا مع حدث جديد، وإعادة السجل تبدأ بطلبك.</p>
+          <p id="traceLiveStatus" class="trace-live-status" role="status">جارٍ التحقق من حالة التشغيل الحالية…</p>
+          <p id="traceRelayStatus" class="trace-live-status" role="status">جارٍ الاتصال ببث انتقالات الملفات…</p>
+          <div class="trace-controls">
+            <button id="traceRotate" type="button" data-copy="Rotate view">تدوير المشهد</button>
+            <button id="traceReplay" type="button" data-copy="Replay recorded events">إعادة الحركة المسجّلة</button>
+            <input type="range" id="traceSeek" min="0" max="0" value="0" aria-label="تصفح عمليات التسليم" disabled>
+            <span id="traceTransferCount" class="muted"></span>
+          </div>
+          </details>
+        </div>
+        <section class="trace-inspector" aria-labelledby="traceStage">
+          <h3 id="traceStage"></h3><p id="traceRun" class="muted"></p>
+          <dl id="traceDetails"></dl>
+          <a id="traceOpen" href="#systemCenter" data-copy="Open full section">افتح القسم بالتفصيل</a>
+        </section>
+      </div>
+      <details class="trace-module-list"><summary data-copy="All project modules">جميع أجزاء المشروع</summary><div id="traceStageKeys" class="trace-stage-keys" aria-label="مراحل المعالجة"></div></details>
+
     </section>
     <section id="marketMap" class="market-section market-map" role="tabpanel" aria-labelledby="marketMapTab" hidden>
       <header class="section-header"><h2 data-copy="Market map">خريطة السوق</h2><p id="marketMapStatus" role="status"></p></header>
@@ -91,18 +98,22 @@
         <label><span data-copy="Period">الفترة</span><select id="marketMapPeriod"><option value="5m" data-copy="5 min">٥ دقائق</option><option value="1h" data-copy="1 hour">ساعة</option><option value="4h" data-copy="4 hours">٤ ساعات</option><option value="24h" selected data-copy="24 hours">٢٤ ساعة</option></select></label>
         <label><span data-copy="View">العرض</span><select id="marketMapView"><option value="wall" data-copy="3D wall">جدار ثلاثي الأبعاد</option><option value="sectors" data-copy="3D sectors">قطاعات ثلاثية الأبعاد</option></select></label>
         <label><span data-copy="Sort by">الفرز</span><select id="marketMapSort"><option value="cap" data-copy="Market cap">القيمة السوقية</option><option value="volume" data-copy="24h volume">حجم تداول ٢٤ ساعة</option><option value="gain" data-copy="Page gainers">صعودًا داخل الصفحة</option><option value="loss" data-copy="Page losers">هبوطًا داخل الصفحة</option></select></label>
-        <label id="marketMapSizeControl" hidden><span data-copy="Tile area">مساحة البطاقة</span><select id="marketMapSize"><option value="cap" data-copy="Market cap">القيمة السوقية</option><option value="volume" data-copy="24h volume">حجم تداول ٢٤ ساعة</option></select></label>
         <label class="market-map-check"><input id="marketMapFavorites" type="checkbox"><span data-copy="Favorites">المفضلة</span></label>
       </div>
       <div class="market-map-camera">
         <button id="marketMapLeft" type="button" aria-label="تدوير يسارًا">↶</button>
         <button id="marketMapReset" type="button" data-copy="Reset view">إعادة الزاوية</button>
         <button id="marketMapRight" type="button" aria-label="تدوير يمينًا">↷</button>
-        <span data-copy="Price and chart use completed candles. Tile depth represents absolute price change.">السعر والمنحنى من الشموع المكتملة. عمق البطاقة يمثل مقدار تغير السعر.</span>
+        <button id="marketMapZoomIn" type="button" aria-label="تكبير المجسم">+</button>
+        <button id="marketMapZoomOut" type="button" aria-label="تصغير المجسم">−</button>
+        <span data-copy="Area follows market cap. Price is the latest published quote. Change and chart use completed candles.">المساحة حسب القيمة السوقية، والسعر آخر سعر منشور. التغير والمنحنى من شموع الفترة المكتملة.</span>
       </div>
+      <div class="market-map-summary"><strong id="marketMapCoverage"></strong><div id="marketMapSectorLegend"></div></div>
       <div id="marketMapViewport" class="market-map-viewport">
         <div id="marketMapBoard" class="market-map-board"></div>
       </div>
+      <div id="marketMapSelection" class="market-map-selection" aria-label="اختيار عملة"></div>
+      <p id="marketMapUnknown" class="muted small"></p>
       <footer class="market-map-pages"><button id="marketMapPrev" type="button" data-copy="Previous">السابق</button><span id="marketMapPage"></span><button id="marketMapNext" type="button" data-copy="Next">التالي</button></footer>
       <dialog id="marketMapDetail" class="market-map-detail" aria-labelledby="marketMapDetailTitle">
         <header><h3 id="marketMapDetailTitle" dir="ltr"></h3><form method="dialog"><button aria-label="إغلاق">×</button></form></header>
@@ -536,9 +547,9 @@
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
-  <script src="/assets/pipeline-3d.js?v=stamp-evidence-scene-6" defer></script>
-  <script src="/assets/app.js?v=stamp-market-map-1" defer></script>
+  <script src="/assets/pipeline-3d.js?v=spatial-2" defer></script>
+  <script src="/assets/app.js?v=spatial-2" defer></script>
   <script src="/assets/market-flow.js?v=stamp-venues-live-5" defer></script>
-  <script src="/assets/market-map.js?v=1" defer></script>
+  <script src="/assets/market-map.js?v=spatial-2" defer></script>
 </body>
 </html>

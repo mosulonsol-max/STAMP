@@ -25,13 +25,13 @@
     rwa:["الأصول المرمّزة","Tokenized assets"], stablecoin:["العملات المستقرة","Stablecoins"], other:["غير مصنّف","Unclassified"]
   };
   const pageSize = 12;
-  const favoritesKey = "stamp_market_map_favorites";
+  const favoritesKey = "stamp_favorite_pairs";
   let favorites = new Set();
   try {
     const saved = JSON.parse(localStorage.getItem(favoritesKey) || "[]");
     if (Array.isArray(saved)) favorites = new Set(saved.filter(pair => typeof pair === "string"));
   } catch {}
-  let catalog = null, cards = new Map(), page = 0, selected = null, yaw = 0;
+  let catalog = null, cards = new Map(), page = 0, selected = null, yaw = -8, zoom = 1;
   let request = null, lastCatalog = 0, searchTimer, drag, suppressClick = false;
   let error = false, loading = false, changed = new Set();
   function node(tag, value, className) {
@@ -78,7 +78,7 @@
     el("Page").textContent = (page + 1) + " / " + pages + " · " + pairs.length;
     return pairs.slice(page * pageSize, (page + 1) * pageSize);
   }
-  function tile(pair, large) {
+  function tile(pair) {
     const row = cards.get(pair) || {};
     const info = meta(pair);
     const button = node("button", null, "market-map-card");
@@ -86,17 +86,23 @@
     button.dataset.pair = pair;
     if (num(row.change) && row.change !== 0) button.dataset.up = String(row.change > 0);
     if (changed.has(pair)) button.dataset.new = "true";
-    if (large) button.dataset.size = "large";
-    button.style.setProperty("--tile-depth", (num(row.change) ? Math.min(30, Math.abs(row.change) * 3) : 0) + "px");
+    button.style.setProperty("--tile-depth", "36px");
+    button.setAttribute("aria-label", pairLabel(pair) + " · " + money(info.market_cap_usd));
+    button.title = pairLabel(pair) + " · " + money(info.market_cap_usd);
+    const face = node("span", null, "market-map-face");
     const heading = node("span", null, "market-map-line");
     heading.dir = "ltr";
     heading.append(node("strong", pairLabel(pair)), node("bdi", num(row.change) ? (row.change > 0 ? "+" : "") + format(row.change) + "%" : "—"));
-    const price = node("div", num(row.price) ? format(row.price, 12) + " USDT" : missing(), "market-map-price");
+    const displayedPrice = row.last_price ?? row.price;
+    const price = node("div", num(displayedPrice) ? format(displayedPrice,12) + " USDT" : missing(), "market-map-price");
     price.dir = "ltr";
     const bounds = node("small", copy("أعلى ", "High ") + format(row.high, 12) + " · " + copy("أدنى ", "Low ") + format(row.low, 12));
-    const cap = node("small", copy("القيمة السوقية ", "Market cap ") + money(info.market_cap_usd));
-    const source = node("small", row.venue ? row.venue + " · " + time(row.price_at_ms) : copy("شموع الفترة غير متاحة", "Window candles unavailable"));
-    button.append(heading, price, bounds, sparkline(row.prices), cap, source);
+    const cap = node("small");
+    cap.dir = "auto";
+    cap.append(node("span",copy("القيمة السوقية ", "Market cap ")),node("bdi",money(info.market_cap_usd)));
+    const source = node("small", row.venue ? row.venue + " · " + time(row.quote_received_at || row.price_at_ms) : copy("شموع الفترة غير متاحة", "Window candles unavailable"));
+    face.append(heading, price, bounds, sparkline(row.prices), cap, source);
+    button.append(face, node("span",null,"market-map-left"), node("span",null,"market-map-right"), node("span",null,"market-map-top"));
     return button;
   }
   function detail() {
@@ -105,8 +111,9 @@
     el("DetailTitle").textContent = pairLabel(selected);
     const data = node("dl");
     const values = [
-      [copy("آخر إغلاق", "Last close"), num(row.price) ? format(row.price,12) + " USDT" : missing()],
-      [copy("المنصة ووقت إغلاق الشمعة", "Venue and candle close"), row.venue ? row.venue + " · " + time(row.price_at_ms) : missing()],
+      [copy("آخر سعر منشور", "Last published price"), num(row.last_price) ? format(row.last_price,12) + " USDT" : missing()],
+      [copy("آخر إغلاق للفترة", "Last window close"), num(row.price) ? format(row.price,12) + " USDT" : missing()],
+      [copy("المنصة ووقت استلام السعر", "Venue and price receipt time"), row.venue ? row.venue + " · " + time(row.quote_received_at || row.price_at_ms) : missing()],
       [copy("القيمة السوقية", "Market cap"), (num(info.market_cap_usd) ? "$" + format(info.market_cap_usd) : missing())],
       [copy("المعروض المتداول", "Circulating supply"), format(info.circulating_supply)],
       [copy("حجم التداول خلال ٢٤ ساعة", "24h trading volume"), money(info.volume_24h_usd)],
@@ -115,6 +122,23 @@
     for (const [label, value] of values) data.append(node("dt",label), node("dd",value));
     el("DetailBody").replaceChildren(data, sparkline(row.prices));
     el("Star").textContent = favorites.has(selected) ? copy("إزالة من المفضلة", "Remove favorite") : copy("إضافة للمفضلة", "Add favorite");
+  }
+  function partition(items, x, y, width, height) {
+    if (!items.length) return [];
+    if (items.length === 1) return [{...items[0],x,y,w:width,h:height}];
+    const total = items.reduce((sum,item) => sum + item.weight, 0);
+    let split = 1, first = items[0].weight;
+    while (split < items.length - 1 && Math.abs(first + items[split].weight - total / 2) < Math.abs(first - total / 2)) {
+      first += items[split].weight;
+      split++;
+    }
+    const ratio = first / total;
+    if (width >= height) {
+      return [...partition(items.slice(0,split),x,y,width * ratio,height),
+        ...partition(items.slice(split),x + width * ratio,y,width * (1 - ratio),height)];
+    }
+    return [...partition(items.slice(0,split),x,y,width,height * ratio),
+      ...partition(items.slice(split),x,y + height * ratio,width,height * (1 - ratio))];
   }
   function render() {
     const pairs = pagePairs(), sort = el("Sort").value;
@@ -127,27 +151,69 @@
     }
     const view = el("View").value;
     board.dataset.view = view;
-    el("SizeControl").hidden = view !== "sectors";
     const focusPair = document.activeElement?.closest(".market-map-card")?.dataset.pair;
-    const content = [];
+    const known = pairs.filter(pair => num(meta(pair).market_cap_usd) && meta(pair).market_cap_usd > 0);
+    const unknown = pairs.filter(pair => !known.includes(pair));
+    const total = known.reduce((sum,pair) => sum + meta(pair).market_cap_usd, 0);
+    const width = board.clientWidth || 1000;
+    const height = board.clientHeight || 560;
+    const items = known.map(pair => ({pair, weight:meta(pair).market_cap_usd}));
+    let rectangles;
     if (view === "sectors") {
       const groups = new Map();
-      for (const pair of pairs) {
-        const sector = meta(pair).sector || "other";
+      for (const item of items) {
+        const sector = meta(item.pair).sector || "other";
         if (!groups.has(sector)) groups.set(sector, []);
-        groups.get(sector).push(pair);
+        groups.get(sector).push(item);
       }
-      const field = el("Size").value === "volume" ? "volume_24h_usd" : "market_cap_usd";
-      for (const [sector, members] of groups) {
-        const group = node("section", null, "market-map-sector");
-        const tiles = node("div", null, "market-map-sector-tiles");
-        const max = Math.max(...members.map(pair => metric(pair,field)));
-        tiles.append(...members.map(pair => tile(pair, max > 0 && metric(pair,field) >= max / 2)));
-        group.append(node("h3", copy(...sectors[sector])), tiles);
-        content.push(group);
-      }
-    } else content.push(...pairs.map(pair => tile(pair, false)));
-    board.replaceChildren(...content);
+      const sectorItems = [...groups].map(([sector,members]) => ({
+        sector, members, weight:members.reduce((sum,item) => sum + item.weight, 0)
+      }));
+      rectangles = partition(sectorItems,0,0,width,height).flatMap(group =>
+        partition(group.members,group.x,group.y,group.w,group.h).map(rect => ({...rect,sector:group.sector})));
+      board.dataset.sectorCount = groups.size;
+    } else rectangles = partition(items,0,0,width,height);
+    const existing = new Map([...board.children].map(tile => [tile.dataset.pair,tile]));
+    for (const rect of rectangles) {
+      const fresh = tile(rect.pair);
+      let button = existing.get(rect.pair);
+      if (button) {
+        button.replaceChildren(...fresh.childNodes);
+        button.dataset.up = fresh.dataset.up || "";
+        button.dataset.new = fresh.dataset.new || "";
+        button.title = fresh.title;
+        button.setAttribute("aria-label", fresh.getAttribute("aria-label"));
+        existing.delete(rect.pair);
+      } else { button = fresh; board.append(button); }
+      button.style.left = (rect.x + rect.w * .015) / width * 100 + "%";
+      button.style.top = (rect.y + rect.h * .015) / height * 100 + "%";
+      button.style.width = rect.w * .97 / width * 100 + "%";
+      button.style.height = rect.h * .97 / height * 100 + "%";
+      button.dataset.capShare = rect.weight / total;
+      button.dataset.density = rect.w < 70 || rect.h < 55 ? "micro" : rect.w < 170 || rect.h < 145 ? "compact" : "full";
+      if (view === "sectors") button.dataset.sector = rect.sector;
+      else delete button.dataset.sector;
+      if (changed.has(rect.pair)) button.dataset.new = "true";
+    }
+    for (const button of existing.values()) button.remove();
+    board.dataset.empty = String(!known.length);
+    el("Coverage").textContent = copy("القيمة السوقية المعروضة ", "Displayed market cap ") + money(total) +
+      " · " + known.length + " " + copy("عملة", "assets");
+    const selection = el("Selection");
+    selection.replaceChildren(...pairs.map(pair => {
+      const button = node("button", pairLabel(pair), "market-map-chip");
+      button.type = "button";
+      button.dataset.pair = pair;
+      button.setAttribute("aria-pressed",String(pair === selected));
+      return button;
+    }));
+    el("Unknown").textContent = unknown.length
+      ? copy("تقييم غير متاح ", "Valuation unavailable ") + unknown.map(pairLabel).join(" · ") : "";
+    el("SectorLegend").replaceChildren(...(view === "sectors" ? [...new Set(known.map(pair => meta(pair).sector || "other"))].map(sector => {
+      const label = node("span",copy(...sectors[sector]));
+      label.dataset.sector = sector;
+      return label;
+    }) : []));
     if (focusPair) [...board.querySelectorAll("button")].find(button => button.dataset.pair === focusPair)?.focus({preventScroll:true});
     const timestamp = Math.max(0, ...pairs.map(pair => cards.get(pair)?.price_at_ms || 0));
     const status = error ? copy("تعذّر تحديث بيانات السوق", "Market data refresh failed") :
@@ -198,11 +264,20 @@
       if (pairs.length) {
         const next = await get("/api/market-map/windows?" + new URLSearchParams({period,pairs:pairs.join(",")}), controller.signal);
         if (request !== controller || period !== el("Period").value) return;
+        document.dispatchEvent(new CustomEvent("stamp:market-map-response", {detail:{
+          observed_utc:new Date().toISOString(), rows:next.cards.length, period,
+          venues:[...new Set(next.cards.map(row => row.venue).filter(Boolean))],
+          capitalizations:next.cards.map(row=>meta(row.pair).market_cap_usd).filter(value=>num(value)&&value>0)
+        }}));
         const previous = cards;
         cards = new Map(next.cards.map(row => [row.pair,row]));
         changed = new Set(next.cards.filter(row => {
           const old = previous.get(row.pair);
-          return old?.venue === row.venue && row.price_at_ms > old.price_at_ms && row.price !== old.price;
+          if(!old || !row.venue || old.venue !== row.venue) return false;
+          return (
+            num(row.last_price) && num(old.last_price) && row.last_price !== old.last_price ||
+            row.price_at_ms > old.price_at_ms && row.price !== old.price
+          );
         }).map(row => row.pair));
       }
     } catch {
@@ -223,17 +298,20 @@
     searchTimer = setTimeout(reset, 250);
   });
   for (const id of ["Period","Sort","Favorites"]) el(id).addEventListener("change",reset);
-  for (const id of ["Size","View"]) el(id).addEventListener("change",render);
+  for (const id of ["View"]) el(id).addEventListener("change",render);
   el("Prev").addEventListener("click", () => { page--; refresh(true); });
   el("Next").addEventListener("click", () => { page++; refresh(true); });
-  board.addEventListener("click", event => {
+  function inspect(event) {
     if (suppressClick) { suppressClick = false; return; }
-    const button = event.target.closest(".market-map-card");
+    const button = event.target.closest("[data-pair]");
     if (!button) return;
     selected = button.dataset.pair;
     detail();
     dialog.showModal();
-  });
+    document.dispatchEvent(new CustomEvent("stamp:market-map-focus", {detail:{pair:selected,venue:cards.get(selected)?.venue}}));
+  }
+  board.addEventListener("click",inspect);
+  el("Selection").addEventListener("click",inspect);
   el("Chart").addEventListener("click", () => {
     dialog.close();
     document.dispatchEvent(new CustomEvent("stamp:market-map-pair",{detail:{pair:selected}}));
@@ -242,16 +320,20 @@
     if (favorites.has(selected)) favorites.delete(selected);
     else favorites.add(selected);
     try { localStorage.setItem(favoritesKey,JSON.stringify([...favorites])); } catch {}
+    document.dispatchEvent(new Event("stamp:favoriteschange"));
     detail();
     if (el("Favorites").checked) reset();
   });
   function rotate(value) {
     yaw = Math.max(-26,Math.min(26,value));
     board.style.setProperty("--market-yaw",yaw + "deg");
+    board.style.setProperty("--market-zoom",String(zoom));
   }
   el("Left").addEventListener("click", () => rotate(yaw - 8));
   el("Right").addEventListener("click", () => rotate(yaw + 8));
-  el("Reset").addEventListener("click", () => rotate(0));
+  el("Reset").addEventListener("click", () => { zoom = 1; rotate(-8); });
+  el("ZoomIn").addEventListener("click", () => { zoom = Math.min(1.6,zoom + .15); rotate(yaw); });
+  el("ZoomOut").addEventListener("click", () => { zoom = Math.max(.7,zoom - .15); rotate(yaw); });
   const viewport = el("Viewport");
   viewport.addEventListener("pointerdown", event => {
     if (event.button !== 0) return;
@@ -268,6 +350,14 @@
   });
   for (const name of ["pointerup","pointerleave","pointercancel"]) viewport.addEventListener(name, () => { drag = null; });
   document.addEventListener("stamp:tabchange", () => { if (!panel.hidden) refresh(); });
+  document.addEventListener("stamp:favoriteschange", () => {
+    try { favorites = new Set(JSON.parse(localStorage.getItem(favoritesKey) || "[]")); } catch {}
+    if (el("Favorites").checked) reset();
+    else render();
+  });
+  window.addEventListener("stamp:assetchange", event => { selected = event.detail?.symbol || selected; render(); });
+  let resizeTimer;
+  new ResizeObserver(() => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render,100); }).observe(board);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
   document.getElementById("langSelect")?.addEventListener("change",render);
   document.getElementById("zoneSelect")?.addEventListener("change",render);
