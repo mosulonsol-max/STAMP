@@ -1487,6 +1487,13 @@ async function loadAssetUniverse(){
   if(el("assetPicker")?.open)renderAssetPicker();
  }
 }
+document.addEventListener?.("stamp:market-map-pair",event=>{
+ const pair=event.detail?.pair;
+ if(typeof pair!=="string"||!PAIR_SYMBOL.test(pair))return;
+ selectAsset(pair);
+ el("tradeTab").click();
+});
+
 function choosePair(pair){
  if(!PAIR_SYMBOL.test(pair))return;
  el("assetPicker").close();
@@ -1615,7 +1622,7 @@ const originalCopy=new Map();
 function translate(){
  document.documentElement.lang=lang;
  document.documentElement.dir=lang==="ar"?"rtl":"ltr";
- const mapLabels={tradeTab:"التداول",flowTab:"تدفقات السوق",venuesTab:"المنصات",labTab:"المختبر",systemTab:"النظام"};
+ const mapLabels={tradeTab:"التداول",flowTab:"تدفقات السوق",marketMapTab:"خريطة السوق",venuesTab:"المنصات",labTab:"المختبر",systemTab:"النظام"};
  for(const [id,label] of Object.entries(mapLabels)){
   const node=el(id);
   if(node?.dataset.labelEn)node.setAttribute("aria-label",copy(label,node.dataset.labelEn));

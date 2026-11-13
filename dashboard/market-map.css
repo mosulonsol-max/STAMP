@@ -1,0 +1,53 @@
+.market-map { padding:clamp(12px,3vw,28px); }
+.market-map-tools,.market-map-camera,.market-map-pages { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin-block:12px; }
+.market-map-tools label { display:grid; gap:4px; font-size:.85rem; color:#c6d8eb; }
+.market-map-tools .market-map-check { display:flex; align-items:center; min-height:39px; }
+.market-map-tools input[type=search] { max-width:180px; }
+.market-map-tools select,.market-map-tools input[type=search],.market-map button:not(.market-map-card) { border:1px solid #3c5871; border-radius:8px; background:#142437; color:#f2f7ff; padding:8px 11px; }
+.market-map button:disabled { opacity:.45; }
+.market-map-camera { align-items:center; color:#a8c0d7; font-size:.8rem; }
+.market-map-viewport { perspective:1400px; padding:16px 8px 25px; touch-action:pan-y; }
+.market-map-board { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; transform-style:preserve-3d; transform:rotateX(5deg) rotateY(var(--market-yaw,0deg)); transition:transform .2s ease; }
+.market-map-card { position:relative; min-width:0; text-align:start; padding:11px; border:1px solid var(--tile-edge,#50667f); border-radius:11px; background:linear-gradient(145deg,var(--tile-tone,#1d3046),#111b2c); color:#f4f8ff; transform:translateZ(var(--tile-depth,0px)); box-shadow:0 5px 0 #091522,0 9px 0 var(--tile-edge,#50667f),0 14px 22px #0008; transition:transform .3s,background .3s; cursor:pointer; }
+.market-map-card:hover,.market-map-card:focus-visible { transform:translateZ(calc(var(--tile-depth,0px) + 10px)); outline:2px solid #a5e5ff; outline-offset:2px; }
+.market-map-card[data-up=true] { --tile-tone:#13523d; --tile-edge:#348a70; --tile-line:#83f3ba; }
+.market-map-card[data-up=false] { --tile-tone:#722d40; --tile-edge:#aa5366; --tile-line:#ffb5bc; }
+.market-map-card[data-new=true] { animation:market-map-update .55s ease-out; }
+@keyframes market-map-update { 45% { transform:translateZ(calc(var(--tile-depth,0px) + 12px)); } }
+.market-map-card .market-map-line { display:flex; justify-content:space-between; gap:4px; align-items:baseline; flex-wrap:wrap; }
+.market-map-card strong { font-size:.98rem; }
+.market-map-card .market-map-price { font-size:clamp(.93rem,2vw,1.28rem); font-weight:700; margin-block:5px; }
+.market-map-card small { display:block; color:#dbe8f4; font-size:.73rem; overflow-wrap:anywhere; margin-block:3px; }
+.market-map-plot { display:block; width:100%; height:36px; margin-block:5px; color:var(--tile-line,#91b3d2); }
+.market-map-detail .market-map-plot { height:100px; }
+.market-map-board[data-view=sectors] { display:flex; flex-direction:column; }
+.market-map-sector { transform-style:preserve-3d; }
+.market-map-sector h3 { margin:8px 0; color:#cfe1ef; font-size:.86rem; }
+.market-map-sector-tiles { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; transform-style:preserve-3d; }
+.market-map-sector-tiles .market-map-card { grid-column:span 2; }
+.market-map-sector-tiles .market-map-card[data-size=large] { grid-column:span 3; }
+.market-map-detail { width:min(520px,calc(100% - 24px)); color:#f2f7ff; background:#122235; border:1px solid #54738e; border-radius:14px; padding:17px; }
+.market-map-detail::backdrop { background:#06101bc9; }
+.market-map-detail header,.market-map-detail footer { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.market-map-detail dl { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.market-map-detail dd { margin:0; overflow-wrap:anywhere; }
+.market-map-pages { justify-content:center; align-items:center; }
+@media (max-width:760px) {
+ .market-map-board,.market-map-sector-tiles { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .market-map-sector-tiles .market-map-card { grid-column:span 1; }
+ .market-map-sector-tiles .market-map-card[data-size=large] { grid-column:span 2; }
+}
+@media (prefers-reduced-motion:reduce) {
+ .market-map-board,.market-map-card { transition:none; animation:none!important; }
+}
+.market-map-card { transform-style:preserve-3d; }
+.market-map-card::after {
+ content:""; position:absolute; inset-inline:2px; top:calc(100% - 1px); height:10px;
+ transform:rotateX(-90deg); transform-origin:top; background:var(--tile-edge,#50667f);
+ pointer-events:none;
+}
+.market-map-card::before {
+ content:""; position:absolute; inset-block:2px; right:calc(100% - 1px); width:10px;
+ transform:rotateY(-90deg); transform-origin:right; background:var(--tile-tone,#1d3046);
+ pointer-events:none;
+}

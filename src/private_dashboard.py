@@ -11,11 +11,13 @@ try:
  from src.operations import archive_view, worker_status
  from src.market_flow import exchange_depth_snapshot, market_flow_snapshot
  from src.market_updates import market_update
+ from src import market_map
 except ModuleNotFoundError:
  from market_events import STAMP, dashboard_events, pair_market_flow, symbol as event_symbol
  from operations import archive_view, worker_status
  from market_flow import exchange_depth_snapshot, market_flow_snapshot
  from market_updates import market_update
+ import market_map
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
 PATHS=("latest.json","workflow_health.json","operations.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json","autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json","multi_asset_forecasts.json")
@@ -377,7 +379,7 @@ class Handler(BaseHTTPRequestHandler):
   if path=="/healthz":
    # A 200 response must mean the deployment can actually serve its UI and archived data.
    try:
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","pipeline-3d.js","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","pipeline-3d.js","market-map.js","market-map.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
    except Exception:healthy=False
    if healthy and parse_qs(urlsplit(self.path).query).get("market")==["1"]:
     try:
@@ -410,6 +412,18 @@ class Handler(BaseHTTPRequestHandler):
    except (ValueError,TypeError):return self.send(400,b'{"error":"invalid_cursor_or_telemetry"}',"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"telemetry_unavailable","reason":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path in ("/api/market-map", "/api/market-map/windows"):
+   try:
+    if path.endswith("/windows"):
+     query=parse_qs(urlsplit(self.path).query)
+     result=market_map.windows(query.get("period", [""])[0], query.get("pairs", [""])[0].split(","))
+    else:
+     result=market_map.catalog()
+    return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except ValueError:
+    return self.send(400,b'{"error":"invalid_market_map_request"}',"application/json; charset=utf-8")
+   except OSError:
+    return self.send(503,b'{"error":"market_map_unavailable"}',"application/json; charset=utf-8")
   if path=="/api/market-flow/depth":
    try: pair=event_symbol(parse_qs(urlsplit(self.path).query).get("symbol",[""])[0])
    except ValueError: return self.send(400,b'{"error":"invalid_pair"}',"application/json; charset=utf-8")
@@ -560,7 +574,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
-  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/assets/market-flow.js":"market-flow.js","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
+  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:

@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 
 BASE="https://api.mexc.com/api/v3/"
 ALLOWED=re.compile(r"^[A-Z0-9]{1,22}USDT$")
-INTERVALS={"15m","30m","60m","4h","1d"}
+INTERVALS={"1m","5m","15m","30m","60m","4h","1d"}
 VENUES=("MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget")
 _CATALOG={"at":0.0,"value":None}
 _CATALOG_LOCK=threading.Lock()
@@ -225,26 +225,26 @@ def venue_ticker(venue,pair):
 
 def venue_candles(venue,pair,frame):
     if venue=="MEXC":return candles(pair,{"1h":"60m"}.get(frame,frame),timeout=6)
-    base=pair[:-4];interval={"15m":"15m","1h":"1h","4h":"4h","1d":"1d"}[frame]
+    base=pair[:-4];interval=frame
     if venue=="Binance":
         rows=public_json("https://api.binance.com/api/v3/klines?"+urlencode({"symbol":pair,"interval":interval,"limit":300}))
         values=[(r[0],r[1],r[2],r[3],r[4],r[5]) for r in rows]
     elif venue=="OKX":
-        rows=public_json("https://www.okx.com/api/v5/market/candles?"+urlencode({"instId":base+"-USDT","bar":{"1h":"1H","4h":"4H","1d":"1D"}.get(frame,"15m"),"limit":300}))["data"]
+        rows=public_json("https://www.okx.com/api/v5/market/candles?"+urlencode({"instId":base+"-USDT","bar":{"1h":"1H","4h":"4H","1d":"1D"}.get(frame,frame),"limit":300}))["data"]
         values=[(r[0],r[1],r[2],r[3],r[4],r[5]) for r in rows if len(r)>8 and r[8]=="1"]
     elif venue=="Bybit":
-        obj=public_json("https://api.bybit.com/v5/market/kline?"+urlencode({"category":"spot","symbol":pair,"interval":{"15m":"15","1h":"60","4h":"240","1d":"D"}[frame],"limit":300}))
+        obj=public_json("https://api.bybit.com/v5/market/kline?"+urlencode({"category":"spot","symbol":pair,"interval":{"1m":"1","5m":"5","15m":"15","1h":"60","4h":"240","1d":"D"}[frame],"limit":300}))
         if obj.get("retCode")!=0:raise ValueError("bybit_candle_error")
         values=[(r[0],r[1],r[2],r[3],r[4],r[5]) for r in obj["result"]["list"]]
     elif venue=="KuCoin":
-        obj=public_json("https://api.kucoin.com/api/v1/market/candles?"+urlencode({"symbol":base+"-USDT","type":{"15m":"15min","1h":"1hour","4h":"4hour","1d":"1day"}[frame]}))
+        obj=public_json("https://api.kucoin.com/api/v1/market/candles?"+urlencode({"symbol":base+"-USDT","type":{"1m":"1min","5m":"5min","15m":"15min","1h":"1hour","4h":"4hour","1d":"1day"}[frame]}))
         if str(obj.get("code"))!="200000":raise ValueError("kucoin_candle_error")
         values=[(int(r[0])*1000,r[1],r[3],r[4],r[2],r[5]) for r in obj["data"][:300]]
     elif venue=="Gate":
         rows=public_json("https://api.gateio.ws/api/v4/spot/candlesticks?"+urlencode({"currency_pair":base+"_USDT","interval":frame,"limit":300}))
         values=[(int(r[0])*1000,r[5],r[3],r[4],r[2],r[1]) for r in rows]
     elif venue=="Bitget":
-        obj=public_json("https://api.bitget.com/api/v2/spot/market/candles?"+urlencode({"symbol":pair,"granularity":{"15m":"15min","1h":"1h","4h":"4h","1d":"1day"}[frame],"limit":300}))
+        obj=public_json("https://api.bitget.com/api/v2/spot/market/candles?"+urlencode({"symbol":pair,"granularity":{"1m":"1min","5m":"5min","15m":"15min","1h":"1h","4h":"4h","1d":"1day"}[frame],"limit":300}))
         if obj.get("code")!="00000":raise ValueError("bitget_candle_error")
         values=[(r[0],r[1],r[2],r[3],r[4],r[5]) for r in obj["data"]]
     else:raise ValueError("unsupported_venue")

@@ -499,3 +499,47 @@ test('market flows switch between the whole market and a selected pair',async({p
  await expect(page.locator('#flowCap')).toBeVisible();
  await expect(page.locator('#flowPairView')).toBeHidden();
 });
+
+test('3D market map uses the selected window and shows verified valuation details', async ({page}) => {
+ const pairs = ['BTCUSDT', 'STAMPUSDT'];
+ const stamp = Date.now();
+ await page.route('**/api/market-map', route => route.fulfill({json:{
+  pairs, valuation_available:true, assets:{BTCUSDT:{sector:'bitcoin', market_cap_usd:1200000000000,
+   circulating_supply:20000000, volume_24h_usd:12000000000, valuation_source:'CoinGecko',
+   valuation_at:new Date(stamp).toISOString()}}
+ }}));
+ await page.route('**/api/market-map/windows?*', route => {
+  const period = new URL(route.request().url()).searchParams.get('period');
+  const price = period === '5m' ? 200 : 100;
+  return route.fulfill({json:{period, cards:pairs.map(pair => ({pair, venue:'OKX',
+   price, high:price + 10, low:price - 10, prices:[price - 10,price], change:2, price_at_ms:stamp}))}});
+ });
+ await page.goto(HOST + '/');
+ await page.locator('#user').fill('test-user');
+ await page.locator('#password').fill('long-test-password');
+ await page.locator('form[action="/login"] button').click();
+ await page.locator('#marketMapTab').click();
+ const btc = page.locator('#marketMapBoard [data-pair="BTCUSDT"]');
+ await expect(btc).toContainText('$1.2T');
+ await expect(btc).toContainText('100 USDT');
+ await page.locator('#marketMapPeriod').selectOption('5m');
+ await expect(btc).toContainText('200 USDT');
+ await expect(btc.locator('polyline')).toBeVisible();
+ await page.locator('#marketMapView').selectOption('sectors');
+ await expect(page.locator('#marketMapBoard .market-map-sector')).toHaveCount(2);
+ await page.locator('#marketMapRight').click();
+ await expect(page.locator('#marketMapBoard')).toHaveAttribute('style', /--market-yaw: 8deg/);
+ await btc.click();
+ await expect(page.locator('#marketMapDetail')).toContainText('CoinGecko');
+ await expect(page.locator('#marketMapDetail')).toContainText('20,000,000');
+ await page.locator('#marketMapStar').click();
+ await page.locator('#marketMapDetail form button').click();
+ await page.locator('#marketMapFavorites').check();
+ await expect(page.locator('#marketMapBoard .market-map-card')).toHaveCount(1);
+ await page.setViewportSize({width:390,height:844});
+ expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
+ await btc.click();
+ await page.locator('#marketMapChart').click();
+ await expect(page.locator('#tradeTab')).toHaveAttribute('aria-selected','true');
+ await expect(page.locator('#coinName')).toHaveText('BTC / USDT');
+});
