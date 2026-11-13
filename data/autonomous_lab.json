@@ -1,12 +1,14 @@
 {
-  "generated_at_utc": "2026-11-13T11:35:30.538855+00:00",
+  "generated_at_utc": "2026-11-13T15:20:45.065345+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-13T11:35:30.538855+00:00",
-    "state": "healthy",
+    "generated_at_utc": "2026-11-13T15:20:45.065345+00:00",
+    "state": "degraded",
     "previous_pipeline_passed": true,
     "previous_pipeline_at_utc": "2026-11-13T11:34:50.818282+00:00",
-    "failed_checks": [],
+    "failed_checks": [
+      "fresh_pipeline"
+    ],
     "checks": {
       "pipeline_steps": {
         "passed": true,
@@ -25,7 +27,7 @@
         "details": "No missing/future clock"
       },
       "fresh_pipeline": {
-        "passed": true,
+        "passed": false,
         "details": "Scheduled Actions are best effort; 3 hours is a health threshold."
       },
       "horizon_wiring": {
@@ -126,8 +128,8 @@
       "id": "72fc3719819adc78",
       "horizon": "1h",
       "candidate": "hist_absolute",
-      "action": "revise_in_sandbox",
-      "reason": "failed_no_change_baseline",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
       "replay_consistent": true,
       "later_samples": 120.0,
       "skill_vs_zero": -0.004939250421740038,
@@ -138,8 +140,8 @@
       "id": "d232bb57b9faecaa",
       "horizon": "4h",
       "candidate": "technical_absolute",
-      "action": "revise_in_sandbox",
-      "reason": "failed_no_change_baseline",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
       "replay_consistent": true,
       "later_samples": 120.0,
       "skill_vs_zero": -0.007972334126302494,
@@ -150,8 +152,8 @@
       "id": "bace7209c1d171e3",
       "horizon": "24h",
       "candidate": "forest_absolute",
-      "action": "continue_sandbox",
-      "reason": "insufficient_independent_later_tests",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
       "replay_consistent": true,
       "later_samples": 24.0,
       "skill_vs_zero": 0.042602402113485205,
@@ -162,8 +164,8 @@
       "id": "4cbc4d07c8434d80",
       "horizon": "7d",
       "candidate": "forest_absolute",
-      "action": "continue_sandbox",
-      "reason": "insufficient_independent_later_tests",
+      "action": "quarantine",
+      "reason": "invalid_replay_or_dataflow",
       "replay_consistent": true,
       "later_samples": 3.0,
       "skill_vs_zero": -0.41540188240959885,
