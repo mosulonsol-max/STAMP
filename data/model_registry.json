@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-11-13T03:26:54.043770+00:00",
+  "generated_at_utc": "2026-11-13T11:33:16.447696+00:00",
   "authority": "internal_model_governor_v1",
   "manual_override_available": false,
   "horizons": {
@@ -9,9 +9,9 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "1h",
-      "model_version": "context_walk_forward_v3_3259e28123fe_no_change_1h",
-      "selected_model": "no_change",
-      "decided_at_utc": "2026-11-13T03:26:54.043770+00:00",
+      "model_version": "context_walk_forward_v3_3259e28123fe_hist_absolute_1h",
+      "selected_model": "hist_absolute",
+      "decided_at_utc": "2026-11-13T11:33:16.447696+00:00",
       "reason_codes": [
         "forward_error_not_better_than_baseline",
         "forward_direction_uncertain",
@@ -19,20 +19,20 @@
       ],
       "forward_validation": {
         "samples": 120,
-        "mae": 0.09539948564437924,
-        "baseline_mae": 0.09539948564437924,
-        "skill_vs_zero": 0.0,
-        "direction_samples": 0,
-        "direction_accuracy": null,
+        "mae": 0.10019376828576727,
+        "baseline_mae": 0.09970131850628706,
+        "skill_vs_zero": -0.004939250421740038,
+        "direction_samples": 120,
+        "direction_accuracy": 0.475,
         "direction_wilson_95": [
-          null,
-          null
+          0.3878209113791835,
+          0.5637300469417518
         ],
-        "empirical_abs_log_error_p90": 0.2542712076599353,
+        "empirical_abs_log_error_p90": 0.26358766063073946,
         "eligible": false
       },
       "prospective": {
-        "samples": 15,
+        "samples": 0,
         "direction_samples": 0,
         "direction_correct": 0,
         "direction_accuracy": null,
@@ -40,9 +40,9 @@
           null,
           null
         ],
-        "mae": 0.09047545014470336,
-        "baseline_mae": 0.09047545014470336,
-        "skill_vs_zero": 0.0,
+        "mae": null,
+        "baseline_mae": null,
+        "skill_vs_zero": null,
         "excluded_overlapping_or_old": 0,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
@@ -61,7 +61,7 @@
       "horizon": "4h",
       "model_version": "context_walk_forward_v3_3259e28123fe_technical_absolute_4h",
       "selected_model": "technical_absolute",
-      "decided_at_utc": "2026-11-13T03:26:54.043770+00:00",
+      "decided_at_utc": "2026-11-13T11:33:16.447696+00:00",
       "reason_codes": [
         "forward_error_not_better_than_baseline",
         "forward_direction_uncertain",
@@ -69,9 +69,9 @@
       ],
       "forward_validation": {
         "samples": 120,
-        "mae": 0.1317977405320416,
-        "baseline_mae": 0.13074624632208467,
-        "skill_vs_zero": -0.008042251609783335,
+        "mae": 0.135842300989849,
+        "baseline_mae": 0.13476788637021012,
+        "skill_vs_zero": -0.007972334126302494,
         "direction_samples": 120,
         "direction_accuracy": 0.5333333333333333,
         "direction_wilson_95": [
@@ -82,17 +82,17 @@
         "eligible": false
       },
       "prospective": {
-        "samples": 7,
-        "direction_samples": 7,
+        "samples": 8,
+        "direction_samples": 8,
         "direction_correct": 5,
-        "direction_accuracy": 0.7142857142857143,
+        "direction_accuracy": 0.625,
         "direction_wilson_95": [
-          0.35893445183261935,
-          0.9177810759959433
+          0.30574239460262737,
+          0.8631557141764026
         ],
-        "mae": 0.35866279907979887,
-        "baseline_mae": 0.3525437852430162,
-        "skill_vs_zero": -0.01735674855979852,
+        "mae": 0.3390039449468396,
+        "baseline_mae": 0.3307685316693301,
+        "skill_vs_zero": -0.02489781369450972,
         "excluded_overlapping_or_old": 3,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
@@ -111,7 +111,7 @@
       "horizon": "24h",
       "model_version": "context_walk_forward_v3_3259e28123fe_forest_absolute_24h",
       "selected_model": "forest_absolute",
-      "decided_at_utc": "2026-11-13T03:26:54.043770+00:00",
+      "decided_at_utc": "2026-11-13T11:33:16.447696+00:00",
       "reason_codes": [
         "insufficient_forward_validation",
         "forward_error_not_better_than_baseline",
@@ -120,16 +120,16 @@
       ],
       "forward_validation": {
         "samples": 24,
-        "mae": 0.25550977884517817,
-        "baseline_mae": 0.21946558596580842,
-        "skill_vs_zero": -0.16423619548709212,
+        "mae": 0.2625048996012398,
+        "baseline_mae": 0.2741858765686561,
+        "skill_vs_zero": 0.042602402113485205,
         "direction_samples": 24,
-        "direction_accuracy": 0.5,
+        "direction_accuracy": 0.4583333333333333,
         "direction_wilson_95": [
-          0.3142742581957335,
-          0.6857257418042665
+          0.2789133373121098,
+          0.6492513464108052
         ],
-        "empirical_abs_log_error_p90": 0.5109283286811546,
+        "empirical_abs_log_error_p90": 0.5966664301000486,
         "eligible": false
       },
       "prospective": {
@@ -144,7 +144,7 @@
         "mae": 0.28574566670555424,
         "baseline_mae": 0.23652216420903352,
         "skill_vs_zero": -0.20811369903168142,
-        "excluded_overlapping_or_old": 34,
+        "excluded_overlapping_or_old": 37,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
       "policy": {
@@ -160,9 +160,9 @@
       "engine": "internal_model_governor_v1",
       "scope": "research_forecasting",
       "horizon": "7d",
-      "model_version": "context_walk_forward_v3_3259e28123fe_hist_absolute_7d",
-      "selected_model": "hist_absolute",
-      "decided_at_utc": "2026-11-13T03:26:54.043770+00:00",
+      "model_version": "context_walk_forward_v3_3259e28123fe_forest_absolute_7d",
+      "selected_model": "forest_absolute",
+      "decided_at_utc": "2026-11-13T11:33:16.447696+00:00",
       "reason_codes": [
         "insufficient_forward_validation",
         "forward_error_not_better_than_baseline",
@@ -171,31 +171,31 @@
       ],
       "forward_validation": {
         "samples": 3,
-        "mae": 0.9263897661247089,
-        "baseline_mae": 0.9686030314503022,
-        "skill_vs_zero": 0.043581595302656484,
+        "mae": 1.8043406938594888,
+        "baseline_mae": 1.2747903731679058,
+        "skill_vs_zero": -0.41540188240959885,
         "direction_samples": 3,
-        "direction_accuracy": 0.6666666666666666,
+        "direction_accuracy": 0.3333333333333333,
         "direction_wilson_95": [
-          0.2076596008020477,
-          0.9385080552796037
+          0.06149194472039621,
+          0.7923403991979522
         ],
-        "empirical_abs_log_error_p90": 1.5581249319436852,
+        "empirical_abs_log_error_p90": 2.885977212493261,
         "eligible": false
       },
       "prospective": {
         "samples": 1,
         "direction_samples": 1,
-        "direction_correct": 1,
-        "direction_accuracy": 1.0,
+        "direction_correct": 0,
+        "direction_accuracy": 0.0,
         "direction_wilson_95": [
-          0.20654931437723745,
-          1
+          0,
+          0.7934506856227626
         ],
-        "mae": 0.04933154861402145,
-        "baseline_mae": 0.36612676132813726,
-        "skill_vs_zero": 0.865261013876534,
-        "excluded_overlapping_or_old": 19,
+        "mae": 0.806074017068782,
+        "baseline_mae": 0.3300254005065889,
+        "skill_vs_zero": -1.4424605373751795,
+        "excluded_overlapping_or_old": 2,
         "measurement_policy": "timely tick or exact future candle close; approximate reconstructions excluded"
       },
       "policy": {
