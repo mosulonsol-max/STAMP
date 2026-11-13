@@ -32,7 +32,10 @@
    try { history.pushState(null, "", tab.hash); }
    catch { location.hash = tab.hash; }
   }
-  if (scroll) scrollToPanel(tab);
+  if (scroll) {
+   if (tab === tabs[0]) window.scrollTo(0, 0);
+   else scrollToPanel(tab);
+  }
  }
  tabs.forEach((tab, index) => {
   tab.addEventListener("click", event => {
