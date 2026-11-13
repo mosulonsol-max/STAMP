@@ -555,9 +555,10 @@ body { background:radial-gradient(ellipse at 85% 0,#17395165,transparent 55%),#0
 .map-heading { padding:20px 22px 12px; align-items:center; gap:20px; }
 .map-heading h2 { font-size:clamp(1.25rem,2vw,1.9rem); font-weight:650; }
 .map-heading p { color:#9ab6cb; margin-top:5px; font-size:.8rem; }
-.stamp-map .map-nodes { padding:10px 18px; border-block:1px solid #29475b; background:#0a1827a6; gap:5px; }
-.stamp-map .map-nodes a { min-height:48px; border:1px solid transparent; border-radius:9px; background:transparent; transform:none; transition:background .2s,border-color .2s; }
-.stamp-map .map-nodes a[aria-selected=true] { transform:none; background:linear-gradient(135deg,#255669,#143347); border-color:#5b9ba4; box-shadow:inset 0 1px 0 #c2fff51a; }
+.topbar .map-nodes { display:flex; width:100%; max-width:1660px; margin-inline:auto; padding:5px clamp(12px,2.5vw,36px) 8px; border-top:1px solid #29475b; background:#0a1827a6; gap:5px; overflow-x:auto; scrollbar-width:thin; }
+.workspace [role=tabpanel] { scroll-margin-top:calc(var(--workspace-nav-height,115px) + 12px); }
+.topbar .map-nodes a { flex:1 0 120px; padding:5px 10px; min-height:48px; border:1px solid transparent; border-radius:9px; background:transparent; transform:none; transition:background .2s,border-color .2s; }
+.topbar .map-nodes a[aria-selected=true] { transform:none; background:linear-gradient(135deg,#255669,#143347); border-color:#5b9ba4; box-shadow:inset 0 1px 0 #c2fff51a; }
 .trace-workspace { grid-template-columns:minmax(0,1fr) 270px; padding:12px; gap:10px; }
 .trace-visual { overflow:hidden; background:#07131e; }
 .trace-scene-toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:11px 14px; border-bottom:1px solid #233c4f; background:#102235; }
@@ -585,8 +586,8 @@ body[data-workspace=marketMap] .trace-inspector { max-height:370px; overflow:aut
  .trace-inspector #traceOpen { grid-column:1/-1; }
  .trace-stage-world { height:330px; }
  .map-heading { padding:15px; }
- .stamp-map .map-nodes a { min-width:85px; min-height:43px; }
+ .topbar .map-nodes a { flex-basis:100px; min-height:43px; font-size:.76rem; }
 }
 @media(prefers-reduced-motion:reduce) {
- .stamp-map .map-nodes a { transition:none; }
+ .topbar .map-nodes a { transition:none; }
 }

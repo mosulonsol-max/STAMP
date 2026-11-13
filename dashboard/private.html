@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=spatial-2">
+  <link rel="stylesheet" href="/assets/style.css?v=spatial-3">
   <link rel="stylesheet" href="/assets/market-map.css?v=spatial-2">
 </head>
 <body class="dashboard-page">
@@ -20,27 +20,6 @@
         <button class="quiet-button" id="settingsButton" type="button" data-i18n="settings" aria-haspopup="dialog" aria-controls="settings">الإعدادات</button>
       </div>
     </div>
-  </header>
-
-  <main class="workspace" id="overview">
-    <section class="stamp-map" aria-labelledby="mapTitle">
-      <header class="map-heading">
-        <div><h2 id="mapTitle" data-copy="Market and STAMP engine">السوق ومحرك ستامب</h2>
-          <p data-copy="Select a module to inspect its data and open its linked workspace.">اختر مجسمًا لتتبع بياناته وفتح القسم المرتبط به.</p></div>
-        <div class="market-tools">
-          <div class="asset-controls">
-            <button class="pair-picker-button" id="assetPickerButton" type="button" aria-haspopup="dialog" aria-controls="assetPicker">
-              <span data-copy="Choose coin">اختر العملة</span><bdi id="assetSelected">STAMP / USDT</bdi><span aria-hidden="true">⌄</span>
-            </button>
-            <button class="favorite-button" type="button" id="assetFavorite" aria-label="المفضلة" aria-pressed="false">☆</button>
-          </div>
-          <div class="asset-tools-meta">
-            <label class="sr-only" for="favoriteSelect" data-copy="Favorite pairs">الأزواج المفضلة</label>
-            <select id="favoriteSelect"><option value="">المفضلة</option></select>
-            <div id="assetMessage" class="muted" role="status" aria-live="polite"></div>
-          </div>
-        </div>
-      </header>
       <nav class="page-nav map-nodes" role="tablist" aria-label="خريطة أقسام ستامب">
 
         <a id="tradeTab" href="#trading" role="tab" aria-controls="trading" aria-selected="true" aria-label="التداول" data-label-en="Trading">
@@ -62,6 +41,28 @@
           <span data-copy="System operation">تشغيل النظام</span><small id="mapSystem">—</small>
         </a>
       </nav>
+  </header>
+
+  <main class="workspace" id="overview">
+    <section class="stamp-map" aria-labelledby="mapTitle">
+      <header class="map-heading">
+        <div><h2 id="mapTitle" data-copy="Market and STAMP engine">السوق ومحرك ستامب</h2>
+          <p data-copy="Select a module to inspect its data and open its linked workspace.">اختر مجسمًا لتتبع بياناته وفتح القسم المرتبط به.</p></div>
+        <div class="market-tools">
+          <div class="asset-controls">
+            <button class="pair-picker-button" id="assetPickerButton" type="button" aria-haspopup="dialog" aria-controls="assetPicker">
+              <span data-copy="Choose coin">اختر العملة</span><bdi id="assetSelected">STAMP / USDT</bdi><span aria-hidden="true">⌄</span>
+            </button>
+            <button class="favorite-button" type="button" id="assetFavorite" aria-label="المفضلة" aria-pressed="false">☆</button>
+          </div>
+          <div class="asset-tools-meta">
+            <label class="sr-only" for="favoriteSelect" data-copy="Favorite pairs">الأزواج المفضلة</label>
+            <select id="favoriteSelect"><option value="">المفضلة</option></select>
+            <div id="assetMessage" class="muted" role="status" aria-live="polite"></div>
+          </div>
+        </div>
+      </header>
+
       <div class="trace-workspace">
         <div class="trace-visual">
           <div class="trace-scene-toolbar">
@@ -541,14 +542,14 @@
       <button type="button" id="logoutButton" data-i18n="logout">تسجيل الخروج</button>
     </form>
   </dialog>
-  <script src="/assets/workspace-tabs.js?v=map-1" defer></script>
+  <script src="/assets/workspace-tabs.js?v=spatial-3" defer></script>
   <script src="/assets/market-lens.js?v=3" defer></script>
   <script src="/assets/chart.js?v=5.0.9" defer></script>
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
   <script src="/assets/pipeline-3d.js?v=spatial-2" defer></script>
-  <script src="/assets/app.js?v=spatial-2" defer></script>
+  <script src="/assets/app.js?v=spatial-3" defer></script>
   <script src="/assets/market-flow.js?v=stamp-venues-live-5" defer></script>
   <script src="/assets/market-map.js?v=spatial-2" defer></script>
 </body>

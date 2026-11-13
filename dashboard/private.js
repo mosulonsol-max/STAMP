@@ -1019,8 +1019,7 @@ function syncProjectWorkspace(){
 }
 function openPipelineSection(id){
  const target=pipelineStages.find(stage=>stage[0]===id)?.[3];
- const tab=document.querySelector?.('.page-nav [aria-controls="'+target+'"]');
- if(tab?.getAttribute("aria-selected")!=="true")tab?.click();
+ if(target)document.dispatchEvent(new CustomEvent("stamp:open-workspace",{detail:{target}}));
 }
 function setOrbit(enabled){
  orbitEnabled=enabled&&!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;

@@ -21,14 +21,18 @@
  function sync() {
   show(tabs.find(tab => tab.hash === location.hash) || tabs[0]);
  }
- function activate(tab) {
+ function scrollToPanel(tab) {
+  requestAnimationFrame(() => {
+   if (current === tab) panelFor(tab)?.scrollIntoView({block:"start"});
+  });
+ }
+ function activate(tab, scroll = true) {
   show(tab);
   if (location.hash !== tab.hash) {
    try { history.pushState(null, "", tab.hash); }
    catch { location.hash = tab.hash; }
   }
-  if (tab === tabs[0]) window.scrollTo(0, 0);
-  else document.getElementById("mapTitle")?.scrollIntoView({block:"start"});
+  if (scroll) scrollToPanel(tab);
  }
  tabs.forEach((tab, index) => {
   tab.addEventListener("click", event => {
@@ -51,6 +55,20 @@
  });
  window.addEventListener("popstate", sync);
  window.addEventListener("hashchange", sync);
- window.addEventListener("pageshow", sync);
+ window.addEventListener("pageshow", () => {
+  sync();
+  const tab = tabs.find(item => item.hash === location.hash);
+  if (tab) scrollToPanel(tab);
+ });
+ document.addEventListener("stamp:open-workspace", event => {
+  const tab = tabs.find(item => item.getAttribute("aria-controls") === event.detail?.target);
+  if (tab) activate(tab, false);
+ });
+ const header = document.querySelector(".topbar");
+ if (header && typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(() => {
+   document.documentElement.style.setProperty("--workspace-nav-height",header.offsetHeight + "px");
+  }).observe(header);
+ }
  sync();
 })();
