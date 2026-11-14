@@ -742,14 +742,19 @@ const reasonText={
 function renderForecasts(){
  if(selectedAsset!=="STAMPUSDT"){
   const proposed=data?.asset_research_forecasts?.[frame];
-  set("modelStatus",proposed?.status==="research_only"?t("experimental"):t("awaiting"));
+  const expired=!!proposed&&Date.parse(proposed.due_at_utc)<=Date.now();
+  el("forecastHorizon").closest(".horizon-select").hidden=true;
+  set("forecastTitle",copy("توقع الزوج المحدد","Selected pair forecast"));
+  set("modelStatus",!proposed?t("noForecast"):expired?copy("توقع منتهي · للأرشيف","Expired · historical forecast"):t("experimental"));
   el("modelStatus").className="model-status";
-  set("forecastSummary",proposed?.status==="research_only"
-   ? frame+" · "+t("target")+" "+ltr(price(proposed.predicted_price)+" USDT")+"\n"+t("due")+" · "+stamp(proposed.due_at_utc)
+  set("forecastSummary",proposed
+   ? frame+" · "+t("target")+" "+ltr(price(proposed.predicted_price)+" USDT")+"\n"+t("due")+" · "+stamp(proposed.due_at_utc)+(expired?"\n"+t("forecastExpired"):"")
    : t("noForecast"));
   for(const id of ["outcomeSummary","modelDecisionTime","modelReason","forecastHistory"])set(id,"");
   return;
  }
+ el("forecastHorizon").closest(".horizon-select").hidden=false;
+ set("forecastTitle",copy("توقعات المحرك","Model forecasts"));
  const r=data?.forecasts?.[horizon],f=r&&typeof r==="object"?r.forecast:null;
  const decision=data?.model_decisions?.[horizon];
  const decisionAge=age(decision?.decided_at_utc),decisionFresh=decisionAge!==null&&decisionAge<=9000&&Date.parse(f?.due_at_utc)>Date.now()&&(!data?.output_assurance||data.output_assurance.horizons?.[horizon]?.predictive_validity==="approved_research");
@@ -961,6 +966,10 @@ function renderIntelligence(){
   return '<button type="button" class="forecast-card" data-horizon="'+h+'" aria-pressed="'+(h===horizon)+'"><strong>'+h+
    '</strong><span class="forecast-target">'+esc(f?price(f.predicted_price):"—")+'</span><small>'+esc(status)+'</small></button>';
  }):[];
+ if(selectedAsset!=="STAMPUSDT"){
+  const f=data.asset_research_forecasts?.[frame],expired=f&&Date.parse(f.due_at_utc)<=Date.now();
+  cards.push('<div class="forecast-card" aria-label="'+esc(frame)+'"><strong>'+esc(frame)+'</strong><span class="forecast-target">'+esc(f?price(f.predicted_price):"—")+'</span><small>'+esc(!f?copy("لا يوجد توقع","No forecast"):expired?copy("منتهي · مؤرشف","Expired · archived"):copy("تجريبي · غير معتمد","Experimental · unapproved"))+'</small></div>');
+ }
  const panel=el("forecastCards");
  if(panel)panel.innerHTML=cards.join("");
  set("labStatus",lab.status||t("unavailable"));

@@ -35,6 +35,7 @@ test('unified spatial scene binds verified capitalization, quotes and module det
  await expect(page.locator('#sceneSnapshot #predictionCenter')).toBeVisible();
  await expect(page.locator('#sceneForecastChart')).toBeVisible();
  await expect(page.locator('#forecastCards [data-horizon]')).toHaveCount(4);
+ await expect(page.locator('#forecastSummary')).not.toHaveText('—');
  await expect(page.locator('.trace-inspector')).toBeHidden();
  await expect(page.locator('#sceneEventFeed button')).toHaveCount(1);
  await page.locator('#sceneEventFeed button').click();
@@ -55,6 +56,10 @@ test('unified spatial scene binds verified capitalization, quotes and module det
  await page.locator('.trace-module-list summary').click();
  await page.locator('[data-scene-pair="BTCUSDT"]').click();
  await expect(page.locator('#traceStage')).toContainText('BTC');
+ await expect(page.locator('#forecastTitle')).toContainText('الزوج المحدد');
+ await expect(page.locator('#forecastHorizon')).toBeHidden();
+ await expect(page.locator('#forecastCards .forecast-card')).toHaveCount(1);
+ await expect(page.locator('#forecastSummary')).toContainText('15m');
  await expect(page.locator('#traceDetails')).toContainText('CoinGecko');
  await expect(page.locator('#traceDetails')).toContainText('OKX');
  await page.locator('#traceOpen').click();
@@ -79,6 +84,9 @@ test('unified spatial scene binds verified capitalization, quotes and module det
  await page.setViewportSize({width:390,height:844});
  await expect(page.locator('#traceCanvas')).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
+ const snapshot=await page.locator('#sceneSnapshot').boundingBox();
+ expect(snapshot.x).toBeGreaterThanOrEqual(0);
+ expect(snapshot.x+snapshot.width).toBeLessThanOrEqual(391);
  await page.evaluate(()=>window.scrollTo(0,0));
  await page.screenshot({path:'test-results/unified-scene-mobile.png',fullPage:true});
  const beforePan=await page.locator('.trace-stage-world').evaluate(node=>node.scrollLeft);
