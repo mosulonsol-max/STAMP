@@ -1,4 +1,5 @@
 const {test,expect}=require('@playwright/test');
+if (process.env.STAMP_CHROME_CHANNEL === 'chrome') test.use({channel:'chrome'});
 const HOST=process.env.STAMP_TEST_HOST||'http://127.0.0.1:10000';
 
 test('unified spatial scene binds verified capitalization, quotes and module details',async({page})=>{
