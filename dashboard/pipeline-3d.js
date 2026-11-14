@@ -9,7 +9,7 @@ window.StampPipeline3D = (() => {
   const mix=(color,factor)=>color.map(v=>Math.min(1,v*factor));
   function create(canvas){
     let gl;
-    try{gl=canvas.getContext("webgl",{alpha:false,antialias:true,depth:true,stencil:false});}catch{return null}
+    try{gl=canvas.getContext("webgl",{alpha:true,antialias:true,depth:true,stencil:false});}catch{return null}
     if(!gl)return null;
     const shader=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);
       if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s};
@@ -111,9 +111,15 @@ window.StampPipeline3D = (() => {
       function module(node,size,color){
         const [x,y,z]=node.pos;
         if(node.id==="research"){
-          sphere(node.pos,.28,color);
-          ring(node.pos,.4,mix(color,1.2),.55);
-          ring(node.pos,.46,mix(color,.7),-.55);
+          sphere(node.pos,.43,mix(color,.84));
+          ring(node.pos,.59,mix(color,1.3),.65);
+          ring(node.pos,.68,mix(color,.68),-.65);
+          ring(node.pos,.78,mix(color,.48),.1);
+          for(let i=0;i<12;i++){
+            const a=i*Math.PI/6;
+            segment([x+Math.cos(a)*.79,y,z+Math.sin(a)*.79],
+              [x+Math.cos(a)*.89,y,z+Math.sin(a)*.89],mix(color,.75));
+          }
         }else if(node.id==="market_map"){
           box([x,y+.13,z],.29,mix(color,.4));
           const caps=metrics.marketCaps||[];
@@ -147,24 +153,24 @@ window.StampPipeline3D = (() => {
             [at[0]+Math.cos(b)*size*1.65,y,at[2]+Math.sin(b)*size*1.65],color);
         }
       }
-      for(let x=-4.5;x<=4.5;x+=.6)segment([x,2.4,-2.7],[x,2.4,2.2],[.07,.17,.23]);
-      for(let z=-2.7;z<=2.2;z+=.5)segment([-4.5,2.4,z],[4.5,2.4,z],[.07,.17,.23]);
+      for(let x=-4.5;x<=4.5;x+=1.1)segment([x,2.4,-2.7],[x,2.4,2.2],[.055,.12,.16]);
+      for(let z=-2.7;z<=2.2;z+=.9)segment([-4.5,2.4,z],[4.5,2.4,z],[.055,.12,.16]);
       const markets=(metrics.markets||[]).filter(row=>Number.isFinite(row.cap)&&row.cap>0)
         .sort((a,b)=>b.cap-a.cap);
-      const tiles=partition(markets,-4.15,-2.55,3.05,1.85);
-      const frame=[[-4.22,1.27,-2.63],[-1.03,1.27,-2.63],[-1.03,1.27,-.62],[-4.22,1.27,-.62]];
+      const tiles=partition(markets,-4.1,-2.55,2.45,1.35);
+      const frame=[[-4.18,1.67,-2.63],[-1.57,1.67,-2.63],[-1.57,1.67,-1.12],[-4.18,1.67,-1.12]];
       for(let i=0;i<4;i++)segment(frame[i],frame[(i+1)%4],[.27,.61,.59]);
       for(const tile of tiles){
         const gap=Math.min(.025,tile.w*.03,tile.d*.03),change=tile.change;
         const color=Number.isFinite(change)?
           change<0?[.55,.21,.31]:change>0?[.12,.54,.45]:[.38,.51,.56]:[.47,.42,.31];
         const active=selected?.pair===tile.pair;
-        prism(tile.x+gap,1.2,tile.z+gap,Math.max(.005,tile.w-gap*2),Math.max(.005,tile.d-gap*2),
-          active ? .22 : .14,active?palette.selected:color);
+        prism(tile.x+gap,1.62,tile.z+gap,Math.max(.005,tile.w-gap*2),Math.max(.005,tile.d-gap*2),
+          active ? .18 : .11,active?palette.selected:color);
       }
       // The market-cap bay is physically attached to the collection and valuation routes.
-      segment([-4.15,1.25,-.72],[-1.45,1.25,-.72],[.2,.61,.58]);
-      segment([-1.45,1.25,-.72],[-1.55,-.75,.15],[.18,.43,.5]);
+      segment([-4.1,1.65,-1.15],[-2.65,1.65,-1.15],[.2,.61,.58]);
+      segment([-2.65,1.65,-1.15],[-2.7,-.58,-1],[.18,.43,.5]);
       const positions=new Map(nodes.map(node=>[node.id,node.pos]));
       const curve=(a,b,t)=>{const mid=[(a[0]+b[0])/2,Math.min(a[1],b[1])-.55,(a[2]+b[2])/2];
         return [0,1,2].map(i=>(1-t)**2*a[i]+2*(1-t)*t*mid[i]+t*t*b[i])};
@@ -191,7 +197,8 @@ window.StampPipeline3D = (() => {
       for(const node of nodes){
         const status=states[node.id],color=node.id===selected?.id?palette.selected:status==="running"?palette.running:
           status==="failure"?palette.failure:status==="success"?palette.success:node.id==="lab"?palette.lab:palette.idle;
-        const size=node.id.startsWith("venue_")?.15:.23;
+        const size=node.id.startsWith("venue_")?.13:node.id==="research"?.30:
+          ["lab","diagnosis","multi_asset_governance","forecast_health","production_smoke"].includes(node.id)?.12:.21;
         dock(node.pos,size,node.id===selected?.id?palette.selected:mix(color,.7));
         module(node,size,color);
         segment([node.pos[0],node.pos[1]+.27,node.pos[2]],[node.pos[0],2.4,node.pos[2]],mix(color,.33));
@@ -216,7 +223,7 @@ window.StampPipeline3D = (() => {
         gl.vertexAttribPointer(p,3,gl.FLOAT,false,24,0);gl.vertexAttribPointer(c,3,gl.FLOAT,false,24,12);
         gl.drawArrays(primitive,0,target.length/6);
       }
-      gl.clearColor(.024,.052,.078,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+      gl.clearColor(.015,.04,.065,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);gl.useProgram(program);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
       gl.enableVertexAttribArray(p);gl.enableVertexAttribArray(c);
       render(triangles,gl.TRIANGLES);render(lines,gl.LINES);

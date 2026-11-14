@@ -971,23 +971,23 @@ function renderIntelligence(){
 }
 let systemSnapshot=null;
 const pipelineStages=[
- ["monitor","الرصد","Collect","venuesSection",[-1.55,-.72,.1]],
- ["archive","الأرشيف","Archive","trading",[-.64,-.72,.1]],
- ["evidence","التحقق","Verify","venuesSection",[.27,-.72,.1]],
- ["research","التحليل","Analyze","trading",[1.18,-.72,.1]],
- ["audit","قياس النتائج","Measure","trading",[2.09,-.72,.1]],
- ["governance","الاعتماد","Review","systemCenter",[3,-.72,.1]],
- ["dashboard","النشر","Publish","systemCenter",[3.91,-.72,.1]],
- ["lab","المختبر","Lab","labCenter",[.35,1.28,-.55]],
- ["diagnosis","تشخيص الخطأ","Diagnose","systemCenter",[1.27,1.28,-.55]],
- ["multi_asset_governance","مراجعة الأزواج","Pairs review","systemCenter",[2.19,1.28,-.55]],
- ["forecast_health","فحص التوقعات","Forecast check","systemCenter",[3.11,1.28,-.55]],
- ["production_smoke","فحص النشر","Production check","systemCenter",[4.03,1.28,-.55]],
- ["market_catalog","التقييم","Valuation","marketMap",[-3.8,-.72,-1.35]],
- ["market_map","العملات","Assets","marketMap",[-2.45,-.72,-1.35]],
- ["market_view","تدفق السوق","Market flow","globalMarketFlow",[-2.8,.3,1.45]],
+ ["monitor","الرصد","Collect","venuesSection",[-1.25,-.55,.15]],
+ ["archive","الأرشيف","Archive","trading",[-.45,-.72,-.25]],
+ ["evidence","التحقق","Verify","venuesSection",[.25,-.42,.1]],
+ ["research","التحليل","Analyze","trading",[1.15,-.35,-.05]],
+ ["audit","قياس النتائج","Measure","trading",[2.05,-.45,.15]],
+ ["governance","الاعتماد","Review","systemCenter",[2.85,-.58,-.25]],
+ ["dashboard","النشر","Publish","systemCenter",[3.75,-.55,.1]],
+ ["lab","المختبر","Lab","labCenter",[.85,-1.65,-.6]],
+ ["diagnosis","تشخيص الخطأ","Diagnose","systemCenter",[1.85,-1.57,-.7]],
+ ["multi_asset_governance","مراجعة الأزواج","Pairs review","systemCenter",[2.65,-1.55,-.65]],
+ ["forecast_health","فحص التوقعات","Forecast check","systemCenter",[3.45,-1.53,-.7]],
+ ["production_smoke","فحص النشر","Production check","systemCenter",[4.2,-1.5,-.75]],
+ ["market_catalog","التقييم","Valuation","marketMap",[-3.7,-.65,-1.1]],
+ ["market_map","العملات","Assets","marketMap",[-2.7,-.58,-1.0]],
+ ["market_view","تدفق السوق","Market flow","globalMarketFlow",[-2.45,-.35,.75]],
  ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map((venue,index)=>
-  ["venue_"+venue.toLowerCase(),venue,venue,"globalMarketFlow",[-4.16+index*.55,1.52,1.35]])
+  ["venue_"+venue.toLowerCase(),venue,venue,"globalMarketFlow",[-4.05+index*.42,1.45,1.35+(index%2)*.4]])
 ];
 const pipelineTopology=[
  ["monitor","archive"],["archive","evidence"],["evidence","research"],["research","audit"],
@@ -1121,26 +1121,30 @@ function drawPipeline(pulse=null){
   const model=pipelineWorld.draw(pipelineStages.map(([id,,,,pos])=>({id,pos})),pipelineLinks.map(({event})=>event).filter(event=>!event.configured||selectedHandoff?.from===event.from&&selectedHandoff?.to===event.to),
     pulse?(Array.isArray(pulse)?pulse:[pulse]):[],selectedMarketPair?{pair:selectedMarketPair}:selectedHandoff||{id:pipelineSelected},states,pipelineTopology,{markets:sceneMarkets});
   marketCapTiles=(model?.tiles||[]).map(tile=>({
-   ...tile, corners:[[tile.x,1.04,tile.z],[tile.x+tile.w,1.04,tile.z],
-     [tile.x+tile.w,1.04,tile.z+tile.d],[tile.x,1.04,tile.z+tile.d]]
+   ...tile, corners:[[tile.x,1.51,tile.z],[tile.x+tile.w,1.51,tile.z],
+     [tile.x+tile.w,1.51,tile.z+tile.d],[tile.x,1.51,tile.z+tile.d]]
      .map(point=>pipelineWorld.project(point))
   }));
   canvas.dataset.marketTiles=String(marketCapTiles.length);
   canvas.dataset.marketCapTotal=String(sceneMarkets.reduce((sum,row)=>sum+row.cap,0));
   canvas.dataset.geometry=marketCapTiles.length?"webgl-market-and-pipeline":"webgl-pipeline";
   canvas.dataset.marketAreas=JSON.stringify(marketCapTiles.map(tile=>[tile.pair,Number((tile.w*tile.d).toFixed(8))]));
-  ctx.textAlign="center";ctx.font=(w<550?"9":"11")+"px system-ui";
-  const primary=new Set(["market_catalog","market_map","market_view","monitor","research","audit","governance","dashboard","lab"]);
+  canvas.dataset.marketHits=JSON.stringify(marketCapTiles.map(tile=>({pair:tile.pair,
+   center:tile.corners.reduce((point,corner)=>({x:point.x+corner.x/4,y:point.y+corner.y/4}),{x:0,y:0})})));
+  ctx.textAlign="center";ctx.font=(w<550?"10":"12")+"px system-ui";
+  const primary=new Set(["market_catalog","market_map","market_view","monitor","evidence","research","audit","governance","dashboard","lab"]);
   for(const node of pipelinePoints){
    if(!primary.has(node.id)&&node.id!==pipelineSelected)continue;
-   const width=ctx.measureText(node.name).width+10;
-   ctx.fillStyle=node.id===pipelineSelected?"#244959e8":"#091b2ae8";
-   ctx.fillRect(node.p[0]-width/2,node.p[1]+20,width,16);
-   ctx.fillStyle=node.id===pipelineSelected?"#e7fff7":"#b8d1e4";
-   ctx.fillText(node.name,node.p[0],node.p[1]+32);
+   const highlighted=node.id===pipelineSelected&&!selectedMarketPair;
+   const core=node.id==="research",cy=node.p[1]+(core?62:25),width=ctx.measureText(node.name).width+22;
+   ctx.fillStyle=highlighted?"#1f5563ee":"#091d2bdb";
+   ctx.strokeStyle=highlighted?"#b4ffed":"#416377";
+   ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(node.p[0]-width/2,cy-13,width,24,6);ctx.fill();ctx.stroke();
+   ctx.fillStyle=highlighted?"#fff":"#c3dce2";
+   ctx.fillText(node.name,node.p[0],cy+3);
   }
   for(const tile of marketCapTiles.slice(0,w<600?5:9)){
-   const center=pipelineWorld.project([tile.x+tile.w/2,1.03,tile.z+tile.d/2]);
+   const center=pipelineWorld.project([tile.x+tile.w/2,1.5,tile.z+tile.d/2]);
    const bounds=tile.corners;
    const span=Math.hypot(bounds[0].x-bounds[1].x,bounds[0].y-bounds[1].y);
    if(span<20)continue;
@@ -1165,10 +1169,10 @@ function drawPipeline(pulse=null){
   ctx.font="600 11px system-ui";
   ctx.fillStyle="#92d8ca";
   const zones=[
-   [copy("مدخلات المنصات","EXCHANGE INPUTS"),[-3,1.9,1.7]],
-   [copy("قيمة سوقية موثّقة","VERIFIED MARKET CAP"),[-2.5,-1.5,-2.2]],
-   [copy("تحقق وتحليل","VALIDATE & ANALYZE"),[.7,-1.55,.1]],
-   [copy("قرار ونشر","DECIDE & PUBLISH"),[3.1,-1.55,.1]]
+   [copy("منصات البيانات","EXCHANGE SOURCES"),[-3.1,.75,1.8]],
+   [copy("مساحة حسب القيمة السوقية","CAPITALIZATION AREA"),[-3,1.65,-2.7]],
+   [copy("المحرك التحليلي","ANALYSIS ENGINE"),[1.15,-1.6,.15]],
+   [copy("القرار والنشر","DECISION & DELIVERY"),[3.15,-1.5,.3]]
   ];
   for(const [label,at] of zones){
    const point=pipelineWorld.project(at);

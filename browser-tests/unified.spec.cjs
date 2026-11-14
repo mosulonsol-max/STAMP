@@ -42,7 +42,8 @@ test('unified spatial scene binds verified capitalization, quotes and module det
  await page.locator('#traceOrbit').click();
  await page.locator('#traceReset').click();
  const world=await page.locator('#traceCanvas').boundingBox();
- await page.mouse.click(world.x+world.width*.13,world.y+world.height*.48);
+ const hit=await page.locator('#traceCanvas').evaluate(canvas=>JSON.parse(canvas.dataset.marketHits).find(row=>row.pair==='BTCUSDT').center);
+ await page.mouse.click(world.x+hit.x,world.y+hit.y);
  await expect(page.locator('#traceStage')).toContainText('BTC');
  await page.locator('.trace-module-list summary').click();
  await page.locator('[data-scene-pair="BTCUSDT"]').click();
