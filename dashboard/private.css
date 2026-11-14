@@ -627,6 +627,18 @@ body[data-workspace] .trace-stage-world,.trace-stage-world { height:clamp(580px,
   max-width:min(66%,390px); font:600 .69rem/1.5 var(--number); color:#dbf7f0; text-align:end; }
 .scene-hud span { width:max-content; max-width:100%; justify-self:end; padding:5px 10px; border:1px solid #5277899a; border-radius:6px;
   background:#091c2bdc; overflow-wrap:anywhere; }
+.scene-event-rail { position:absolute; z-index:3; inset:auto auto 12px 12px; width:min(330px,42%); max-height:188px; overflow:auto;
+  padding:9px; border:1px solid #446b7c; border-radius:10px; background:#071b2de8; backdrop-filter:blur(12px); }
+.scene-event-rail>strong { display:block; padding:2px 5px 7px; color:#a0e9d9; font-size:.68rem; letter-spacing:.04em; }
+.scene-event-rail p { margin:3px 5px; color:#adc6d5; font-size:.72rem; }
+.scene-event-rail button { display:grid; grid-template-columns:1fr auto; gap:2px 7px; width:100%; margin:2px 0; padding:6px 8px;
+  text-align:start; border:1px solid transparent; border-inline-start:3px solid #70d9c3; border-radius:5px;
+  background:#143144d9; color:#effaf7; font-size:.72rem; cursor:pointer; }
+.scene-event-rail button[data-kind=venue] { border-inline-start-color:#69cbf3; }
+.scene-event-rail button[data-kind=market] { border-inline-start-color:#d4b873; }
+.scene-event-rail button:hover,.scene-event-rail button:focus-visible { border-color:#9cebd7; }
+.scene-event-rail small { color:#b9d0db; grid-column:1/-1; overflow-wrap:anywhere; }
+.scene-event-rail time { color:#a8c6d5; font:600 .64rem var(--number); }
 .scene-legend { position:absolute; z-index:2; inset:auto 12px 12px auto; display:flex; flex-wrap:wrap; gap:8px 13px;
   padding:7px 10px; color:#c0dbe2; background:#0a2030dd; border:1px solid #365c6e; border-radius:8px; font-size:.68rem; pointer-events:none; }
 .scene-legend>span { display:flex; align-items:center; gap:5px; }
@@ -691,6 +703,10 @@ body[data-workspace] .trace-inspector { max-height:none; overflow:visible; }
  .trace-scene-toolbar button { font-size:.7rem; padding:3px 6px; min-height:36px; }
  .scene-hud { top:7px; right:7px; max-width:82%; font-size:.6rem; }
  .scene-hud span { padding:3px 6px; }
+ .scene-event-rail { width:min(210px,58%); max-height:105px; padding:5px; bottom:35px; left:6px; }
+ .scene-event-rail button { padding:4px 5px; font-size:.62rem; }
+ .scene-event-rail small { display:none; }
+ .scene-event-rail>strong { font-size:.58rem; }
  .scene-legend { inset:auto 6px 6px 6px; gap:5px 8px; font-size:.59rem; }
  .trace-inspector { display:block; padding:12px; }
  .trace-inspector dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-height:150px; }

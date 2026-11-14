@@ -19,6 +19,11 @@ test('unified spatial scene binds verified capitalization, quotes and module det
    quote_received_at:now,price_at_ms:stamp,high:70000,low:60000,change:index?-1:2,prices:[1,2]
   }))
  }}));
+ await page.route('**/api/pipeline/events?*',route=>route.fulfill({json:{
+  source:'worker_runtime_telemetry',checked_at_utc:now,sequence:1,
+  events:[{sequence:1,from:'monitor',to:'archive',artifact:'data/latest.json',
+   sha256:'a'.repeat(64),bytes:840,run:'12345',observed_utc:now,received_at_utc:now}]
+ }}));
  await page.goto(HOST+'/');
  await page.locator('#user').fill('test-user');
  await page.locator('#password').fill('long-test-password');
@@ -26,6 +31,9 @@ test('unified spatial scene binds verified capitalization, quotes and module det
  await expect(page.locator('.page-nav')).toHaveCount(0);
  await expect(page.locator('#traceCanvas')).toBeVisible();
  await expect(page.locator('#sceneDetail')).toBeHidden();
+ await expect(page.locator('#sceneEventFeed button')).toHaveCount(1);
+ await page.locator('#sceneEventFeed button').click();
+ await expect(page.locator('#traceDetails')).toContainText('data/latest.json');
  await expect(page.locator('#sceneAssets')).toContainText('1.8T');
  await expect(page.locator('#sceneVenues')).toContainText('OKX');
  await expect(page.locator('#traceCanvas')).toHaveAttribute('data-market-tiles','2');

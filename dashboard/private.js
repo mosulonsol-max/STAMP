@@ -1006,6 +1006,34 @@ const pipelineWorld=window.StampPipeline3D?.create(document.getElementById("trac
 let pipelineSequence=0,pipelineEventRequest=false;
 let mapResponse=null,orbitFrame=0,orbitStarted=0,orbitEnabled=false;
 let sceneMarkets=[],sceneCatalog=null,sceneWindowRows=new Map(),marketCapTiles=[],selectedMarketPair=null,sceneMarketBusy=false,sceneCatalogAt=0;
+const sceneHistory=[],sceneSeen=new Set(),sceneMotion=[];
+let liveMotionFrame=0;
+function recordSceneEvent(event,kind,label,detail,key){
+ if(sceneSeen.has(key))return false;
+ sceneSeen.add(key);
+ if(sceneSeen.size>240)sceneSeen.delete(sceneSeen.values().next().value);
+ sceneHistory.unshift({event,kind,label,detail});sceneHistory.length=Math.min(sceneHistory.length,8);
+ const feed=el("sceneEventFeed");
+ if(feed)feed.innerHTML=sceneHistory.map((item,index)=>
+  '<button type="button" data-scene-event="'+index+'" data-kind="'+esc(item.kind)+'"><span>'+esc(item.label)+
+  '</span><time>'+esc(stamp(item.event.observed_utc||item.event.received_at_utc,true))+'</time><small>'+esc(item.detail)+'</small></button>').join("");
+ return true;
+}
+function animateObserved(events){
+ if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
+ if(pipelineFrame){cancelAnimationFrame(pipelineFrame);pipelineFrame=0}
+ const now=performance.now();
+ for(const event of events)sceneMotion.push({...event,start:now,duration:1400});
+ if(sceneMotion.length>36)sceneMotion.splice(0,sceneMotion.length-36);
+ if(liveMotionFrame)return;
+ const animate=time=>{
+  for(let i=sceneMotion.length-1;i>=0;i--)if(time-sceneMotion[i].start>=sceneMotion[i].duration)sceneMotion.splice(i,1);
+  drawPipeline(sceneMotion.map(item=>({...item,progress:Math.max(0,(time-item.start)/item.duration)})));
+  liveMotionFrame=sceneMotion.length?requestAnimationFrame(animate):0;
+  if(!liveMotionFrame)drawPipeline();
+ };
+ liveMotionFrame=requestAnimationFrame(animate);
+}
 function syncProjectWorkspace(){
  const context=el("projectContext");
  if(context)context.textContent=pairLabel(selectedAsset)+" · "+copy("مجسّم السوق والنظام","Market and system model");
@@ -1027,7 +1055,7 @@ function setOrbit(enabled){
  let lastPaint=0;
  const turn=now=>{
   if(!orbitEnabled)return;
-  if(!document.hidden&&!pipelineFrame&&now-lastPaint>40){
+  if(!document.hidden&&!pipelineFrame&&!liveMotionFrame&&now-lastPaint>40){
    lastPaint=now;
    pipelineAngle=origin+Math.sin((now-orbitStarted)/11000)*.52;
    drawPipeline();
@@ -1370,6 +1398,14 @@ function setupPipeline(){
   const coin=event.target.closest("[data-scene-pair]");
   if(coin)selectSceneMarket(coin.dataset.scenePair);
  });
+ el("sceneEventFeed")?.addEventListener("click",event=>{
+  const button=event.target.closest("[data-scene-event]");
+  if(!button)return;
+  const item=sceneHistory[Number(button.dataset.sceneEvent)];if(!item)return;
+  pipelinePinned=true;selectedMarketPair=null;selectedHandoff=item.event;
+  pipelineSelected=item.event.to;paintPipeline();
+  drawPipeline({...item.event,progress:.68});
+ });
  canvas.addEventListener("keydown",event=>{
   if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","+","=","-"].includes(event.key)){
    event.preventDefault();setOrbit(false);
@@ -1457,22 +1493,13 @@ async function pollPipelineEvents(){
    if(!nodes.has(event.from)||!nodes.has(event.to)||!event.artifact||!Number.isFinite(Date.parse(event.observed_utc)))continue;
    const item={...event,kind:"artifact_handoff",live:true};
    livePipelineEvents.set(item.from+"|"+item.to,item);
-   if(age(item.observed_utc)<8)recent.push(item);
+   if(age(item.observed_utc)<8&&recordSceneEvent(item,"artifact",stageName(item.from)+" → "+stageName(item.to),
+    item.artifact+" · SHA-256 "+item.sha256.slice(0,12)+"…", "artifact:"+item.run+":"+item.sequence))recent.push(item);
   }
   if(payload.events.length){
    if(!pipelinePinned&&recent.length){selectedHandoff=recent.at(-1);pipelineSelected=selectedHandoff.to}
    paintPipeline();
-   if(recent.length&&!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
-    if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
-    const started=performance.now(),moving=recent.slice(-12);
-    const animate=now=>{
-     const progress=Math.min(1,(now-started)/900);
-     drawPipeline(moving.map(item=>({...item,progress})));
-     if(progress<1)pipelineFrame=requestAnimationFrame(animate);
-     else{pipelineFrame=0;drawPipeline()}
-    };
-    pipelineFrame=requestAnimationFrame(animate);
-   }
+   if(recent.length)animateObserved(recent);
   }
  }catch{
   const relay=el("traceRelayStatus");relay.dataset.state="unavailable";
@@ -1489,17 +1516,13 @@ function observeVenueFlow(event){
  liveObservations.set(source,update);
  if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
  const moving={from:source,to:"market_view",artifact:"spot_execution_observation",live:true,...update};
+ if(!recordSceneEvent(moving,"venue",update.venue+" · "+pairLabel(update.symbol),
+  copy("آخر صفقة مرصودة ","Last observed trade ")+stamp(update.last_ms,true),
+  "venue:"+update.venue+":"+update.symbol+":"+update.last_ms))return;
  set("scenePacket",copy("صفقة مرصودة ","Observed trade ")+update.venue+" · "+stamp(update.last_ms,true));
  if(!pipelinePinned){selectedHandoff=moving;pipelineSelected="market_view"}
  paintPipeline();
- if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
- const start=performance.now(),pulse=now=>{
-  const progress=Math.min(1,(now-start)/900);
-  drawPipeline({...moving,progress});
-  if(progress<1)pipelineFrame=requestAnimationFrame(pulse);
-  else{pipelineFrame=0;drawPipeline()}
- };
- pipelineFrame=requestAnimationFrame(pulse);
+ animateObserved([moving]);
 }
 window.addEventListener?.("stamp:venueflow",observeVenueFlow);
 document.addEventListener?.("stamp:market-map-focus",event=>{
@@ -1556,17 +1579,9 @@ async function pollSceneMarket(){
     const event={from:"market_catalog",to:"market_map",kind:"api_response",live:true,
      observed_utc:new Date().toISOString(),period:"24h",rows:changed.length,venues:mapResponse.venues};
     livePipelineEvents.set("market_catalog|market_map",event);
-    if(!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
-     if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
-     const start=performance.now();
-     const animate=now=>{
-      const progress=Math.min(1,(now-start)/1000);
-      drawPipeline({...event,progress});
-      if(progress<1)pipelineFrame=requestAnimationFrame(animate);
-      else{pipelineFrame=0;drawPipeline()}
-     };
-     pipelineFrame=requestAnimationFrame(animate);
-    }
+    recordSceneEvent(event,"market",copy("تحديث نافذة السوق","Market window update"),
+     changed.length+" · "+mapResponse.venues.join(" · "),"market:"+event.observed_utc);
+    animateObserved([event]);
    }
   }
   const total=ranked.reduce((sum,[,info])=>sum+info.market_cap_usd,0);

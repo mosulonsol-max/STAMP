@@ -198,7 +198,16 @@ window.StampPipeline3D = (() => {
       }
       for(const pulse of pulses||[]){
         const a=positions.get(pulse.from),b=positions.get(pulse.to);if(a&&b&&Number.isFinite(pulse.progress)){
-          sphere(curve(a,b,Math.max(0,Math.min(1,pulse.progress))),.065,[.92,1,.65]);
+          const progress=Math.max(0,Math.min(1,pulse.progress));
+          const color=pulse.kind==="artifact_handoff"?[.62,1,.77]:pulse.kind==="api_response"?[1,.75,.42]:[.43,.84,1];
+          for(let i=0;i<7;i++){
+            const end=progress-i*.018,start=Math.max(0,end-.018);
+            if(end<=0)break;
+            ribbon(curve(a,b,start),curve(a,b,end),mix(color,Math.max(.22,1-i*.12)),Math.max(1,5-i*.55));
+          }
+          sphere(curve(a,b,progress),.075,color);
+          if(progress<.18)ring(a,.3,mix(color,.75));
+          if(progress>.82)ring(b,.3,mix(color,.85));
         }
       }
       function render(target,primitive){
