@@ -72,6 +72,7 @@ test('unified spatial scene binds verified capitalization, quotes and module det
  await page.evaluate(()=>window.scrollTo(0,0));
  await page.screenshot({path:'test-results/unified-scene-mobile.png',fullPage:true});
  const beforePan=await page.locator('.trace-stage-world').evaluate(node=>node.scrollLeft);
+ expect(beforePan).toBeGreaterThan(200);
  await page.locator('#tracePanNext').click();
  await expect.poll(async()=>page.locator('.trace-stage-world').evaluate(node=>node.scrollLeft)).toBeGreaterThan(beforePan+100);
  await page.screenshot({path:'test-results/unified-scene-mobile-end.png'});

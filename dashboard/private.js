@@ -1170,7 +1170,7 @@ function drawPipeline(pulse=null){
   ctx.fillStyle="#92d8ca";
   const zones=[
    [copy("منصات البيانات","EXCHANGE SOURCES"),[-3.1,.75,1.8]],
-   [copy("مساحة حسب القيمة السوقية","CAPITALIZATION AREA"),[-3,1.65,-2.7]],
+   [copy("مساحة حسب القيمة السوقية","CAPITALIZATION AREA"),[-2.55,1.65,-2.7]],
    [copy("المحرك التحليلي","ANALYSIS ENGINE"),[1.15,-1.6,.15]],
    [copy("القرار والنشر","DECISION & DELIVERY"),[3.15,-1.5,.3]]
   ];
@@ -1440,6 +1440,18 @@ function setupPipeline(){
  });
  if(typeof ResizeObserver!=="undefined")new ResizeObserver(()=>drawPipeline()).observe(canvas);
  paintPipeline();
+ let mobileCentered=false;
+ const centerMobile=()=>{
+  if(!window.matchMedia?.("(max-width: 660px)").matches){mobileCentered=false;return}
+  if(mobileCentered)return;
+  mobileCentered=true;
+  requestAnimationFrame(()=>{
+   canvas.parentElement.scrollLeft=Math.min(260,canvas.parentElement.scrollWidth-canvas.parentElement.clientWidth);
+   drawPipeline();
+  });
+ };
+ window.addEventListener("resize",centerMobile);
+ centerMobile();
 }
 async function pollPipelineLive(){
  if(offline||document.hidden)return;

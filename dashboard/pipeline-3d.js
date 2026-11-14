@@ -157,8 +157,8 @@ window.StampPipeline3D = (() => {
       for(let z=-2.7;z<=2.2;z+=.9)segment([-4.5,2.4,z],[4.5,2.4,z],[.055,.12,.16]);
       const markets=(metrics.markets||[]).filter(row=>Number.isFinite(row.cap)&&row.cap>0)
         .sort((a,b)=>b.cap-a.cap);
-      const tiles=partition(markets,-4.1,-2.55,2.45,1.35);
-      const frame=[[-4.18,1.67,-2.63],[-1.57,1.67,-2.63],[-1.57,1.67,-1.12],[-4.18,1.67,-1.12]];
+      const tiles=partition(markets,-3.65,-2.55,2.4,1.35);
+      const frame=[[-3.73,1.67,-2.63],[-1.17,1.67,-2.63],[-1.17,1.67,-1.12],[-3.73,1.67,-1.12]];
       for(let i=0;i<4;i++)segment(frame[i],frame[(i+1)%4],[.27,.61,.59]);
       for(const tile of tiles){
         const gap=Math.min(.025,tile.w*.03,tile.d*.03),change=tile.change;
@@ -169,7 +169,7 @@ window.StampPipeline3D = (() => {
           active ? .18 : .11,active?palette.selected:color);
       }
       // The market-cap bay is physically attached to the collection and valuation routes.
-      segment([-4.1,1.65,-1.15],[-2.65,1.65,-1.15],[.2,.61,.58]);
+      segment([-3.65,1.65,-1.15],[-2.65,1.65,-1.15],[.2,.61,.58]);
       segment([-2.65,1.65,-1.15],[-2.7,-.58,-1],[.18,.43,.5]);
       const positions=new Map(nodes.map(node=>[node.id,node.pos]));
       const curve=(a,b,t)=>{const mid=[(a[0]+b[0])/2,Math.min(a[1],b[1])-.55,(a[2]+b[2])/2];
@@ -201,7 +201,8 @@ window.StampPipeline3D = (() => {
           ["lab","diagnosis","multi_asset_governance","forecast_health","production_smoke"].includes(node.id)?.12:.21;
         dock(node.pos,size,node.id===selected?.id?palette.selected:mix(color,.7));
         module(node,size,color);
-        segment([node.pos[0],node.pos[1]+.27,node.pos[2]],[node.pos[0],2.4,node.pos[2]],mix(color,.33));
+        if(["research","market_map","market_view","monitor","audit","governance","dashboard"].includes(node.id))
+          segment([node.pos[0],node.pos[1]+.27,node.pos[2]],[node.pos[0],2.4,node.pos[2]],mix(color,.18));
       }
       for(const pulse of pulses||[]){
         const a=positions.get(pulse.from),b=positions.get(pulse.to);if(a&&b&&Number.isFinite(pulse.progress)){
