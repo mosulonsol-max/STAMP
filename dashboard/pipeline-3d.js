@@ -5,7 +5,7 @@ window.StampPipeline3D = (() => {
     void main(){gl_Position=vec4(position,1.0);tint=color;}`;
   const fragment = `precision mediump float; varying vec3 tint;
     void main(){gl_FragColor=vec4(tint,1.0);}`;
-  const palette = {idle:[.28,.42,.55],success:[.25,.81,.69],running:[.36,.86,1],failure:[1,.38,.47],selected:[.88,1,.88],lab:[.62,.5,.9]};
+  const palette = {idle:[.37,.65,.7],success:[.25,.81,.69],running:[.36,.86,1],failure:[1,.38,.47],selected:[.88,1,.88],lab:[.72,.56,1]};
   const mix=(color,factor)=>color.map(v=>Math.min(1,v*factor));
   function create(canvas){
     let gl;
@@ -18,7 +18,7 @@ window.StampPipeline3D = (() => {
       if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));}
     catch{canvas.remove();return null}
     const buffer=gl.createBuffer(),p=gl.getAttribLocation(program,"position"),c=gl.getAttribLocation(program,"color");
-    let width=1,height=1,yaw=-.14,pitch=.32,zoom=1;
+    let width=1,height=1,yaw=-.14,pitch=.55,zoom=1;
     function configure(w,h,rotation,tilt,magnification){
       width=w;height=h;yaw=rotation;pitch=tilt;zoom=magnification;
       const ratio=Math.min(window.devicePixelRatio||1,2),x=Math.round(w*ratio),y=Math.round(h*ratio);
@@ -28,7 +28,7 @@ window.StampPipeline3D = (() => {
       const [x,y,z]=world,cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
       const horizontal=x*cy-z*sy,turn=x*sy+z*cy,vertical=-y*cp-turn*sp,depth=-y*sp+turn*cp;
       const scale=Math.min(width/9.5,height/5.3)*zoom*12/(12+depth);
-      return {x:width*.5+horizontal*scale,y:height*.57-vertical*scale,z:Math.max(-.98,Math.min(.98,depth/16))};
+      return {x:width*.5+horizontal*scale,y:height*.47-vertical*scale,z:Math.max(-.98,Math.min(.98,depth/16))};
     }
     function stream(nodes,links,pulses,selected,states,topology=[],metrics={}){
       if(gl.isContextLost())return false;
@@ -55,6 +55,35 @@ window.StampPipeline3D = (() => {
           const [a,b,c,d]=indices,v=mix(color,factor);triangle(vertices[a],vertices[b],vertices[c],v);triangle(vertices[a],vertices[c],vertices[d],v);
           for(const [i,j] of [[a,b],[b,c],[c,d],[d,a]])segment(vertices[i],vertices[j],mix(color,1.27));
         }
+      }
+      function prism(x,y,z,width,depth,height,color){
+        const vertices=[
+          [x,y,z],[x+width,y,z],[x+width,y,z+depth],[x,y,z+depth],
+          [x,y-height,z],[x+width,y-height,z],[x+width,y-height,z+depth],[x,y-height,z+depth]
+        ];
+        for(const [face,factor] of [[[0,1,5,4],.48],[[1,2,6,5],.66],[[2,3,7,6],.52],
+          [[3,0,4,7],.67],[[4,5,6,7],1.12]]){
+          const [a,b,c,d]=face,tone=mix(color,factor);
+          triangle(vertices[a],vertices[b],vertices[c],tone);
+          triangle(vertices[a],vertices[c],vertices[d],tone);
+          for(const [i,j] of [[a,b],[b,c],[c,d],[d,a]])
+            segment(vertices[i],vertices[j],mix(color,1.32));
+        }
+      }
+      function partition(items,x,z,width,depth){
+        if(!items.length)return [];
+        if(items.length===1)return [{...items[0],x,z,w:width,d:depth}];
+        const total=items.reduce((sum,item)=>sum+item.cap,0);
+        let split=1,sum=items[0].cap;
+        while(split<items.length-1&&Math.abs(sum+items[split].cap-total/2)<Math.abs(sum-total/2)){
+          sum+=items[split].cap;split++;
+        }
+        const ratio=sum/total;
+        return width>=depth?
+          [...partition(items.slice(0,split),x,z,width*ratio,depth),
+            ...partition(items.slice(split),x+width*ratio,z,width*(1-ratio),depth)]:
+          [...partition(items.slice(0,split),x,z,width,depth*ratio),
+            ...partition(items.slice(split),x,z+depth*ratio,width,depth*(1-ratio))];
       }
       function sphere(at,radius,color){
         const point=(latitude,longitude)=>[
@@ -118,8 +147,24 @@ window.StampPipeline3D = (() => {
             [at[0]+Math.cos(b)*size*1.65,y,at[2]+Math.sin(b)*size*1.65],color);
         }
       }
-      for(let x=-4.2;x<=4.2;x+=.6)segment([x,2.3,-2],[x,2.3,2],[.09,.18,.26]);
-      for(let z=-2;z<=2;z+=.5)segment([-4.2,2.3,z],[4.2,2.3,z],[.09,.18,.26]);
+      for(let x=-4.5;x<=4.5;x+=.6)segment([x,2.4,-2.7],[x,2.4,2.2],[.07,.17,.23]);
+      for(let z=-2.7;z<=2.2;z+=.5)segment([-4.5,2.4,z],[4.5,2.4,z],[.07,.17,.23]);
+      const markets=(metrics.markets||[]).filter(row=>Number.isFinite(row.cap)&&row.cap>0)
+        .sort((a,b)=>b.cap-a.cap);
+      const tiles=partition(markets,-4.15,-2.55,3.05,1.85);
+      const frame=[[-4.22,1.27,-2.63],[-1.03,1.27,-2.63],[-1.03,1.27,-.62],[-4.22,1.27,-.62]];
+      for(let i=0;i<4;i++)segment(frame[i],frame[(i+1)%4],[.27,.61,.59]);
+      for(const tile of tiles){
+        const gap=Math.min(.025,tile.w*.03,tile.d*.03),change=tile.change;
+        const color=Number.isFinite(change)?
+          change<0?[.55,.21,.31]:change>0?[.12,.54,.45]:[.38,.51,.56]:[.47,.42,.31];
+        const active=selected?.pair===tile.pair;
+        prism(tile.x+gap,1.2,tile.z+gap,Math.max(.005,tile.w-gap*2),Math.max(.005,tile.d-gap*2),
+          active ? .22 : .14,active?palette.selected:color);
+      }
+      // The market-cap bay is physically attached to the collection and valuation routes.
+      segment([-4.15,1.25,-.72],[-1.45,1.25,-.72],[.2,.61,.58]);
+      segment([-1.45,1.25,-.72],[-1.55,-.75,.15],[.18,.43,.5]);
       const positions=new Map(nodes.map(node=>[node.id,node.pos]));
       const curve=(a,b,t)=>{const mid=[(a[0]+b[0])/2,Math.min(a[1],b[1])-.55,(a[2]+b[2])/2];
         return [0,1,2].map(i=>(1-t)**2*a[i]+2*(1-t)*t*mid[i]+t*t*b[i])};
@@ -149,7 +194,7 @@ window.StampPipeline3D = (() => {
         const size=node.id.startsWith("venue_")?.15:.23;
         dock(node.pos,size,node.id===selected?.id?palette.selected:mix(color,.7));
         module(node,size,color);
-        segment([node.pos[0],node.pos[1]+.27,node.pos[2]],[node.pos[0],2.3,node.pos[2]],mix(color,.33));
+        segment([node.pos[0],node.pos[1]+.27,node.pos[2]],[node.pos[0],2.4,node.pos[2]],mix(color,.33));
       }
       for(const pulse of pulses||[]){
         const a=positions.get(pulse.from),b=positions.get(pulse.to);if(a&&b&&Number.isFinite(pulse.progress)){
@@ -166,7 +211,7 @@ window.StampPipeline3D = (() => {
       gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LESS);gl.useProgram(program);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
       gl.enableVertexAttribArray(p);gl.enableVertexAttribArray(c);
       render(triangles,gl.TRIANGLES);render(lines,gl.LINES);
-      return true;
+      return {tiles};
     }
     canvas.addEventListener("webglcontextlost",e=>{e.preventDefault();canvas.style.display="none"});
     canvas.addEventListener("webglcontextrestored",()=>{canvas.style.display=""});

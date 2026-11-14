@@ -1,16 +1,24 @@
 const { test, expect } = require('@playwright/test');
 if (process.env.STAMP_CHROME_CHANNEL === 'chrome') test.use({channel:'chrome'});
 const HOST=process.env.STAMP_TEST_HOST||'http://localhost:10000';
+async function inspectModule(page,stage){
+ if(await page.locator('#sceneDetail').isVisible())await page.locator('#sceneDetailClose').click();
+ const details=page.locator('.trace-module-list');
+ if(!await details.evaluate(node=>node.open))await details.locator('summary').click();
+ await page.locator('[data-trace-stage="'+stage+'"]').click();
+ await page.locator('#traceOpen').click();
+}
 test('compact market, automatic decision, real interactive chart and forecast outcomes',async({page})=>{
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(HOST+'/');
  await page.locator('#user').fill('test-user');await page.locator('#password').fill('long-test-password');await page.locator('form[action="/login"] button[type="submit"]').click();
+ await inspectModule(page,'research');
  await expect(page.locator('#price')).not.toHaveText('—',{timeout:25000});
  await expect(page.locator('#chart canvas').first()).toBeVisible({timeout:25000});
  await expect.poll(async()=>Number(await page.locator('#chart').getAttribute('data-bar-count'))).toBeGreaterThan(10);
  for(const id of ['liquidity','volume','high24','low24'])await expect(page.locator('#'+id)).not.toHaveText('—');
  await expect(page.locator('#modelStatus')).toContainText(/آلي/);
- const response=await page.request.get(HOST+'/api/dashboard');expect(response.status()).toBe(200);const data=await response.json();
+ const response=await page.request.get(HOST+'/api/dashboard',{headers:{Authorization:'Basic '+Buffer.from('test-user:long-test-password').toString('base64')}});expect(response.status()).toBe(200);const data=await response.json();
  expect(data.model_decisions['1h'].automatic).toBe(true);
  expect(data.forecasts['1h'].engine).toBe('context_walk_forward_v3');
  expect(data.forecasts['1h'].input_manifest.features).toBeGreaterThan(100);
@@ -68,22 +76,18 @@ test('global market flow and history share the authenticated workspace',async({p
  await page.locator('#user').fill('test-user');
  await page.locator('#password').fill('long-test-password');
  await page.locator('form[action="/login"] button').click();
- await page.locator('.page-nav a[href="#globalMarketFlow"]').click();
+ await inspectModule(page,'market_view');
  await expect(page.locator('#globalMarketFlow canvas')).toHaveCount(2);
  await expect(page.locator('iframe')).toHaveCount(0);
  await expect(page.locator('#flowCap')).toHaveText('$3T');
  await expect(page.locator('#flowRange')).toContainText('31');
- const scene=page.locator('#flowScene');
- const initial=await scene.evaluate(canvas=>canvas.toDataURL());
+ await expect(page.locator('#traceCanvas')).toBeVisible();
  await page.locator('[data-days="7"]').click();
  await expect(page.locator('[data-days="7"]')).toHaveAttribute('aria-pressed','true');
  await expect(page.locator('#flowRange')).toContainText('8');
- const short=await scene.evaluate(canvas=>canvas.toDataURL());
- expect(short).not.toBe(initial);
- await scene.press('ArrowRight');
- expect(await scene.evaluate(canvas=>canvas.toDataURL())).not.toBe(short);
+ await expect(page.locator('#flowNet')).not.toHaveText('—');
  await page.setViewportSize({width:390,height:844});
- await expect(scene).toBeVisible();
+ await expect(page.locator('#traceCanvas')).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
  await page.goto(HOST+'/market-flow');
  await expect(page).toHaveURL(HOST+'/#globalMarketFlow');
@@ -114,6 +118,7 @@ test('technical layers draw on closed candles and follow the selected timeframe'
  await page.routeWebSocket('wss://wbs-api.mexc.com/ws',ws=>ws.onMessage(()=>{}));
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(HOST+'/');await page.locator('#user').fill('test-user');await page.locator('#password').fill('long-test-password');await page.locator('form[action="/login"] button').click();
+ await inspectModule(page,'research');
  const chart=page.locator('#chart');
  await expect(chart.locator('canvas').first()).toBeVisible();
  await page.locator('[data-layer="elliott"]').click();
@@ -160,6 +165,7 @@ test('stream changes price and candle, falls back automatically, and follows a n
  }}));
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(HOST+'/');await page.locator('#user').fill('test-user');await page.locator('#password').fill('long-test-password');await page.locator('form[action="/login"] button').click();
+ await inspectModule(page,'research');
  await expect(page.locator('#chart canvas').first()).toBeVisible({timeout:25000});
  await expect.poll(()=>!!socket).toBe(true);await expect(page.locator('#price')).toHaveText('0.0001111');
  // The exchange frame, not a navigation or refresh click, drives these changes.
@@ -174,10 +180,12 @@ test('stream changes price and candle, falls back automatically, and follows a n
  await expect(page.locator('#price')).toHaveText('0.0013456',{timeout:10000});expect(quoteRequests).toBeGreaterThan(feedCount);
  await expect(page.locator('#chart')).toHaveAttribute('data-candle-source','rest');
  await page.locator('#assuranceDetails summary').click();await expect(page.locator('#assuranceSummary')).toContainText('غير معتمد');await expect(page.locator('#assuranceMetrics table')).toBeVisible();
- const assurance=await (await page.request.get(HOST+'/api/assurance')).json();expect(assurance.rollout.ready).toBe(false);expect(Object.keys(assurance.horizons)).toHaveLength(4);
+ const assurance=await (await page.request.get(HOST+'/api/assurance',{headers:{Authorization:'Basic '+Buffer.from('test-user:long-test-password').toString('base64')}})).json();expect(assurance.rollout.ready).toBe(false);expect(Object.keys(assurance.horizons)).toHaveLength(4);
  const previousSocket=socket;
+ await page.locator('#sceneDetailClose').click();
  await page.locator('#assetPickerButton').click();
  await page.locator('[data-pair="BTCUSDT"]').click();
+ await inspectModule(page,'research');
  await expect(page.locator('#coinName')).toHaveText('BTC / USDT');
  await expect(page.locator('#price')).toHaveText('67,500.00');
  await expect.poll(()=>socket!==previousSocket).toBe(true);
@@ -188,7 +196,7 @@ test('stream changes price and candle, falls back automatically, and follows a n
 
 test.describe('touch dashboard controls',()=>{
  test.use({viewport:{width:390,height:844},hasTouch:true,isMobile:true,deviceScaleFactor:2});
- test('tabs switch panels and the searchable catalog selects pairs by touch',async({page})=>{
+ test('the single scene opens details and the searchable catalog selects pairs by touch',async({page})=>{
   const catalog=['STAMPUSDT','BTCUSDT','ETHUSDT','SOLUSDT','SUSDT','ZZUSDT',...Array.from({length:420},(_,i)=>'A'+i+'USDT')];
   await page.route('**/api/assets/universe',route=>route.fulfill({json:{pairs:catalog,retrieved_at_utc:new Date().toISOString()}}));
   await page.route('**/api/assets/snapshot?symbol=*',route=>{
@@ -210,17 +218,15 @@ test.describe('touch dashboard controls',()=>{
   await page.locator('#user').fill('test-user');
   await page.locator('#password').fill('long-test-password');
   await page.locator('form[action="/login"] button').tap();
-  await expect(page.locator('#trading')).toBeVisible();
-  for(const [tab,panel] of [['flowTab','globalMarketFlow'],['venuesTab','venuesSection'],['labTab','labCenter']]){
-   await page.locator('#'+tab).tap();
-   await expect(page.locator('#'+tab)).toHaveAttribute('aria-selected','true');
+  await expect(page.locator('#traceCanvas')).toBeVisible();
+  for(const [stage,panel] of [['market_view','globalMarketFlow'],['evidence','venuesSection'],['lab','labCenter']]){
+   await inspectModule(page,stage);
    await expect(page.locator('#'+panel)).toBeVisible();
    await expect(page.locator('#trading')).toBeHidden();
   }
   await page.goBack();
-  await expect(page.locator('#venuesSection')).toBeVisible();
+  await expect(page.locator('#sceneDetail')).toBeHidden();
   await expect(page.locator('#labCenter')).toBeHidden();
-  await page.locator('#tradeTab').tap();
   await expect(page.locator('#assetPickerButton')).toBeInViewport();
   await page.locator('#assetPickerButton').tap();
   await expect(page.locator('#assetPicker')).toBeVisible();
@@ -233,16 +239,19 @@ test.describe('touch dashboard controls',()=>{
   await page.locator('[data-pair="SUSDT"]').tap();
   await expect(page.locator('#assetPicker')).toBeHidden();
   await expect(page.locator('#assetSelected')).toHaveText('S / USDT');
+  await inspectModule(page,'research');
   await expect(page.locator('#price')).toHaveText('0.5000000');
   await page.locator('button[data-frame="4h"]').tap();
   await expect(page.locator('button[data-frame="4h"]')).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('#chart')).toHaveAttribute('data-frame','4h');
   await expect(page.locator('#chart')).toHaveAttribute('data-bar-count','20');
+  await page.locator('#sceneDetailClose').tap();
   await page.locator('#assetFavorite').tap();
   await expect(page.locator('#favoriteSelect option[value="SUSDT"]')).toHaveCount(1);
   await page.locator('#assetPickerButton').tap();
   await page.locator('#assetSearch').fill('BTC');
   await page.locator('#assetSearch').press('Enter');
+  await inspectModule(page,'research');
   await expect(page.locator('#coinName')).toHaveText('BTC / USDT');
   await expect(page.locator('#price')).toHaveText('67,000.00');
   await expect(page.locator('#chart')).toHaveAttribute('data-frame','4h');
@@ -267,6 +276,7 @@ test('live catalog and alternate market render real MEXC candles',async({page})=
  await page.locator('#assetSearch').fill('BTCUSDT');
  const snapshotResult=page.waitForResponse(response=>response.url().endsWith('/api/assets/snapshot?symbol=BTCUSDT'));
  await page.locator('[data-pair="BTCUSDT"]').click();
+ await inspectModule(page,'research');
  const snapshot=await snapshotResult;
  expect(snapshot.ok()).toBe(true);
  const result=await snapshot.json();
@@ -310,6 +320,7 @@ test('chart event markers follow exact candles and operations preserve source ou
  await page.locator('#user').fill('test-user');
  await page.locator('#password').fill('long-test-password');
  await page.locator('form[action="/login"] button').click();
+ await inspectModule(page,'research');
  const chart=page.locator('#chart');
  await expect(chart).toHaveAttribute('data-event-count','2',{timeout:15000});
  await expect(chart).toHaveAttribute('data-event-markers','2');
@@ -324,13 +335,15 @@ test('chart event markers follow exact candles and operations preserve source ou
  await page.locator('#eventToggle').click();
  await page.locator('button[data-frame="1h"]').click();
  await expect(chart).toHaveAttribute('data-event-markers','2');
+ await page.locator('#sceneDetailClose').click();
  await page.locator('#assetPickerButton').click();
  await page.locator('#assetSearch').fill('BTC');
  await page.locator('[data-pair="BTCUSDT"]').click();
+ await inspectModule(page,'research');
  await expect(chart).toHaveAttribute('data-event-count','1');
  await expect(page.locator('#chartEventList')).not.toContainText('حرق توكنات');
  await expect(page.locator('#chartEventList a')).toHaveAttribute('href','https://www.mexc.com/exchange/BTC_USDT');
- await page.locator('.page-nav a[href="#labCenter"]').click();
+ await inspectModule(page,'lab');
  await expect(page.locator('#operationsChecked')).toContainText('آخر دورة رصد');
  const status=page.locator('[data-operation-source="mexc_trades"]');
  await expect(status).toContainText('غير متاح');
@@ -359,6 +372,7 @@ test('historical replay advances candle by candle and reveals only recorded info
  await page.locator('#user').fill('test-user');
  await page.locator('#password').fill('long-test-password');
  await page.locator('form[action="/login"] button').click();
+ await inspectModule(page,'research');
  const chart=page.locator('#chart'),toggle=page.locator('#replayToggle');
  await expect(chart).toHaveAttribute('data-bar-count','80',{timeout:15000});
  await toggle.click();
@@ -389,11 +403,15 @@ test('workspace navigation works with the market application unavailable',async(
  await page.locator('#user').fill('test-user');
  await page.locator('#password').fill('long-test-password');
  await page.locator('form[action="/login"] button').click();
- await page.locator('#flowTab').click();
+ await page.locator('.trace-module-list summary').click();
+ await page.locator('#traceStageKeys a[href="#globalMarketFlow"]').click();
  await expect(page.locator('#globalMarketFlow')).toBeVisible();
  await expect(page.locator('#trading')).toBeHidden();
- await page.locator('#labTab').click();
+ await page.locator('#sceneDetailClose').click();
+ await page.locator('#traceStageKeys a[href="#labCenter"]').click();
  await expect(page.locator('#labCenter')).toBeVisible();
+ await page.goBack();
+ await expect(page.locator('#sceneDetail')).toBeHidden();
  await page.goBack();
  await expect(page.locator('#globalMarketFlow')).toBeVisible();
  await page.reload();
@@ -415,6 +433,7 @@ test('market pulse describes the trade sample and draws high density scenes',asy
  await page.locator('#user').fill('test-user');
  await page.locator('#password').fill('long-test-password');
  await page.locator('form[action="/login"] button').click();
+ await inspectModule(page,'research');
  await expect(page.locator('#lensBuy')).toHaveText('150 USDT');
  await expect(page.locator('#lensSell')).toHaveText('40 USDT');
  await expect(page.locator('#lensFlowDetail')).toContainText('110 USDT');
@@ -452,20 +471,20 @@ test('evidence map switches pair, inspects depth and jumps to a recorded candle'
  await page.locator('#user').fill('test-user');
  await page.locator('#password').fill('long-test-password');
  await page.locator('form[action="/login"] button').click();
- await page.locator('#venuesTab').click();
+ await inspectModule(page,'evidence');
  await expect(page.locator('#venueNetworkStatus')).toContainText('STAMPUSDT');
- await page.locator('[data-scene-node="MEXC"]').click();
- await expect(page.locator('#sceneNodeDetail')).toContainText('Bid / Ask');
+ await page.locator('#venueSelect').selectOption('MEXC');
+ await page.locator('#venueForm button[type="submit"]').click();
  await expect(page.locator('#microMetrics meter')).toBeVisible();
  await page.locator('#sceneTimeline button').first().click();
  await expect(page.locator('#trading')).toBeVisible();
+ await page.locator('#sceneDetailClose').click();
  await page.locator('#assetPickerButton').click();
  await page.locator('#assetSearch').fill('SOL');
  await page.locator('[data-pair="SOLUSDT"]').click();
- await page.locator('#venuesTab').click();
+ await inspectModule(page,'evidence');
  await expect(page.locator('#venueNetworkStatus')).toContainText('SOLUSDT');
- await page.locator('[data-scene-node="display"]').click();
- await expect(page.locator('#sceneNodeDetail')).toContainText('SOLUSDT');
+ await expect(page.locator('#venueSelect')).toHaveValue('MEXC');
 });
 
 test('market flows switch between the whole market and a selected pair',async({page})=>{
@@ -484,7 +503,7 @@ test('market flows switch between the whole market and a selected pair',async({p
  await page.locator('#user').fill('test-user');
  await page.locator('#password').fill('long-test-password');
  await page.locator('form[action="/login"] button').click();
- await page.locator('#flowTab').click();
+ await inspectModule(page,'market_view');
  await expect(page.locator('#flowCap')).toHaveText('$3T');
  await page.locator('#flowPairMode').click();
  await expect(page.locator('#flowVenueSelect')).toHaveValue('all');
@@ -500,70 +519,39 @@ test('market flows switch between the whole market and a selected pair',async({p
  await expect(page.locator('#flowPairView')).toBeHidden();
 });
 
-test('3D market map uses the selected window and shows verified valuation details', async ({page}) => {
- const errors=[];page.on('pageerror',e=>{errors.push(e.message);});
- const pairs = ['BTCUSDT', 'ETHUSDT', 'STAMPUSDT'];
- const stamp = Date.now();
- await page.route('**/api/market-map', route => route.fulfill({json:{
-  pairs, valuation_available:true, assets:{BTCUSDT:{sector:'bitcoin', market_cap_usd:1200000000000,
-   circulating_supply:20000000, volume_24h_usd:12000000000, valuation_source:'CoinGecko',
-   valuation_at:new Date(stamp).toISOString()},
-   ETHUSDT:{sector:'layer1',market_cap_usd:600000000000,circulating_supply:120000000,
-    valuation_at:new Date(stamp).toISOString(),valuation_source:'CoinGecko'}}
- }}));
- await page.route('**/api/market-map/windows?*', route => {
-  const period = new URL(route.request().url()).searchParams.get('period');
-  const price = period === '5m' ? 200 : 100;
-  return route.fulfill({json:{period, cards:pairs.map(pair => ({pair, venue:'OKX',
-   price, last_price:price+1, quote_received_at:new Date(stamp).toISOString(), high:price + 10, low:price - 10, prices:[price - 10,price], change:2, price_at_ms:stamp}))}});
+test('market values in the single model open source details and follow the selected window',async({page})=>{
+ const now=new Date().toISOString(),stamp=Date.now(),pairs=['BTCUSDT','ETHUSDT','STAMPUSDT'];
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/api/market-map',route=>route.fulfill({json:{pairs,valuation_available:true,assets:{
+  BTCUSDT:{sector:'bitcoin',market_cap_usd:1200000000000,circulating_supply:20000000,volume_24h_usd:12000000000,valuation_source:'CoinGecko',valuation_at:now},
+  ETHUSDT:{sector:'layer1',market_cap_usd:600000000000,circulating_supply:120000000,valuation_source:'CoinGecko',valuation_at:now}
+ }}}));
+ await page.route('**/api/market-map/windows?*',route=>{
+  const period=new URL(route.request().url()).searchParams.get('period'),price=period==='5m'?200:100;
+  return route.fulfill({json:{period,cards:pairs.map(pair=>({pair,venue:'OKX',price,last_price:price+1,
+   quote_received_at:now,high:price+10,low:price-10,prices:[price-10,price],change:2,price_at_ms:stamp}))}});
  });
- await page.goto(HOST + '/');
- await page.locator('#user').fill('test-user');
- await page.locator('#password').fill('long-test-password');
+ await page.goto(HOST+'/');await page.locator('#user').fill('test-user');await page.locator('#password').fill('long-test-password');
  await page.locator('form[action="/login"] button').click();
- await page.locator('#traceOrbit').click();
- await expect(page.locator('#traceOrbit')).toHaveAttribute('aria-pressed','false');
- await page.locator('.trace-module-list summary').click();
- await page.locator('[data-trace-stage="market_map"]').click();
- await expect(page.locator('#marketMapTab')).toHaveAttribute('aria-selected','true');
- const btc = page.locator('#marketMapBoard [data-pair="BTCUSDT"]');
- await expect(btc).toContainText('$1.2T');
- await expect(btc).toContainText('101 USDT');
- const ratio=await page.evaluate(()=>{
-  const btc=document.querySelector('#marketMapBoard [data-pair="BTCUSDT"]');
-  const eth=document.querySelector('#marketMapBoard [data-pair="ETHUSDT"]');
-  return btc.offsetWidth*btc.offsetHeight/(eth.offsetWidth*eth.offsetHeight);
- });
- expect(ratio).toBeGreaterThan(1.97);
- expect(ratio).toBeLessThan(2.03);
- await expect(page.locator('#marketMapUnknown')).toContainText('STAMP');
- await expect(page.locator('body')).toHaveAttribute('data-workspace','marketMap');
+ await expect(page.locator('#traceCanvas')).toHaveAttribute('data-market-tiles','2');
+ const areas=await page.locator('#traceCanvas').evaluate(canvas=>Object.fromEntries(JSON.parse(canvas.dataset.marketAreas)));
+ expect(areas.BTCUSDT/areas.ETHUSDT).toBeCloseTo(2,5);
+ await inspectModule(page,'market_map');
+ await expect(page.locator('#marketMapCoverage')).toContainText('$1.8T');
  await page.locator('#marketMapPeriod').selectOption('5m');
- await expect(btc).toContainText('201 USDT');
- await expect(btc.locator('polyline')).toBeVisible();
- await page.locator('#marketMapView').selectOption('sectors');
- await expect(page.locator('#marketMapBoard')).toHaveAttribute('data-sector-count','2');
- await page.locator('#marketMapRight').click();
- await expect(page.locator('#marketMapBoard')).toHaveAttribute('style', /--market-yaw: 0deg/);
- await page.locator('#marketMapViewport').screenshot({path:'test-results/stamp-proportional-market-map.png'});
- await btc.click();
- await expect(page.locator('#assetSelected')).toHaveText('BTC / USDT');
- await expect(page.locator('#traceStage')).toHaveText('خريطة السوق');
+ await page.locator('#marketMapSelection [data-pair="BTCUSDT"]').click();
  await expect(page.locator('#marketMapDetail')).toContainText('CoinGecko');
  await expect(page.locator('#marketMapDetail')).toContainText('20,000,000');
+ await expect(page.locator('#marketMapDetail')).toContainText('201 USDT');
  await page.locator('#marketMapStar').click();
  await page.locator('#marketMapDetail form button').click();
  await page.locator('#marketMapFavorites').check();
- await expect(page.locator('#marketMapBoard .market-map-card')).toHaveCount(1);
- await page.setViewportSize({width:390,height:844});
- expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
- await btc.click();
+ await expect(page.locator('#marketMapSelection [data-pair]')).toHaveCount(1);
+ await page.locator('#marketMapSelection [data-pair="BTCUSDT"]').click();
  await page.locator('#marketMapChart').click();
- for(const id of ['flowTab','marketMapTab','venuesTab','tradeTab']){
-  await page.locator('#'+id).click();
-  await expect(page.locator('#'+id)).toHaveAttribute('aria-selected','true');
- }
- await expect(page.locator('#tradeTab')).toHaveAttribute('aria-selected','true');
+ await expect(page.locator('#trading')).toBeVisible();
  await expect(page.locator('#coinName')).toHaveText('BTC / USDT');
+ await page.locator('#sceneDetailClose').click();
+ await expect(page.locator('#traceCanvas')).toBeVisible();
  expect(errors).toEqual([]);
 });

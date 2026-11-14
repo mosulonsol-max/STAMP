@@ -6,11 +6,11 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=spatial-5">
-  <link rel="stylesheet" href="/assets/market-map.css?v=spatial-2">
+  <link rel="stylesheet" href="/assets/style.css?v=unified-scene-1">
+  <link rel="stylesheet" href="/assets/market-map.css?v=unified-scene-1">
 </head>
 <body class="dashboard-page">
-  <a class="skip-link" href="#trading" data-copy="Skip to the chart">انتقل إلى الرسم</a>
+  <a class="skip-link" href="#traceCanvas" data-copy="Skip to the scene">انتقل إلى المجسّم</a>
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="#overview" aria-label="STAMP"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></a>
@@ -20,34 +20,13 @@
         <button class="quiet-button" id="settingsButton" type="button" data-i18n="settings" aria-haspopup="dialog" aria-controls="settings">الإعدادات</button>
       </div>
     </div>
-      <nav class="page-nav map-nodes" role="tablist" aria-label="خريطة أقسام ستامب">
-
-        <a id="tradeTab" href="#trading" role="tab" aria-controls="trading" aria-selected="true" aria-label="التداول" data-label-en="Trading">
-          <span data-copy="Price and forecasts">السعر والتوقعات</span><small id="mapTrade">—</small>
-        </a>
-        <a id="flowTab" href="#globalMarketFlow" role="tab" aria-controls="globalMarketFlow" aria-selected="false" aria-label="تدفقات السوق" data-label-en="Market flows">
-          <span data-copy="Liquidity and trades">السيولة والصفقات</span><small id="mapFlow">—</small>
-        </a>
-        <a id="marketMapTab" aria-label="خريطة السوق" href="#marketMap" role="tab" aria-controls="marketMap" aria-selected="false" data-label-en="Market map">
-          <span data-copy="Market map">خريطة السوق</span>
-        </a>
-        <a id="venuesTab" href="#venuesSection" role="tab" aria-controls="venuesSection" aria-selected="false" aria-label="المنصات" data-label-en="Exchanges">
-          <span data-copy="Exchanges and verification">المنصات والتحقق</span><small id="mapVenues">—</small>
-        </a>
-        <a id="labTab" href="#labCenter" role="tab" aria-controls="labCenter" aria-selected="false" aria-label="المختبر" data-label-en="Research">
-          <span data-copy="Experiments and learning">التجارب والتعلّم</span><small id="mapLab">—</small>
-        </a>
-        <a id="systemTab" href="#systemCenter" role="tab" aria-controls="systemCenter" aria-selected="false" aria-label="النظام" data-label-en="System">
-          <span data-copy="System operation">تشغيل النظام</span><small id="mapSystem">—</small>
-        </a>
-      </nav>
   </header>
 
   <main class="workspace" id="overview">
     <section class="stamp-map" aria-labelledby="mapTitle">
       <header class="map-heading">
-        <div><h2 id="mapTitle" data-copy="Market and STAMP engine">السوق ومحرك ستامب</h2>
-          <p data-copy="Select a module to inspect its data and open its linked workspace.">اختر مجسمًا لتتبع بياناته وفتح القسم المرتبط به.</p></div>
+        <div><span class="scene-eyebrow" data-copy="STAMP · LIVE SYSTEM ATLAS">STAMP · أطلس النظام الحي</span><h1 id="mapTitle" data-copy="One connected market engine">محرك واحد يربط السوق بالقرار</h1>
+          <p data-copy="Explore the market, exchanges, verified data transfers, analysis and decisions in one spatial model. Select any object to inspect its source and time.">استكشف السوق والمنصات وانتقالات البيانات والتحليل والقرارات داخل مجسّم واحد. اضغط أي جزء لمعرفة مصدره وتوقيته.</p></div>
         <div class="market-tools">
           <div class="asset-controls">
             <button class="pair-picker-button" id="assetPickerButton" type="button" aria-haspopup="dialog" aria-controls="assetPicker">
@@ -67,11 +46,16 @@
         <div class="trace-visual">
           <div class="trace-scene-toolbar">
             <span id="projectContext" dir="auto">STAMP / USDT</span>
-            <div><button id="traceOrbit" type="button" aria-pressed="false" data-copy="Orbit camera">دوران الكاميرا</button><button id="traceReset" type="button" data-copy="Reset view">إعادة الزاوية</button></div>
+            <div><button id="tracePanBack" class="scene-pan" type="button" aria-label="تحريك المشهد نحو بداية السوق">←</button><button id="tracePanNext" class="scene-pan" type="button" aria-label="تحريك المشهد نحو القرار">→</button><button id="traceOrbit" type="button" aria-pressed="false" data-copy="Camera motion">حركة الكاميرا</button><button id="traceReset" type="button" data-copy="Reset view">إعادة الزاوية</button><button id="traceZoomIn" type="button" aria-label="تكبير المجسّم">+</button><button id="traceZoomOut" type="button" aria-label="تصغير المجسّم">−</button></div>
           </div>
-          <div class="trace-stage-world"><canvas id="traceWorld" aria-hidden="true"></canvas><canvas id="traceCanvas" tabindex="0" aria-label="مجسم ثلاثي الأبعاد تفاعلي يربط مكونات المشروع وفق أحداث نقل البيانات المرصودة"></canvas></div>
+          <div class="scene-stage-shell">
+            <div class="trace-stage-world"><canvas id="traceWorld" aria-hidden="true"></canvas><canvas id="traceCanvas" tabindex="0" aria-label="مجسّم ثلاثي الأبعاد تفاعلي للسوق والمنصات ومحرك ستامب. الأسهم تبين المسارات المهيأة، وتتحرك الحزمة فقط عند وصول حدث مرصود."></canvas></div>
+            <div class="scene-hud" aria-live="polite"><span id="sceneAssets">السوق · جارٍ الجلب</span><span id="sceneVenues">المنصات · جارٍ التحقق</span><span id="scenePacket">انتقالات البيانات · جارٍ الاتصال</span></div>
+            <div class="scene-legend"><span><i class="legend-route"></i><span data-copy="Configured path">مسار مهيأ</span></span><span><i class="legend-observed"></i><span data-copy="Observed transfer">نقل مرصود</span></span><span><i class="legend-cap"></i><span data-copy="Market-cap area">مساحة القيمة السوقية</span></span></div>
+            <span class="scene-pan-guide" data-copy="Swipe horizontally to explore the whole model">اسحب أفقيًا لاستكشاف بقية المجسّم</span>
+          </div>
           <details class="trace-evidence"><summary data-copy="Transfer evidence and timeline">سجل النقل والتوقيت</summary>
-          <p class="trace-caption" data-copy="Dim paths show configured routes. Bright links show matched file reads or observed exchange executions. Packets move only when a new event arrives; archived playback requires a click.">المسارات الرمادية تبين الربط المهيأ. الوصلات المضيئة تثبت قراءة ملف مطابقًا لبصمته أو صفقة مرصودة. لا تتحرك البيانات إلا مع حدث جديد، وإعادة السجل تبدأ بطلبك.</p>
+          <p class="trace-caption" data-copy="The camera moves continuously. Data packets move only for received, timestamped events. Dim routes are configured links; recorded transfers can be replayed on demand. Market-cap blocks use verified circulating capitalization, while the quote and candle window have separate timestamps.">تتحرك الكاميرا باستمرار. حزم البيانات لا تتحرك إلا عند وصول أحداث مؤرخة. المسارات الخافتة روابط مهيأة، ويمكن إعادة الأحداث المسجلة عند الطلب. مساحة كل عملة تتبع قيمتها السوقية المتحققة، وللسعر والشموع توقيتان منفصلان.</p>
           <p id="traceLiveStatus" class="trace-live-status" role="status">جارٍ التحقق من حالة التشغيل الحالية…</p>
           <p id="traceRelayStatus" class="trace-live-status" role="status">جارٍ الاتصال ببث انتقالات الملفات…</p>
           <div class="trace-controls">
@@ -83,15 +67,18 @@
           </details>
         </div>
         <section class="trace-inspector" aria-labelledby="traceStage">
-          <h3 id="traceStage"></h3><p id="traceRun" class="muted"></p>
+          <span class="inspector-eyebrow" data-copy="OBJECT INSPECTOR">تفاصيل العنصر</span><h3 id="traceStage"></h3><p id="traceRun" class="muted"></p>
           <dl id="traceDetails"></dl>
-          <a id="traceOpen" href="#systemCenter" data-copy="Open full section">افتح القسم بالتفصيل</a>
+          <a id="traceOpen" href="#systemCenter" data-copy="Inspect the data">استكشف البيانات</a>
         </section>
       </div>
-      <details class="trace-module-list"><summary data-copy="All project modules">جميع أجزاء المشروع</summary><div id="traceStageKeys" class="trace-stage-keys" aria-label="مراحل المعالجة"></div></details>
+      <details class="trace-module-list"><summary data-copy="Searchable object list for keyboard access">قائمة العناصر للوصول بلوحة المفاتيح</summary><div id="traceStageKeys" class="trace-stage-keys" aria-label="مراحل المعالجة"><a href="#marketMap">العملات</a><a href="#globalMarketFlow">السوق</a><a href="#venuesSection">المنصات</a><a href="#trading">التحليل</a><a href="#labCenter">المختبر</a><a href="#systemCenter">النظام</a></div></details>
 
     </section>
-    <section id="marketMap" class="market-section market-map" role="tabpanel" aria-labelledby="marketMapTab" hidden>
+    <aside id="sceneDetail" class="scene-detail" hidden aria-label="بيانات العنصر المحدد">
+      <header class="scene-detail-header"><div><span data-copy="CONNECTED DATA · STAMP">بيانات مترابطة · ستامب</span><h2 id="sceneDetailTitle">—</h2></div><button id="sceneDetailClose" type="button" data-copy="Return to the 3D scene">العودة إلى المجسّم ×</button></header>
+      <div class="scene-detail-body">
+    <section id="marketMap" class="market-section market-map" hidden>
       <header class="section-header"><h2 data-copy="Market map">خريطة السوق</h2><p id="marketMapStatus" role="status"></p></header>
       <div class="market-map-tools">
         <label><span data-copy="Search pair">بحث عن زوج</span><input id="marketMapSearch" type="search" list="marketMapPairs" maxlength="26" placeholder="BTC / USDT"></label>
@@ -122,7 +109,7 @@
         <footer><button id="marketMapStar" type="button"></button><button id="marketMapChart" type="button" data-copy="Open full chart">فتح الرسم الكامل</button></footer>
       </dialog>
     </section>
-    <section id="systemCenter" class="market-section" role="tabpanel" aria-labelledby="systemTab">
+    <section id="systemCenter" class="market-section" hidden>
       <header class="section-header">
         <div><h2 data-copy="Project operations">تشغيل مشروع ستامب</h2><p id="systemRun"></p></div>
         <p id="systemVerdict" role="status"></p>
@@ -136,7 +123,7 @@
         </tr></thead><tbody id="systemModels"></tbody></table></div>
       </section>
     </section>
-    <div class="trade-grid" id="trading" role="tabpanel" aria-labelledby="tradeTab">
+    <div class="trade-grid" id="trading" hidden>
     <section class="market-overview" aria-labelledby="coinName">
       <div class="market-top">
         <div class="market-identity">
@@ -309,7 +296,7 @@
       </section>
     </div>
 
-    <section class="market-section" id="globalMarketFlow" role="tabpanel" aria-labelledby="flowTab">
+    <section class="market-section" id="globalMarketFlow" hidden>
       <header class="section-header">
         <div>
           <h2 id="flowTitle" data-copy="Market flows">تدفقات السوق</h2>
@@ -410,7 +397,7 @@
       </div>
     </section>
 
-    <section class="market-section" id="venuesSection" role="tabpanel" aria-labelledby="venuesTab">
+    <section class="market-section" id="venuesSection" hidden>
       <header class="section-header">
         <div><h2 id="venuesTitle" data-copy="Exchanges and liquidity">المنصات والسيولة</h2><p id="venueNetworkStatus" role="status">جارٍ جلب بيانات المنصات</p></div>
         <div class="scene-toolbar">
@@ -465,7 +452,7 @@
       </div>
     </section>
 
-    <section class="market-section" id="labCenter" role="tabpanel" aria-labelledby="labTab">
+    <section class="market-section" id="labCenter" hidden>
       <header class="section-header">
         <div><h2 id="labTitle" data-copy="Research lab">مختبر النماذج</h2><p data-copy="Experiment outcomes and background engine status">نتائج التجارب وحالة المحرك في الخلفية</p></div>
       </header>
@@ -505,6 +492,8 @@
       </div>
     </section>
 
+      </div>
+    </aside>
     <footer class="page-footer">
       <span id="sourceLine">—</span>
       <span dir="ltr"><a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView Lightweight Charts™</a> · © 2025 TradingView, Inc. · <a href="/assets/chart-license.txt" target="_blank" rel="noopener noreferrer">Apache 2.0</a></span>
@@ -542,15 +531,15 @@
       <button type="button" id="logoutButton" data-i18n="logout">تسجيل الخروج</button>
     </form>
   </dialog>
-  <script src="/assets/workspace-tabs.js?v=spatial-4" defer></script>
+  <script src="/assets/workspace-tabs.js?v=unified-scene-1" defer></script>
   <script src="/assets/market-lens.js?v=3" defer></script>
   <script src="/assets/chart.js?v=5.0.9" defer></script>
   <script src="/assets/market-stream.js?v=chart-live-1" defer></script>
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
-  <script src="/assets/pipeline-3d.js?v=spatial-2" defer></script>
-  <script src="/assets/app.js?v=spatial-5" defer></script>
+  <script src="/assets/pipeline-3d.js?v=unified-scene-1" defer></script>
+  <script src="/assets/app.js?v=unified-scene-1" defer></script>
   <script src="/assets/market-flow.js?v=stamp-venues-live-5" defer></script>
-  <script src="/assets/market-map.js?v=spatial-2" defer></script>
+  <script src="/assets/market-map.js?v=unified-scene-1" defer></script>
 </body>
 </html>

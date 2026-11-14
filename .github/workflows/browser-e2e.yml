@@ -5,6 +5,9 @@ on:
     paths:
       - 'src/**'
       - 'dashboard/private.*'
+      - 'dashboard/pipeline-3d.js'
+      - 'dashboard/workspace-tabs.js'
+      - 'dashboard/market-map.js'
       - 'dashboard/market-stream.js'
       - 'dashboard/technical-overlays.js'
       - 'dashboard/chart-events.js'
@@ -62,7 +65,7 @@ jobs:
         env:
           STAMP_CHROME_CHANNEL: chrome
           STAMP_REAL_PAIR_CHECK: '1'
-        run: npx playwright test browser-tests/stamp.spec.cjs --workers=1 --reporter=line
+        run: npx playwright test browser-tests --workers=1 --reporter=line
       - name: Upload browser verification evidence
         if: always()
         uses: actions/upload-artifact@v4

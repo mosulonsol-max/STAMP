@@ -272,7 +272,7 @@ function initializeSceneControls(){
    button.querySelector("time").textContent=copy("خارج نطاق الشموع المغلقة المحمّلة","Outside loaded closed candles");
    return;
   }
-  el("tradeTab").click();
+  document.dispatchEvent(new CustomEvent("stamp:open-workspace",{detail:{target:"trading"}}));
   stopReplay();
   renderChart();
   focusEventCandle(bar.t);
@@ -971,50 +971,44 @@ function renderIntelligence(){
 }
 let systemSnapshot=null;
 const pipelineStages=[
- ["monitor","الرصد","Collect","venuesSection",[-1.95,-1.05,.5]],
- ["archive","الأرشيف","Archive","trading",[-1.05,-1.05,.5]],
- ["evidence","التحقق","Verify","venuesSection",[-.15,-1.05,.5]],
- ["research","التدريب","Train","trading",[.75,-1.05,.5]],
- ["audit","قياس النتائج","Measure","trading",[1.65,-1.05,.5]],
- ["governance","الاعتماد","Review","systemCenter",[2.55,-1.05,.5]],
- ["dashboard","النشر","Publish","systemCenter",[3.45,-1.05,.5]],
- ["lab","المختبر","Lab","labCenter",[-.75,1.15,-.7]],
- ["diagnosis","تشخيص الخطأ","Diagnose","systemCenter",[.35,1.15,-.7]],
- ["multi_asset_governance","مراجعة الأزواج","Pairs review","systemCenter",[1.45,1.15,-.7]],
- ["forecast_health","فحص التوقعات","Forecast check","systemCenter",[2.55,1.15,-.7]],
- ["production_smoke","فحص النشر","Production check","systemCenter",[3.65,1.15,-.7]],
- ["market_catalog","الأسعار والتقييم","Prices and valuation","marketMap",[-1.6,.1,-.5]],
- ["market_map","خريطة السوق","Market map","marketMap",[-.1,.1,-.5]],
- ["market_view","تدفق السوق","Market flow","globalMarketFlow",[-2.75,-.05,-.4]],
+ ["monitor","الرصد","Collect","venuesSection",[-1.55,-.72,.1]],
+ ["archive","الأرشيف","Archive","trading",[-.64,-.72,.1]],
+ ["evidence","التحقق","Verify","venuesSection",[.27,-.72,.1]],
+ ["research","التحليل","Analyze","trading",[1.18,-.72,.1]],
+ ["audit","قياس النتائج","Measure","trading",[2.09,-.72,.1]],
+ ["governance","الاعتماد","Review","systemCenter",[3,-.72,.1]],
+ ["dashboard","النشر","Publish","systemCenter",[3.91,-.72,.1]],
+ ["lab","المختبر","Lab","labCenter",[.35,1.28,-.55]],
+ ["diagnosis","تشخيص الخطأ","Diagnose","systemCenter",[1.27,1.28,-.55]],
+ ["multi_asset_governance","مراجعة الأزواج","Pairs review","systemCenter",[2.19,1.28,-.55]],
+ ["forecast_health","فحص التوقعات","Forecast check","systemCenter",[3.11,1.28,-.55]],
+ ["production_smoke","فحص النشر","Production check","systemCenter",[4.03,1.28,-.55]],
+ ["market_catalog","التقييم","Valuation","marketMap",[-3.8,-.72,-1.35]],
+ ["market_map","العملات","Assets","marketMap",[-2.45,-.72,-1.35]],
+ ["market_view","تدفق السوق","Market flow","globalMarketFlow",[-2.8,.3,1.45]],
  ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map((venue,index)=>
-  ["venue_"+venue.toLowerCase(),venue,venue,"globalMarketFlow",[-3.95,-1.55+index*.52,-1.25]])
+  ["venue_"+venue.toLowerCase(),venue,venue,"globalMarketFlow",[-4.16+index*.55,1.52,1.35]])
 ];
 const pipelineTopology=[
  ["monitor","archive"],["archive","evidence"],["evidence","research"],["research","audit"],
  ["audit","governance"],["governance","diagnosis"],["diagnosis","multi_asset_governance"],
  ["multi_asset_governance","forecast_health"],["forecast_health","production_smoke"],["production_smoke","dashboard"],
- ["venue_mexc","monitor"],["market_view","dashboard"],
+ ["market_view","monitor"],["market_view","dashboard"],
  ["market_catalog","market_map"],["market_map","dashboard"],
  ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map(venue=>["venue_"+venue.toLowerCase(),"market_catalog"]),
  ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map(venue=>["venue_"+venue.toLowerCase(),"market_view"])
 ];
-let pipelineSelected="monitor",pipelineRun=null,pipelineFrame=0,pipelineAngle=-.14,pipelinePitch=.32,pipelineZoom=1,pipelinePoints=[];
+let pipelineSelected="monitor",pipelineRun=null,pipelineFrame=0,pipelineAngle=-.14,pipelinePitch=.55,pipelineZoom=1,pipelinePoints=[];
 let selectedHandoff=null, pipelineLinks=[],pipelineLive=null,liveObservation=null,pipelinePinned=false;
 const livePipelineEvents=new Map();
 const liveObservations=new Map();
 const pipelineWorld=window.StampPipeline3D?.create(document.getElementById("traceWorld"));
 let pipelineSequence=0,pipelineEventRequest=false;
 let mapResponse=null,orbitFrame=0,orbitStarted=0,orbitEnabled=false;
+let sceneMarkets=[],sceneCatalog=null,sceneWindowRows=new Map(),marketCapTiles=[],selectedMarketPair=null,sceneMarketBusy=false,sceneCatalogAt=0;
 function syncProjectWorkspace(){
- const tab=document.querySelector?.('.page-nav [aria-selected="true"]');
- const target=tab?.getAttribute("aria-controls");
- if(!target)return;
- document.body.dataset.workspace=target;
  const context=el("projectContext");
- if(context)context.textContent=pairLabel(selectedAsset)+" · "+(tab.querySelector("span")?.textContent||"");
- const current=pipelineStages.find(stage=>stage[0]===pipelineSelected);
- const defaults={trading:"research",globalMarketFlow:"market_view",marketMap:"market_map",venuesSection:"evidence",labCenter:"lab",systemCenter:"governance"};
- if(current?.[3]!==target){pipelineSelected=defaults[target]||"monitor";selectedHandoff=null}
+ if(context)context.textContent=pairLabel(selectedAsset)+" · "+copy("مجسّم السوق والنظام","Market and system model");
  paintPipeline();
 }
 function openPipelineSection(id){
@@ -1035,7 +1029,7 @@ function setOrbit(enabled){
   if(!orbitEnabled)return;
   if(!document.hidden&&!pipelineFrame&&now-lastPaint>40){
    lastPaint=now;
-   pipelineAngle=origin+Math.sin((now-orbitStarted)/9000)*.18;
+   pipelineAngle=origin+Math.sin((now-orbitStarted)/11000)*.52;
    drawPipeline();
   }
   orbitFrame=requestAnimationFrame(turn);
@@ -1096,15 +1090,61 @@ function drawPipeline(pulse=null){
     (node.id==="market_map"||node.id==="market_catalog")&&mapResponse&&age(mapResponse.observed_utc)<45?"running":
     recent&&age(recent.observed_utc)<90?"running":steps[node.id];
   }
-  pipelineWorld.draw(pipelineStages.map(([id,,,,pos])=>({id,pos})),pipelineLinks.map(({event})=>event).filter(event=>!event.configured||selectedHandoff?.from===event.from&&selectedHandoff?.to===event.to),
-    pulse?(Array.isArray(pulse)?pulse:[pulse]):[],selectedHandoff||{id:pipelineSelected},states,pipelineTopology,{marketCaps:mapResponse?.capitalizations||[]});
-  ctx.textAlign="center";ctx.font=(w<550?"10":"12")+"px system-ui";
+  const model=pipelineWorld.draw(pipelineStages.map(([id,,,,pos])=>({id,pos})),pipelineLinks.map(({event})=>event).filter(event=>!event.configured||selectedHandoff?.from===event.from&&selectedHandoff?.to===event.to),
+    pulse?(Array.isArray(pulse)?pulse:[pulse]):[],selectedMarketPair?{pair:selectedMarketPair}:selectedHandoff||{id:pipelineSelected},states,pipelineTopology,{markets:sceneMarkets});
+  marketCapTiles=(model?.tiles||[]).map(tile=>({
+   ...tile, corners:[[tile.x,1.04,tile.z],[tile.x+tile.w,1.04,tile.z],
+     [tile.x+tile.w,1.04,tile.z+tile.d],[tile.x,1.04,tile.z+tile.d]]
+     .map(point=>pipelineWorld.project(point))
+  }));
+  canvas.dataset.marketTiles=String(marketCapTiles.length);
+  canvas.dataset.marketCapTotal=String(sceneMarkets.reduce((sum,row)=>sum+row.cap,0));
+  canvas.dataset.geometry=marketCapTiles.length?"webgl-market-and-pipeline":"webgl-pipeline";
+  canvas.dataset.marketAreas=JSON.stringify(marketCapTiles.map(tile=>[tile.pair,Number((tile.w*tile.d).toFixed(8))]));
+  ctx.textAlign="center";ctx.font=(w<550?"9":"11")+"px system-ui";
+  const primary=new Set(["market_catalog","market_map","market_view","monitor","research","audit","governance","dashboard","lab"]);
   for(const node of pipelinePoints){
+   if(!primary.has(node.id)&&node.id!==pipelineSelected)continue;
    const width=ctx.measureText(node.name).width+10;
    ctx.fillStyle=node.id===pipelineSelected?"#244959e8":"#091b2ae8";
-   ctx.fillRect(node.p[0]-width/2,node.p[1]+25,width,17);
+   ctx.fillRect(node.p[0]-width/2,node.p[1]+20,width,16);
    ctx.fillStyle=node.id===pipelineSelected?"#e7fff7":"#b8d1e4";
-   ctx.fillText(node.name,node.p[0],node.p[1]+37);
+   ctx.fillText(node.name,node.p[0],node.p[1]+32);
+  }
+  for(const tile of marketCapTiles.slice(0,w<600?5:9)){
+   const center=pipelineWorld.project([tile.x+tile.w/2,1.03,tile.z+tile.d/2]);
+   const bounds=tile.corners;
+   const span=Math.hypot(bounds[0].x-bounds[1].x,bounds[0].y-bounds[1].y);
+   if(span<20)continue;
+   const depth=Math.hypot(bounds[0].x-bounds[3].x,bounds[0].y-bounds[3].y);
+   const detail=span>100&&depth>45;
+   const cap=new Intl.NumberFormat("en-US",{notation:"compact",maximumFractionDigits:1}).format(tile.cap);
+   const change=Number.isFinite(tile.change)?(tile.change>0?"+":"")+tile.change.toFixed(1)+"%":"—";
+   const quote=sceneWindowRows.get(tile.pair)?.last_price;
+   const price=Number.isFinite(quote)?new Intl.NumberFormat("en-US",{maximumSignificantDigits:6}).format(quote):"—";
+   const panelWidth=detail?Math.min(156,span*.8):50;
+   ctx.fillStyle="#071826e8";
+   ctx.fillRect(center.x-panelWidth/2,center.y-(detail?24:9),panelWidth,detail?43:17);
+   ctx.fillStyle=selectedMarketPair===tile.pair?"#fff":"#e8fff4";
+   ctx.font=(detail?"bold 12":"10")+"px system-ui";
+   ctx.fillText(tile.pair.replace(/USDT$/,"")+(detail?" · $"+cap:""),center.x,center.y-(detail?6:-3));
+   if(detail){
+    ctx.font="10px system-ui";
+    ctx.fillStyle=tile.change<0?"#ffc8d0":"#b9ffe3";
+    ctx.fillText(change+" · "+price,center.x,center.y+11);
+   }
+  }
+  ctx.font="600 11px system-ui";
+  ctx.fillStyle="#92d8ca";
+  const zones=[
+   [copy("مدخلات المنصات","EXCHANGE INPUTS"),[-3,1.9,1.7]],
+   [copy("قيمة سوقية موثّقة","VERIFIED MARKET CAP"),[-2.5,-1.5,-2.2]],
+   [copy("تحقق وتحليل","VALIDATE & ANALYZE"),[.7,-1.55,.1]],
+   [copy("قرار ونشر","DECIDE & PUBLISH"),[3.1,-1.55,.1]]
+  ];
+  for(const [label,at] of zones){
+   const point=pipelineWorld.project(at);
+   ctx.fillText(label,point.x,point.y);
   }
   return;
  }
@@ -1200,11 +1240,29 @@ function paintPipeline(){
    [copy("الملف","Artifact"),e.artifact],[copy("حجم الدفعة","Batch size"),number(e.bytes)+" B"],
    [copy("وقت القراءة","Read time"),stamp(e.observed_utc,true)],["SHA-256",e.sha256]]));
  }
+ if(selectedMarketPair){
+  const info=sceneCatalog?.assets?.[selectedMarketPair]||{};
+  const market=sceneWindowRows.get(selectedMarketPair)||{};
+  const formatCap=value=>Number.isFinite(value)?new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",notation:"compact",maximumFractionDigits:2}).format(value):"—";
+  const formatPrice=value=>Number.isFinite(value)?new Intl.NumberFormat("en-US",{maximumSignificantDigits:8}).format(value)+" USDT":"—";
+  rows.splice(0,rows.length,
+   [copy("القيمة السوقية المتداولة","Circulating market cap"),formatCap(info.market_cap_usd)],
+   [copy("المعروض المتداول","Circulating supply"),Number.isFinite(info.circulating_supply)?number(info.circulating_supply):"—"],
+   [copy("آخر سعر منشور","Last published quote"),formatPrice(market.last_price)],
+   [copy("تغيّر الشموع المكتملة · ٢٤ ساعة","Closed-candle change · 24h"),Number.isFinite(market.change)?market.change.toFixed(2)+"%":"—"],
+   [copy("المنصة","Venue"),market.venue||"—"],
+   [copy("وقت استلام السعر","Quote received"),stamp(market.quote_received_at,true)],
+   [copy("آخر إغلاق للفترة","Window close"),stamp(market.price_at_ms,true)],
+   [copy("مصدر التقييم ووقته","Valuation source and time"),(info.valuation_source||"—")+" · "+stamp(info.valuation_at,true)]);
+  set("traceStage",pairLabel(selectedMarketPair));
+  set("traceRun",copy("مساحة المجسّم تتناسب مع القيمة السوقية الموثقة","3D footprint proportional to verified market cap"));
+ }
  const html=rows.map(([k,v])=>"<div><dt>"+esc(k)+"</dt><dd>"+esc(v)+"</dd></div>").join("");
  if(details.innerHTML!==html)details.innerHTML=html;
- el("traceOpen").setAttribute("href","#"+target);
+ el("traceOpen").setAttribute("href","#"+(selectedMarketPair?"trading":target));
  const keys=el("traceStageKeys"), buttons=pipelineStages.map(([key,a,b])=>
-  '<button type="button" data-trace-stage="'+key+'" aria-pressed="'+String(id===key)+'">'+esc(copy(a,b))+'</button>').join("");
+  '<button type="button" data-trace-stage="'+key+'" aria-pressed="'+String(id===key&&!selectedMarketPair)+'">'+esc(copy(a,b))+'</button>').join("")+
+  sceneMarkets.map(row=>'<button type="button" data-scene-pair="'+row.pair+'" aria-pressed="'+String(row.pair===selectedMarketPair)+'">'+esc(pairLabel(row.pair))+'</button>').join("");
  if(keys.innerHTML!==buttons)keys.innerHTML=buttons;
  const transfers=pipelineTransfers(), hasTrace=transfers.length>0;
  const slider=el("traceSeek");
@@ -1243,6 +1301,11 @@ function playPipeline(){
  };
  pipelineFrame=requestAnimationFrame(animate);
 }
+function selectSceneMarket(pair){
+ if(!sceneMarkets.some(row=>row.pair===pair))return;
+ pipelinePinned=true;selectedMarketPair=pair;selectedHandoff=null;pipelineSelected="market_map";
+ selectAsset(pair);paintPipeline();
+}
 function setupPipeline(){
  const canvas=el("traceCanvas"),keys=el("traceStageKeys");
  if(!canvas?.getContext||!keys)return;
@@ -1251,7 +1314,8 @@ function setupPipeline(){
  canvas.addEventListener("pointerdown",event=>{
   if(event.button!==0)return;
   setOrbit(false);
-  gesture={x:event.clientX,y:event.clientY,yaw:pipelineAngle,pitch:pipelinePitch,moved:false};
+  gesture={x:event.clientX,y:event.clientY,yaw:pipelineAngle,pitch:pipelinePitch,
+   scroll:canvas.parentElement.scrollLeft,pan:canvas.clientWidth>canvas.parentElement.clientWidth+20,moved:false};
   canvas.setPointerCapture(event.pointerId);
  });
  canvas.addEventListener("pointermove",event=>{
@@ -1259,9 +1323,12 @@ function setupPipeline(){
   const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;
   if(Math.abs(dx)+Math.abs(dy)>5)gesture.moved=true;
   if(!gesture.moved)return;
-  pipelineAngle=gesture.yaw+dx*.006;
-  pipelinePitch=Math.max(-.35,Math.min(1.15,gesture.pitch+dy*.005));
-  drawPipeline();
+  if(gesture.pan)canvas.parentElement.scrollLeft=gesture.scroll-dx;
+  else{
+   pipelineAngle=gesture.yaw+dx*.006;
+   pipelinePitch=Math.max(-.35,Math.min(1.15,gesture.pitch+dy*.005));
+   drawPipeline();
+  }
  });
  canvas.addEventListener("pointerup",()=>{suppressClick=!!gesture?.moved;gesture=null});
  canvas.addEventListener("pointercancel",()=>{gesture=null});
@@ -1272,8 +1339,18 @@ function setupPipeline(){
   if(suppressClick){suppressClick=false;return}
   const bounds=canvas.getBoundingClientRect();
   const hit=[...pipelinePoints].reverse().find(({p})=>Math.hypot(p[0]-(event.clientX-bounds.left),p[1]-(event.clientY-bounds.top))<20);
-  if(hit){pipelinePinned=true;selectedHandoff=null;pipelineSelected=hit.id;openPipelineSection(hit.id);paintPipeline();return}
+  if(hit){pipelinePinned=true;selectedMarketPair=null;selectedHandoff=null;pipelineSelected=hit.id;paintPipeline();return}
   const x=event.clientX-bounds.left,y=event.clientY-bounds.top;
+  const inside=points=>{
+   let hit=false;
+   for(let i=0,j=points.length-1;i<points.length;j=i++){
+    const a=points[i],b=points[j];
+    if((a.y>y)!==(b.y>y)&&x<(b.x-a.x)*(y-a.y)/(b.y-a.y)+a.x)hit=!hit;
+   }
+   return hit;
+  };
+  const tile=[...marketCapTiles].reverse().find(item=>inside(item.corners));
+  if(tile){selectSceneMarket(tile.pair);return}
   const link=pipelineLinks.find(({a,b,c,event:edge})=>Array.from({length:29},(_,i)=>i/28).some(t=>{
    let point;
    if(pipelineWorld?.available()){
@@ -1285,15 +1362,33 @@ function setupPipeline(){
    }else point=[(1-t)**2*a[0]+2*t*(1-t)*c[0]+t*t*b[0],(1-t)**2*a[1]+2*t*(1-t)*c[1]+t*t*b[1]];
    return Math.hypot(point[0]-x,point[1]-y)<9;
   }));
-  if(link){pipelinePinned=true;selectedHandoff=link.event;pipelineSelected=link.event.to;paintPipeline()}
+  if(link){pipelinePinned=true;selectedMarketPair=null;selectedHandoff=link.event;pipelineSelected=link.event.to;paintPipeline()}
  });
  keys.addEventListener("click",event=>{
   const button=event.target.closest("[data-trace-stage]");
-  if(button){pipelinePinned=true;selectedHandoff=null;pipelineSelected=button.dataset.traceStage;openPipelineSection(pipelineSelected);paintPipeline();keys.querySelector('[aria-pressed="true"]')?.focus()}
+  if(button){pipelinePinned=true;selectedMarketPair=null;selectedHandoff=null;pipelineSelected=button.dataset.traceStage;paintPipeline();keys.querySelector('[aria-pressed="true"]')?.focus()}
+  const coin=event.target.closest("[data-scene-pair]");
+  if(coin)selectSceneMarket(coin.dataset.scenePair);
+ });
+ canvas.addEventListener("keydown",event=>{
+  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","+","=","-"].includes(event.key)){
+   event.preventDefault();setOrbit(false);
+   if(event.key==="ArrowLeft")pipelineAngle-=.13;
+   if(event.key==="ArrowRight")pipelineAngle+=.13;
+   if(event.key==="ArrowUp")pipelinePitch=Math.min(1.15,pipelinePitch+.1);
+   if(event.key==="ArrowDown")pipelinePitch=Math.max(-.35,pipelinePitch-.1);
+   if(event.key==="+"||event.key==="=")pipelineZoom=Math.min(2.2,pipelineZoom*1.12);
+   if(event.key==="-")pipelineZoom=Math.max(.65,pipelineZoom/1.12);
+   drawPipeline();
+  }
  });
  el("traceRotate").addEventListener("click",()=>{setOrbit(false);pipelineAngle+=.28;drawPipeline()});
  el("traceOrbit")?.addEventListener("click",()=>setOrbit(!orbitEnabled));
- el("traceReset")?.addEventListener("click",()=>{setOrbit(false);pipelineAngle=-.14;pipelinePitch=.32;pipelineZoom=1;drawPipeline()});
+ el("traceReset")?.addEventListener("click",()=>{setOrbit(false);pipelineAngle=-.14;pipelinePitch=.55;pipelineZoom=1;drawPipeline()});
+ el("traceZoomIn")?.addEventListener("click",()=>{setOrbit(false);pipelineZoom=Math.min(2.2,pipelineZoom*1.15);drawPipeline()});
+ el("traceZoomOut")?.addEventListener("click",()=>{setOrbit(false);pipelineZoom=Math.max(.65,pipelineZoom/1.15);drawPipeline()});
+ el("tracePanBack")?.addEventListener("click",()=>canvas.parentElement.scrollBy({left:-260,behavior:"smooth"}));
+ el("tracePanNext")?.addEventListener("click",()=>canvas.parentElement.scrollBy({left:260,behavior:"smooth"}));
  el("traceReplay").addEventListener("click",playPipeline);
  el("traceSeek")?.addEventListener("input",event=>{
   pipelinePinned=true;
@@ -1351,6 +1446,9 @@ async function pollPipelineEvents(){
   relay.textContent=payload.events.length?
    copy("وصلت قراءات ملفات موثّقة أثناء التشغيل · ","Observed file reads arrived during processing · ")+stamp(payload.checked_at_utc,true):
    copy("بث انتقالات الملفات متصل · لا انتقالات جديدة الآن · ","File handoff feed connected · no new transfers now · ")+stamp(payload.checked_at_utc,true);
+  set("scenePacket",payload.events.length?
+   copy("انتقالات موثقة ","Verified transfers ")+payload.events.length+" · "+stamp(payload.checked_at_utc,true):
+   copy("بث الملفات متصل · لا انتقال جديد","Artifact feed connected · no new transfer"));
   if(payload.sequence<pipelineSequence)pipelineSequence=0;
   else pipelineSequence=payload.sequence;
   const nodes=new Set(pipelineStages.map(row=>row[0]));
@@ -1379,6 +1477,7 @@ async function pollPipelineEvents(){
  }catch{
   const relay=el("traceRelayStatus");relay.dataset.state="unavailable";
   relay.textContent=copy("بث انتقالات الملفات غير متاح؛ لا يمكن إثبات حركة فورية الآن.","File handoff feed unavailable; live motion cannot be verified now.");
+  set("scenePacket",copy("تعذّر التحقق من نقل البيانات الآن","Transfer feed unavailable"));
  }finally{pipelineEventRequest=false}
 }
 function observeVenueFlow(event){
@@ -1390,6 +1489,7 @@ function observeVenueFlow(event){
  liveObservations.set(source,update);
  if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
  const moving={from:source,to:"market_view",artifact:"spot_execution_observation",live:true,...update};
+ set("scenePacket",copy("صفقة مرصودة ","Observed trade ")+update.venue+" · "+stamp(update.last_ms,true));
  if(!pipelinePinned){selectedHandoff=moving;pipelineSelected="market_view"}
  paintPipeline();
  if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
@@ -1407,6 +1507,7 @@ document.addEventListener?.("stamp:market-map-focus",event=>{
  if(!PAIR_SYMBOL.test(pair||""))return;
  selectAsset(pair);
  pipelineSelected="market_map";
+ selectedMarketPair=sceneMarkets.some(row=>row.pair===pair)?pair:null;
  selectedHandoff=null;
  pipelinePinned=true;
  paintPipeline();
@@ -1415,20 +1516,70 @@ document.addEventListener?.("stamp:market-map-response",event=>{
  const update=event.detail;
  if(!update||!Array.isArray(update.venues)||!Number.isFinite(update.rows))return;
  mapResponse=update;
- const transfer={...update,from:"market_catalog",to:"market_map",kind:"api_response",live:true};
- livePipelineEvents.set("market_catalog|market_map",transfer);
  paintPipeline();
- if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
- if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
- const start=performance.now();
- const animate=now=>{
-  const progress=Math.min(1,(now-start)/1100);
-  drawPipeline({...transfer,progress});
-  if(progress<1)pipelineFrame=requestAnimationFrame(animate);
-  else{pipelineFrame=0;drawPipeline()}
- };
- pipelineFrame=requestAnimationFrame(animate);
 });
+async function pollSceneMarket(){
+ if(offline||document.hidden||sceneMarketBusy)return;
+ sceneMarketBusy=true;
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),24000);
+ try{
+  if(!sceneCatalog||Date.now()-sceneCatalogAt>120000){
+   const response=await fetch("/api/market-map",{credentials:"same-origin",cache:"no-store",signal:controller.signal});
+   if(!response.ok)throw Error("market_catalog_unavailable");
+   sceneCatalog=await response.json();sceneCatalogAt=Date.now();
+  }
+  const ranked=Object.entries(sceneCatalog.assets||{}).filter(([,info])=>
+   Number.isFinite(info.market_cap_usd)&&info.market_cap_usd>0&&Number.isFinite(Date.parse(info.valuation_at))&&
+   Date.now()-Date.parse(info.valuation_at)<900000)
+   .sort((a,b)=>b[1].market_cap_usd-a[1].market_cap_usd);
+  sceneMarkets=ranked.map(([pair,info])=>({
+   pair,cap:info.market_cap_usd,change:sceneWindowRows.get(pair)?.change??null
+  }));
+  const pairs=ranked.slice(0,12).map(([pair])=>pair);
+  const previous=sceneWindowRows;
+  if(pairs.length){
+   const query=new URLSearchParams({period:"24h",pairs:pairs.join(",")});
+   const response=await fetch("/api/market-map/windows?"+query,{credentials:"same-origin",cache:"no-store",signal:controller.signal});
+   if(!response.ok)throw Error("market_window_unavailable");
+   const payload=await response.json();
+   sceneWindowRows=new Map((payload.cards||[]).map(row=>[row.pair,row]));
+   sceneMarkets=sceneMarkets.map(row=>({...row,change:sceneWindowRows.get(row.pair)?.change??null}));
+   const changed=(payload.cards||[]).filter(row=>{
+    const old=previous.get(row.pair);
+    return old&&old.venue===row.venue&&(
+     Number.isFinite(row.last_price)&&Number.isFinite(old.last_price)&&row.last_price!==old.last_price||
+     Number.isFinite(row.price_at_ms)&&row.price_at_ms>old.price_at_ms&&row.price!==old.price);
+   });
+   mapResponse={observed_utc:new Date().toISOString(),rows:payload.cards?.length||0,period:"24h",
+    venues:[...new Set((payload.cards||[]).map(row=>row.venue).filter(Boolean))]};
+   if(changed.length){
+    const event={from:"market_catalog",to:"market_map",kind:"api_response",live:true,
+     observed_utc:new Date().toISOString(),period:"24h",rows:changed.length,venues:mapResponse.venues};
+    livePipelineEvents.set("market_catalog|market_map",event);
+    if(!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
+     if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
+     const start=performance.now();
+     const animate=now=>{
+      const progress=Math.min(1,(now-start)/1000);
+      drawPipeline({...event,progress});
+      if(progress<1)pipelineFrame=requestAnimationFrame(animate);
+      else{pipelineFrame=0;drawPipeline()}
+     };
+     pipelineFrame=requestAnimationFrame(animate);
+    }
+   }
+  }
+  const total=ranked.reduce((sum,[,info])=>sum+info.market_cap_usd,0);
+  const cap=new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",notation:"compact",maximumFractionDigits:1}).format(total);
+  set("sceneAssets",copy("القيمة السوقية الموثقة ","Verified market cap ")+cap+" · "+ranked.length+" / "+(sceneCatalog.pairs?.length||0));
+  set("sceneVenues",copy("مصادر الأسعار ","Quote venues ")+(mapResponse?.venues?.join(" · ")||copy("غير متاحة","Unavailable")));
+  paintPipeline();
+ }catch{
+  set("sceneAssets",copy("تعذّر تحديث تقييمات السوق","Market valuation refresh unavailable"));
+  if(!sceneMarkets.length)set("sceneVenues",copy("مصادر الأسعار غير متاحة","Quote venues unavailable"));
+  paintPipeline();
+ }finally{clearTimeout(timer);sceneMarketBusy=false}
+}
 function paintSystem(){
  const root=el("systemStages");
  if(!root)return;
@@ -1576,7 +1727,15 @@ document.addEventListener?.("stamp:market-map-pair",event=>{
  const pair=event.detail?.pair;
  if(typeof pair!=="string"||!PAIR_SYMBOL.test(pair))return;
  selectAsset(pair);
- el("tradeTab").click();
+ document.dispatchEvent(new CustomEvent("stamp:open-workspace",{detail:{target:"trading"}}));
+});
+window.addEventListener?.("stamp:assetchange",event=>{
+ const pair=event.detail?.symbol;
+ if(sceneMarkets.some(row=>row.pair===pair)){
+  selectedMarketPair=pair;pipelineSelected="market_map";selectedHandoff=null;paintPipeline();
+ }else if(pair){
+  selectedMarketPair=null;syncProjectWorkspace();
+ }
 });
 
 document.addEventListener?.("stamp:favoriteschange",()=>{
@@ -1899,7 +2058,8 @@ translate();setupPipeline();initializeSceneControls();refresh();
 syncProjectWorkspace();
 if(!offline&&pipelineWorld?.available())setOrbit(true);
 if(!offline){
- loadAssetUniverse();updateVenueNetwork();startStream();updateWorkerStatus();pollChartEvents(true);pollPipelineLive();pollPipelineEvents();
+ loadAssetUniverse();updateVenueNetwork();startStream();updateWorkerStatus();pollChartEvents(true);pollPipelineLive();pollPipelineEvents();pollSceneMarket();
+ setInterval(()=>{if(!document.hidden)pollSceneMarket()},30000);
  setInterval(()=>{if(!document.hidden)pollPipelineLive()},60000);
  setInterval(()=>{if(!document.hidden)pollPipelineEvents()},5000);
  if(window.StampEvents)setInterval(()=>{if(!document.hidden){pollChartEvents();paintOperations()}},15000);
