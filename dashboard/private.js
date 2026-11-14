@@ -2093,7 +2093,7 @@ el("venueForm")?.addEventListener("submit",event=>{
 });
 const sceneSnapshotDock=el("sceneSnapshot");
 if(sceneSnapshotDock){
- const overview=document.querySelector("#trading .market-overview"),forecast=el("predictionCenter");
+ const overview=document.querySelector?.("#trading .market-overview"),forecast=el("predictionCenter");
  if(overview&&forecast){
   sceneSnapshotDock.append(overview,forecast);
   const openChart=document.createElement("button");
