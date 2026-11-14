@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#0d1117">
   <title>STAMP | لوحة السوق</title>
-  <link rel="stylesheet" href="/assets/style.css?v=spatial-core-4">
+  <link rel="stylesheet" href="/assets/style.css?v=forecast-surface-5">
   <link rel="stylesheet" href="/assets/market-map.css?v=unified-scene-1">
 </head>
 <body class="dashboard-page">
@@ -25,8 +25,8 @@
   <main class="workspace" id="overview">
     <section class="stamp-map" aria-labelledby="mapTitle">
       <header class="map-heading">
-        <div><span class="scene-eyebrow" data-copy="STAMP · LIVE SYSTEM ATLAS">STAMP · أطلس النظام الحي</span><h1 id="mapTitle" data-copy="One connected market engine">محرك واحد يربط السوق بالقرار</h1>
-          <p data-copy="Explore the market, exchanges, verified data transfers, analysis and decisions in one spatial model. Select any object to inspect its source and time.">استكشف السوق والمنصات وانتقالات البيانات والتحليل والقرارات داخل مجسّم واحد. اضغط أي جزء لمعرفة مصدره وتوقيته.</p></div>
+        <div><span class="scene-eyebrow" data-copy="STAMP · MARKET / MODEL / EVIDENCE">STAMP · السوق / التوقع / الدليل</span><h1 id="mapTitle" data-copy="Market, forecast and evidence">السوق والتوقع والدليل في مشهد واحد</h1>
+          <p data-copy="Read the selected pair and the model outcome first. Explore verified transfers in the 3D atlas below; select an object to inspect its source and time.">اقرأ السعر والتوقع وحالته أولًا، ثم استكشف مسار البيانات داخل المجسّم. اضغط أي عنصر لمعرفة مصدره وتوقيته.</p></div>
         <div class="market-tools">
           <div class="asset-controls">
             <button class="pair-picker-button" id="assetPickerButton" type="button" aria-haspopup="dialog" aria-controls="assetPicker">
@@ -42,6 +42,7 @@
         </div>
       </header>
 
+      <div id="sceneSnapshot" class="scene-snapshot" aria-label="السعر والتوقع الحالي"></div>
       <div class="trace-workspace">
         <div class="trace-visual">
           <div class="trace-scene-toolbar">
@@ -67,8 +68,8 @@
           </div>
           </details>
         </div>
-        <section class="trace-inspector" aria-labelledby="traceStage">
-          <span class="inspector-eyebrow" data-copy="OBJECT INSPECTOR">تفاصيل العنصر</span><h3 id="traceStage"></h3><p id="traceRun" class="muted"></p>
+        <section class="trace-inspector" hidden aria-labelledby="traceStage">
+          <div class="inspector-top"><span class="inspector-eyebrow" data-copy="OBJECT INSPECTOR">تفاصيل العنصر</span><button id="traceInspectorClose" type="button" aria-label="إغلاق تفاصيل العنصر">×</button></div><h3 id="traceStage"></h3><p id="traceRun" class="muted"></p>
           <dl id="traceDetails"></dl>
           <a id="traceOpen" href="#systemCenter" data-copy="Inspect the data">استكشف البيانات</a>
         </section>
@@ -539,7 +540,7 @@
   <script src="/assets/technical-overlays.js?v=chart-live-1" defer></script>
   <script src="/assets/chart-events.js?v=venue-scene-4" defer></script>
   <script src="/assets/pipeline-3d.js?v=spatial-core-4" defer></script>
-  <script src="/assets/app.js?v=spatial-core-4" defer></script>
+  <script src="/assets/app.js?v=forecast-surface-5" defer></script>
   <script src="/assets/market-flow.js?v=stamp-venues-live-5" defer></script>
   <script src="/assets/market-map.js?v=unified-scene-1" defer></script>
 </body>

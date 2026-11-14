@@ -955,8 +955,11 @@ function renderIntelligence(){
  const horizons=data.forecasts||{},lab=lastLaboratory;
  const cards=selectedAsset==="STAMPUSDT"?["1h","4h","24h","7d"].map(h=>{
   const f=horizons[h]?.forecast;
+  const expired=f&&Date.parse(f.due_at_utc)<=Date.now();
+  const status=!f?copy("لا يوجد","No forecast"):expired?copy("انتهى","Expired"):
+   data.model_decisions?.[h]?.status==="approved"?copy("اعتماد بحثي","Research approved"):copy("تجريبي","Experimental");
   return '<button type="button" class="forecast-card" data-horizon="'+h+'" aria-pressed="'+(h===horizon)+'"><strong>'+h+
-   '</strong><span class="forecast-target">'+esc(price(f?.predicted_price))+'</span></button>';
+   '</strong><span class="forecast-target">'+esc(f?price(f.predicted_price):"—")+'</span><small>'+esc(status)+'</small></button>';
  }):[];
  const panel=el("forecastCards");
  if(panel)panel.innerHTML=cards.join("");
@@ -1335,6 +1338,7 @@ function playPipeline(){
 }
 function selectSceneMarket(pair){
  if(!sceneMarkets.some(row=>row.pair===pair))return;
+ el("traceInspectorClose").closest(".trace-inspector").hidden=false;
  pipelinePinned=true;selectedMarketPair=pair;selectedHandoff=null;pipelineSelected="market_map";
  selectAsset(pair);paintPipeline();
 }
@@ -1371,7 +1375,7 @@ function setupPipeline(){
   if(suppressClick){suppressClick=false;return}
   const bounds=canvas.getBoundingClientRect();
   const hit=[...pipelinePoints].reverse().find(({p})=>Math.hypot(p[0]-(event.clientX-bounds.left),p[1]-(event.clientY-bounds.top))<20);
-  if(hit){pipelinePinned=true;selectedMarketPair=null;selectedHandoff=null;pipelineSelected=hit.id;paintPipeline();return}
+  if(hit){el("traceInspectorClose").closest(".trace-inspector").hidden=false;pipelinePinned=true;selectedMarketPair=null;selectedHandoff=null;pipelineSelected=hit.id;paintPipeline();return}
   const x=event.clientX-bounds.left,y=event.clientY-bounds.top;
   const inside=points=>{
    let hit=false;
@@ -1394,11 +1398,11 @@ function setupPipeline(){
    }else point=[(1-t)**2*a[0]+2*t*(1-t)*c[0]+t*t*b[0],(1-t)**2*a[1]+2*t*(1-t)*c[1]+t*t*b[1]];
    return Math.hypot(point[0]-x,point[1]-y)<9;
   }));
-  if(link){pipelinePinned=true;selectedMarketPair=null;selectedHandoff=link.event;pipelineSelected=link.event.to;paintPipeline()}
+  if(link){el("traceInspectorClose").closest(".trace-inspector").hidden=false;pipelinePinned=true;selectedMarketPair=null;selectedHandoff=link.event;pipelineSelected=link.event.to;paintPipeline()}
  });
  keys.addEventListener("click",event=>{
   const button=event.target.closest("[data-trace-stage]");
-  if(button){pipelinePinned=true;selectedMarketPair=null;selectedHandoff=null;pipelineSelected=button.dataset.traceStage;paintPipeline();keys.querySelector('[aria-pressed="true"]')?.focus()}
+  if(button){el("traceInspectorClose").closest(".trace-inspector").hidden=false;pipelinePinned=true;selectedMarketPair=null;selectedHandoff=null;pipelineSelected=button.dataset.traceStage;paintPipeline();keys.querySelector('[aria-pressed="true"]')?.focus()}
   const coin=event.target.closest("[data-scene-pair]");
   if(coin)selectSceneMarket(coin.dataset.scenePair);
  });
@@ -1406,6 +1410,7 @@ function setupPipeline(){
   const button=event.target.closest("[data-scene-event]");
   if(!button)return;
   const item=sceneHistory[Number(button.dataset.sceneEvent)];if(!item)return;
+  el("traceInspectorClose").closest(".trace-inspector").hidden=false;
   pipelinePinned=true;selectedMarketPair=null;selectedHandoff=item.event;
   pipelineSelected=item.event.to;paintPipeline();
   drawPipeline({...item.event,progress:.68});
@@ -1430,6 +1435,7 @@ function setupPipeline(){
  el("tracePanBack")?.addEventListener("click",()=>canvas.parentElement.scrollBy({left:-260,behavior:"smooth"}));
  el("tracePanNext")?.addEventListener("click",()=>canvas.parentElement.scrollBy({left:260,behavior:"smooth"}));
  el("traceReplay").addEventListener("click",playPipeline);
+ el("traceInspectorClose")?.addEventListener("click",()=>{el("traceInspectorClose").closest(".trace-inspector").hidden=true;canvas.focus({preventScroll:true})});
  el("traceSeek")?.addEventListener("input",event=>{
   pipelinePinned=true;
   if(pipelineFrame){cancelAnimationFrame(pipelineFrame);pipelineFrame=0}
@@ -2085,6 +2091,19 @@ el("venueForm")?.addEventListener("submit",event=>{
  event.preventDefault();
  loadMicrostructure(el("venueSelect").value);
 });
+const sceneSnapshotDock=el("sceneSnapshot");
+if(sceneSnapshotDock){
+ const overview=document.querySelector("#trading .market-overview"),forecast=el("predictionCenter");
+ if(overview&&forecast){
+  sceneSnapshotDock.append(overview,forecast);
+  const openChart=document.createElement("button");
+  openChart.id="sceneForecastChart";openChart.type="button";
+  openChart.dataset.copy="View forecast on the price chart";
+  openChart.textContent="اعرض التوقع على الرسم السعري";
+  forecast.append(openChart);
+  openChart.addEventListener("click",()=>document.dispatchEvent(new CustomEvent("stamp:open-workspace",{detail:{target:"trading"}})));
+ }
+}
 translate();setupPipeline();initializeSceneControls();refresh();
 syncProjectWorkspace();
 if(!offline&&pipelineWorld?.available())setOrbit(true);

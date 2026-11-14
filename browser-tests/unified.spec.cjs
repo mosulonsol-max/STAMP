@@ -31,8 +31,14 @@ test('unified spatial scene binds verified capitalization, quotes and module det
  await expect(page.locator('.page-nav')).toHaveCount(0);
  await expect(page.locator('#traceCanvas')).toBeVisible();
  await expect(page.locator('#sceneDetail')).toBeHidden();
+ await expect(page.locator('#sceneSnapshot .market-overview')).toBeVisible();
+ await expect(page.locator('#sceneSnapshot #predictionCenter')).toBeVisible();
+ await expect(page.locator('#sceneForecastChart')).toBeVisible();
+ await expect(page.locator('#forecastCards [data-horizon]')).toHaveCount(4);
+ await expect(page.locator('.trace-inspector')).toBeHidden();
  await expect(page.locator('#sceneEventFeed button')).toHaveCount(1);
  await page.locator('#sceneEventFeed button').click();
+ await expect(page.locator('.trace-inspector')).toBeVisible();
  await expect(page.locator('#traceDetails')).toContainText('data/latest.json');
  await expect(page.locator('#sceneAssets')).toContainText('1.8T');
  await expect(page.locator('#sceneVenues')).toContainText('OKX');
@@ -57,6 +63,9 @@ test('unified spatial scene binds verified capitalization, quotes and module det
  await page.locator('#sceneDetailClose').click();
  await expect(page.locator('#sceneDetail')).toBeHidden();
  await expect(page.locator('#traceCanvas')).toBeVisible();
+ await page.locator('#sceneForecastChart').click();
+ await expect(page.locator('#trading')).toBeVisible();
+ await page.locator('#sceneDetailClose').click();
  await page.locator('[data-trace-stage="lab"]').click();
  await expect(page.locator('#traceStage')).toContainText('المختبر');
  await page.locator('#traceOpen').click();
