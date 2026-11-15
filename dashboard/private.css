@@ -719,6 +719,26 @@ body[data-workspace] .trace-inspector { max-height:none; overflow:visible; }
  .scene-detail-body .market-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+.wallet-center { display:grid; gap:16px; }
+.wallet-form { display:grid; gap:8px; padding:16px; border:1px solid var(--border); border-radius:12px; background:var(--panel); }
+.wallet-form > label { font-weight:650; }
+.wallet-form > div { display:flex; flex-wrap:wrap; gap:8px; }
+.wallet-form input { flex:1 1 270px; width:100%; font:500 .82rem var(--number); }
+.wallet-form button { flex:0 0 auto; background:#205049; border-color:#478678; }
+#walletStatus { padding:10px 13px; border:1px solid var(--border); border-radius:8px; color:var(--muted); }
+#walletStatus[data-state="ok"] { color:var(--up); border-color:#326b59; }
+#walletStatus[data-state="error"] { color:var(--down); border-color:#744954; }
+.wallet-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.wallet-metrics > div { min-width:0; padding:14px; background:var(--panel); border:1px solid var(--border); border-radius:10px; }
+.wallet-metrics dt { color:var(--muted); font-size:.78rem; }
+.wallet-metrics dd { font:650 clamp(.93rem,1.6vw,1.24rem) var(--number); overflow-wrap:anywhere; margin-top:5px; }
+.wallet-tokens { display:grid; gap:7px; margin-top:12px; max-height:350px; overflow:auto; }
+.wallet-tokens > div { display:flex; justify-content:space-between; flex-wrap:wrap; gap:5px 12px; padding:9px 11px; border:1px solid var(--border); border-radius:8px; background:var(--surface); }
+.wallet-tokens code { font-size:.72rem; overflow-wrap:anywhere; }
+.wallet-execution { padding:15px; border:1px solid #755e3b; border-radius:12px; background:#241e19; line-height:1.65; }
+.wallet-execution strong { color:#f1c781; }
+.wallet-execution p { margin-top:7px; color:var(--muted); }
+@media(max-width:660px) { .wallet-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .wallet-form button { flex:1 1 auto; } }
 
 /* A readable market and forecast surface stays visible above the single spatial model. */
 .map-heading { padding-bottom:14px; }

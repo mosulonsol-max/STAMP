@@ -47,7 +47,7 @@
         <div class="trace-visual">
           <div class="trace-scene-toolbar">
             <span id="projectContext" dir="auto">STAMP / USDT</span>
-            <div><button id="tracePanBack" class="scene-pan" type="button" aria-label="تحريك المشهد نحو بداية السوق">←</button><button id="tracePanNext" class="scene-pan" type="button" aria-label="تحريك المشهد نحو القرار">→</button><button id="traceOrbit" type="button" aria-pressed="false" data-copy="Camera motion">حركة الكاميرا</button><button id="traceReset" type="button" data-copy="Reset view">إعادة الزاوية</button><button id="traceZoomIn" type="button" aria-label="تكبير المجسّم">+</button><button id="traceZoomOut" type="button" aria-label="تصغير المجسّم">−</button></div>
+            <div><button id="walletOpen" type="button" data-copy="Wallet observation">المحفظة</button><button id="tracePanBack" class="scene-pan" type="button" aria-label="تحريك المشهد نحو بداية السوق">←</button><button id="tracePanNext" class="scene-pan" type="button" aria-label="تحريك المشهد نحو القرار">→</button><button id="traceOrbit" type="button" aria-pressed="false" data-copy="Camera motion">حركة الكاميرا</button><button id="traceReset" type="button" data-copy="Reset view">إعادة الزاوية</button><button id="traceZoomIn" type="button" aria-label="تكبير المجسّم">+</button><button id="traceZoomOut" type="button" aria-label="تصغير المجسّم">−</button></div>
           </div>
           <div class="scene-stage-shell">
             <div class="trace-stage-world"><canvas id="traceWorld" aria-hidden="true"></canvas><canvas id="traceCanvas" tabindex="0" aria-label="مجسّم ثلاثي الأبعاد تفاعلي للسوق والمنصات ومحرك ستامب. الأسهم تبين المسارات المهيأة، وتتحرك الحزمة فقط عند وصول حدث مرصود."></canvas></div>
@@ -80,6 +80,20 @@
     <aside id="sceneDetail" class="scene-detail" hidden aria-label="بيانات العنصر المحدد">
       <header class="scene-detail-header"><div><span data-copy="CONNECTED DATA · STAMP">بيانات مترابطة · ستامب</span><h2 id="sceneDetailTitle">—</h2></div><button id="sceneDetailClose" type="button" data-copy="Return to the 3D scene">العودة إلى المجسّم ×</button></header>
       <div class="scene-detail-body">
+    <section id="walletCenter" class="market-section wallet-center" hidden aria-labelledby="walletTitle">
+      <header class="section-header"><div><h2 id="walletTitle" data-copy="Solana wallet observation">مراقبة محفظة سولانا</h2><p data-copy="Enter the public address shown in pump.fun. This only reads chain balances; it does not grant trading authority.">أدخل العنوان العام الظاهر في pump.fun. قراءة الرصيد لا تمنح صلاحية التداول.</p></div></header>
+      <form id="walletForm" class="wallet-form">
+        <label for="walletAddress" data-copy="Public Solana address">عنوان سولانا العام</label>
+        <div><input id="walletAddress" type="text" dir="ltr" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="44" placeholder="Public address · 32–44 base58 characters" required><button type="submit" data-copy="Observe wallet">راقب المحفظة</button><button id="walletForget" type="button" data-copy="Forget address">إزالة العنوان</button></div>
+        <p class="muted small" data-copy="Never enter a seed phrase or private key here. The address is kept only in this browser.">لا تدخل العبارة السرية أو المفتاح الخاص. يُحفظ العنوان العام في هذا المتصفح فقط.</p>
+      </form>
+      <p id="walletStatus" role="status" aria-live="polite">أدخل العنوان العام لبدء الرصد.</p>
+      <div id="walletResult" hidden>
+        <dl class="wallet-metrics"><div><dt>SOL</dt><dd id="walletSol" dir="ltr">—</dd></div><div><dt>STAMP</dt><dd id="walletStamp" dir="ltr">—</dd></div><div><dt data-copy="Token positions">حيازات التوكن</dt><dd id="walletTokenCount">—</dd></div><div><dt data-copy="Realized profit / loss">الربح والخسارة المحققة</dt><dd id="walletPnl">غير محسوب</dd></div></dl>
+        <p id="walletObserved" class="small muted"></p><div id="walletTokens" class="wallet-tokens" aria-label="حيازات المحفظة"></div>
+      </div>
+      <div class="wallet-execution" role="note"><strong data-copy="Trading execution: unavailable">تنفيذ الشراء والبيع: غير مفعّل</strong><p data-copy="A public address cannot sign. pump.fun Developer API is read-only. Automatic trading requires a supported signing wallet, verified live swap quotes, pre-trade risk limits, and confirmed fills. Profit is not guaranteed.">العنوان العام لا يوقّع. واجهة مطوري pump.fun للقراءة فقط. التداول الآلي يحتاج محفظة توقيع مدعومة، تسعير مبادلة حي، حدود مخاطرة، والتحقق من التنفيذ الفعلي. الربح غير مضمون.</p></div>
+    </section>
     <section id="marketMap" class="market-section market-map" hidden>
       <header class="section-header"><h2 data-copy="Asset data and valuation">بيانات العملات والتقييم</h2><p id="marketMapStatus" role="status"></p></header>
       <div class="market-map-tools">

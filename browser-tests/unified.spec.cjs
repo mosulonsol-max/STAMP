@@ -137,3 +137,44 @@ test('3D execution packets follow new venue evidence and stop in a quiet sample'
  await expect(page.locator('#traceDetails')).toContainText('عينة محدودة');
  await expect.poll(async()=>Number(await page.locator('#traceCanvas').getAttribute('data-active-packets')),{timeout:10000}).toBe(0);
 });
+
+test('wallet object shows verified Solana read without implying trading',async({page})=>{
+ const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ const address='11111111111111111111111111111111',observed=new Date().toISOString();
+ let calls=0;
+ await page.route('**/api/wallet/observe?*',route=>{
+  calls++;
+  expect(new URL(route.request().url()).searchParams.get('address')).toBe(address);
+  return route.fulfill({json:{address,observed_at_utc:observed,source:'Solana JSON-RPC confirmed',
+   sol:'1.23456789',stamp:'12.500001',tokens:[{mint:'EKtmPPLaCbEEKiwoHHtV7TsRsmPXs5CMGtQtZFSiinsc',amount:'12.500001',decimals:6}],
+   token_count:1,mode:'read_only',execution:'disabled_no_signer',profit_loss:null}});
+ });
+ await page.goto(HOST+'/');
+ await page.locator('#user').fill('test-user');await page.locator('#password').fill('long-test-password');
+ await page.locator('form[action="/login"] button').click();
+ await page.locator('#walletOpen').click();
+ await expect(page.locator('#walletCenter')).toBeVisible();
+ await page.locator('#walletAddress').fill('not-a-wallet');
+ await page.locator('#walletForm button[type="submit"]').click();
+ await expect(page.locator('#walletStatus')).toContainText('أدخل عنوان سولانا');
+ expect(calls).toBe(0);
+ await page.locator('#walletAddress').fill(address);
+ await page.locator('#walletForm button[type="submit"]').click();
+ await expect(page.locator('#walletStatus')).toContainText('التنفيذ معطّل');
+ await expect(page.locator('#walletSol')).toHaveText('1.23456789');
+ await expect(page.locator('#walletStamp')).toHaveText('12.500001');
+ await expect(page.locator('#walletPnl')).toContainText('غير محسوب');
+ await expect(page.locator('#walletObserved')).toContainText('Solana JSON-RPC');
+ await expect(page.locator('#sceneEventFeed')).toContainText('قراءة رصيد المحفظة');
+ await page.locator('#sceneDetailClose').click();
+ await page.locator('.trace-module-list summary').click();
+ await page.locator('[data-trace-stage="wallet"]').click();
+ await expect(page.locator('#traceDetails')).toContainText('بلا توقيع');
+ await page.locator('#traceOpen').click();
+ await expect(page.locator('#walletCenter')).toBeVisible();
+ await page.locator('#walletForget').click();
+ await expect(page.locator('#walletResult')).toBeHidden();
+ await expect(page.locator('#sceneEventFeed')).not.toContainText('قراءة رصيد المحفظة');
+ expect(calls).toBe(1);
+ expect(errors).toEqual([]);
+});

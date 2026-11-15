@@ -998,6 +998,7 @@ const pipelineStages=[
  ["market_catalog","التقييم","Valuation","marketMap",[-3.7,-.65,-1.1]],
  ["market_map","العملات","Assets","marketMap",[-2.7,-.58,-1.0]],
  ["market_view","تدفق السوق","Market flow","globalMarketFlow",[-2.45,-.35,.75]],
+ ["wallet","المحفظة","Wallet","walletCenter",[4.4,.2,-1.1]],
  ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map((venue,index)=>
   ["venue_"+venue.toLowerCase(),venue,venue,"globalMarketFlow",[-4.05+index*.42,1.45,1.35+(index%2)*.4]])
 ];
@@ -1007,6 +1008,7 @@ const pipelineTopology=[
  ["multi_asset_governance","forecast_health"],["forecast_health","production_smoke"],["production_smoke","dashboard"],
  ["market_view","monitor"],["market_view","dashboard"],
  ["market_catalog","market_map"],["market_map","dashboard"],
+ ["wallet","dashboard"],
  ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map(venue=>["venue_"+venue.toLowerCase(),"market_catalog"]),
  ...["MEXC","Binance","OKX","Bybit","KuCoin","Gate","Bitget"].map(venue=>["venue_"+venue.toLowerCase(),"market_view"])
 ];
@@ -1126,7 +1128,10 @@ function drawPipeline(pulse=null){
  const transfers=pipelineTransfers();
  const edges=new Map(pipelineTopology.map(([from,to])=>[from+"|"+to,{from,to,configured:true}]));
  for(const event of transfers)edges.set(event.from+"|"+event.to,event);
- for(const event of livePipelineEvents.values())edges.set(event.from+"|"+event.to,{...event,live:true});
+ for(const event of livePipelineEvents.values()){
+  if(event.kind==="wallet_balance_observation"&&(age(event.observed_utc)??Infinity)>=90)continue;
+  edges.set(event.from+"|"+event.to,{...event,live:true});
+ }
  for(const [id,observation] of liveObservations)edges.set(id+"|market_view",{from:id,to:"market_view",artifact:"spot_execution_observation",live:true,...observation});
  pipelineLinks=[...edges.values()].map(event=>({
   event,a:pipelinePoints.find(node=>node.id===event.from).p,b:pipelinePoints.find(node=>node.id===event.to).p
@@ -1163,7 +1168,7 @@ function drawPipeline(pulse=null){
   canvas.dataset.marketHits=JSON.stringify(marketCapTiles.map(tile=>({pair:tile.pair,
    center:tile.corners.reduce((point,corner)=>({x:point.x+corner.x/4,y:point.y+corner.y/4}),{x:0,y:0})})));
   ctx.textAlign="center";ctx.font=(w<550?"10":"12")+"px system-ui";
-  const primary=new Set(["market_catalog","market_map","market_view","monitor","evidence","research","audit","governance","dashboard","lab"]);
+  const primary=new Set(["market_catalog","market_map","market_view","monitor","evidence","research","audit","governance","dashboard","lab","wallet"]);
   for(const node of pipelinePoints){
    const venue=node.id.startsWith("venue_");
    if(!primary.has(node.id)&&node.id!==pipelineSelected&&!(venue&&w>=780))continue;
@@ -1261,7 +1266,7 @@ function paintPipeline(){
  const label=copy(ar,en),lab=report?.laboratory;
  const running=pipelineLive?.status==="in_progress"&&pipelineLive?.stages?.[id]?.status==="in_progress";
  const observed=id==="market_view"?liveObservation:liveObservations.get(id);
- const rows=[[copy("الحالة","Status"),id.startsWith("venue_")||id==="market_view"?observed?copy("آخر اتصال موثّق","Last observed response"):copy("بانتظار الاستجابة","Awaiting response"):running?copy("تعمل الآن","Running now"):id==="lab"?(lab?.status||"—"):traceOutcome(health?.steps?.[id])],
+ const rows=[[copy("الحالة","Status"),id==="wallet"?observed?copy("آخر قراءة موثّقة · مراقبة فقط","Last verified read · observation only"):copy("بانتظار عنوان عام","Awaiting public address"):id.startsWith("venue_")||id==="market_view"?observed?copy("آخر اتصال موثّق","Last observed response"):copy("بانتظار الاستجابة","Awaiting response"):running?copy("تعمل الآن","Running now"):id==="lab"?(lab?.status||"—"):traceOutcome(health?.steps?.[id])],
   [copy("بدأت","Started"),stamp(entry?.started_utc,true)],[copy("انتهت","Finished"),stamp(entry?.finished_utc,true)]];
  if(id.startsWith("venue_")||id==="market_view")rows.push([copy("الزوج","Pair"),observed?.symbol||"—"],
   [copy("المنصة","Venue"),observed?.venue||"—"],[copy("وقت آخر صفقة","Last execution"),stamp(observed?.last_ms,true)],
@@ -1280,12 +1285,21 @@ function paintPipeline(){
   [copy("نوافذ أسعار معروضة","Displayed price windows"),mapResponse?.rows??"—"],
   [copy("منصات المصدر","Source venues"),mapResponse?.venues?.join(" · ")||"—"]);
  if(id==="lab")rows.push([copy("وقت تدقيق المختبر","Lab audit time"),stamp(lab?.audited_at_utc,true)],[copy("تجارب مقيّمة","Evaluated experiments"),lab?.evaluated??"—"]);
+ if(id==="wallet")rows.push([copy("العنوان العام","Public address"),observed?.address||"—"],
+  ["SOL",observed?.sol||"—"],["STAMP",observed?.stamp||"—"],
+  [copy("قراءة سولانا","Solana read"),stamp(observed?.observed_utc,true)],
+  [copy("صلاحية التداول","Trading authority"),copy("لا يوجد توقيع؛ التداول معطّل","No signer; trading disabled")]);
  set("traceStage",label);
  set("traceRun",health?.run?"STAMP · "+copy("دورة محفوظة","Archived run")+" "+health.run+" · "+stamp(health.at,true):copy("بانتظار سجل التشغيل","Awaiting run record"));
  if(selectedHandoff){
   const e=selectedHandoff;
   set("traceStage",stageName(e.from)+" → "+stageName(e.to));
-  if(e.kind==="api_response"){
+  if(e.kind==="wallet_balance_observation"){
+   rows.splice(0,rows.length,[copy("نوع البيانات","Payload"),copy("رصيد عام على سلسلة سولانا؛ ليس صفقة","Public Solana balances; not a trade")],
+    [copy("العنوان العام","Public address"),e.address],["SOL",e.sol],["STAMP",e.stamp],
+    [copy("وقت الاستلام","Received"),stamp(e.observed_utc,true)],
+    [copy("صلاحية التداول","Trading authority"),copy("مراقبة فقط · بلا توقيع","Read only · no signature")]);
+  }else if(e.kind==="api_response"){
    rows.splice(0,rows.length,[copy("نوع البيانات","Payload"),copy("نوافذ أسعار خريطة السوق","Market map price windows")],
     [copy("وقت الاستلام","Received"),stamp(e.observed_utc,true)],
     [copy("عدد الصفوف","Rows"),e.rows],[copy("الفترة","Period"),e.period],
@@ -2142,6 +2156,71 @@ el("venueForm")?.addEventListener("submit",event=>{
  event.preventDefault();
  loadMicrostructure(el("venueSelect").value);
 });
+let walletAddress="",walletRequest=0,walletObservedAt="";
+try{walletAddress=localStorage.getItem("stamp_public_wallet")||""}catch{}
+if(el("walletAddress"))el("walletAddress").value=walletAddress;
+function walletState(message,state){
+ const node=el("walletStatus");if(!node)return;
+ node.textContent=message;node.dataset.state=state;
+}
+async function refreshWallet(){
+ if(offline||!walletAddress||document.hidden)return;
+ const address=walletAddress,request=++walletRequest;
+ walletState(copy("جارٍ قراءة الرصيد من سولانا…","Reading balances from Solana…"),"loading");
+ try{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),11000);
+  let response;
+  try{response=await fetch("/api/wallet/observe?address="+encodeURIComponent(address),{credentials:"same-origin",cache:"no-store",signal:controller.signal})}
+  finally{clearTimeout(timer)}
+  const result=await response.json();
+  if(request!==walletRequest||address!==walletAddress)return;
+  if(!response.ok||result.address!==address||result.mode!=="read_only"||result.execution!=="disabled_no_signer"||!Number.isFinite(Date.parse(result.observed_at_utc)))throw Error(result.error||"wallet_observation_unavailable");
+  const observed=stamp(result.observed_at_utc,true);
+  set("walletSol",result.sol);set("walletStamp",result.stamp);set("walletTokenCount",result.token_count);
+  set("walletPnl",copy("غير محسوب · لا سجل تكلفة موثّق","Unavailable · no verified cost basis"));
+  set("walletObserved",copy("المصدر: سولانا JSON-RPC · تأكيد confirmed · آخر قراءة: ","Source: Solana JSON-RPC · confirmed · last read: ")+observed);
+  const rows=Array.isArray(result.tokens)?result.tokens:[];
+  el("walletTokens").innerHTML=rows.map(row=>"<div><span>"+(row.mint==="EKtmPPLaCbEEKiwoHHtV7TsRsmPXs5CMGtQtZFSiinsc"?"<strong>STAMP</strong> · ":"")+"<code dir=\"ltr\">"+esc(row.mint)+"</code></span><bdi dir=\"ltr\">"+esc(row.amount)+"</bdi></div>").join("")||"<p class=\"muted\">"+esc(copy("لا حيازات توكن مرصودة","No token positions observed"))+"</p>";
+  el("walletResult").hidden=false;
+  walletState(copy("تمت قراءة الرصيد؛ التنفيذ معطّل لعدم وجود محفظة توقيع · ","Balances read; execution disabled without a signing wallet · ")+observed,"ok");
+  if(result.observed_at_utc!==walletObservedAt){
+   walletObservedAt=result.observed_at_utc;
+   const event={from:"wallet",to:"dashboard",artifact:"solana_balance_snapshot",kind:"wallet_balance_observation",live:true,
+    address,sol:result.sol,stamp:result.stamp,observed_utc:result.observed_at_utc};
+   liveObservations.set("wallet",event);livePipelineEvents.set("wallet|dashboard",event);
+   recordSceneEvent(event,"wallet",copy("قراءة رصيد المحفظة","Wallet balance read"),
+    "SOL "+result.sol+" · STAMP "+result.stamp,"wallet:"+address+":"+result.observed_at_utc);
+   paintPipeline();animateObserved([event]);
+  }
+ }catch(error){
+  if(request!==walletRequest||address!==walletAddress)return;
+  walletState(error.message==="invalid_public_address"?copy("العنوان العام غير صالح.","Invalid public address."):
+   error.message==="login_required"?copy("انتهت جلسة الدخول؛ أعد تسجيل الدخول.","Session expired; sign in again."):
+   copy("تعذّرت قراءة سولانا الآن؛ آخر قراءة معروضة ليست حيّة.","Solana read failed; any displayed balance is stale."),"error");
+ }
+}
+el("walletForm")?.addEventListener("submit",event=>{
+ event.preventDefault();const address=el("walletAddress").value.trim();
+ if(!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)){
+  walletState(copy("أدخل عنوان سولانا العام فقط (32–44 حرفًا).","Enter a public Solana address only (32–44 base58 characters)."),"error");return;
+ }
+ walletAddress=address;walletObservedAt="";el("walletResult").hidden=true;
+ try{localStorage.setItem("stamp_public_wallet",address)}catch{}
+ refreshWallet();
+});
+el("walletForget")?.addEventListener("click",()=>{
+ walletAddress="";walletObservedAt="";walletRequest++;el("walletAddress").value="";el("walletResult").hidden=true;
+ liveObservations.delete("wallet");livePipelineEvents.delete("wallet|dashboard");
+ for(let i=sceneHistory.length-1;i>=0;i--)if(sceneHistory[i].kind==="wallet")sceneHistory.splice(i,1);
+ const feed=el("sceneEventFeed");if(feed)feed.innerHTML=sceneHistory.length?sceneHistory.map((item,index)=>
+  '<button type="button" data-scene-event="'+index+'" data-kind="'+esc(item.kind)+'"><span>'+esc(item.label)+
+  '</span><time>'+esc(stamp(item.event.observed_utc||item.event.received_at_utc,true))+'</time><small>'+esc(item.detail)+'</small></button>').join(""):
+  '<p>'+esc(copy("بانتظار أحداث موثّقة التوقيت","Waiting for timestamped events"))+'</p>';
+ try{localStorage.removeItem("stamp_public_wallet")}catch{}
+ walletState(copy("أُزيل العنوان من هذا المتصفح.","Address removed from this browser."),"idle");paintPipeline();
+});
+el("walletOpen")?.addEventListener("click",()=>document.dispatchEvent(new CustomEvent("stamp:open-workspace",{detail:{target:"walletCenter"}})));
+if(!offline){if(walletAddress)refreshWallet();setInterval(()=>{if(walletAddress&&!document.hidden)refreshWallet()},45000)}
 const sceneSnapshotDock=el("sceneSnapshot");
 if(sceneSnapshotDock){
  const overview=document.querySelector?.("#trading .market-overview"),forecast=el("predictionCenter");

@@ -12,12 +12,14 @@ try:
  from src.market_flow import exchange_depth_snapshot, market_flow_snapshot
  from src.market_updates import market_update
  from src import market_map
+ from src.wallet_observer import observe as observe_wallet
 except ModuleNotFoundError:
  from market_events import STAMP, dashboard_events, pair_market_flow, symbol as event_symbol
  from operations import archive_view, worker_status
  from market_flow import exchange_depth_snapshot, market_flow_snapshot
  from market_updates import market_update
  import market_map
+ from wallet_observer import observe as observe_wallet
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 REPO="mosulonsol-max/STAMP"
 PATHS=("latest.json","workflow_health.json","operations.json","learning_controller.json","forecast_scorecard.json","forecast_activity.json","forecast_journal.jsonl","candles/15m.json","candles/1h.json","candles/4h.json","candles/1d.json","autonomous_lab.json","lab_experiments.json","lab_evaluations.json","lab_decisions.json","multi_asset_forecasts.json")
@@ -396,6 +398,14 @@ class Handler(BaseHTTPRequestHandler):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
    return self.send(401,b"Authentication required",extra={"WWW-Authenticate":'Basic realm="STAMP Private Dashboard", charset="UTF-8"'})
+  if path=="/api/wallet/observe":
+   address=parse_qs(urlsplit(self.path).query).get("address",[""])[0]
+   try:return self.send(200,json.dumps(observe_wallet(address),allow_nan=False).encode(),"application/json; charset=utf-8")
+   except ValueError as exc:
+    code=400 if str(exc)=="invalid_public_address" else 503
+    return self.send(code,json.dumps({"error":str(exc)}).encode(),"application/json; charset=utf-8")
+   except (OSError,HTTPError,URLError,KeyError,TypeError):
+    return self.send(503,b'{"error":"wallet_observation_unavailable"}',"application/json; charset=utf-8")
   if path=="/api/pipeline/live":
    try:
     try:from src.pipeline_live import current

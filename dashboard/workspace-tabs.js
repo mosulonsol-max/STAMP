@@ -1,7 +1,7 @@
 "use strict";
 /* One spatial workspace: linked data appears as an inspector beside the model. */
 (() => {
- const targets = ["trading", "globalMarketFlow", "marketMap", "venuesSection", "labCenter", "systemCenter"];
+ const targets = ["trading", "globalMarketFlow", "marketMap", "venuesSection", "labCenter", "systemCenter", "walletCenter"];
  const drawer = document.getElementById("sceneDetail");
  const title = document.getElementById("sceneDetailTitle");
  const closeButton = document.getElementById("sceneDetailClose");
@@ -13,7 +13,8 @@
   marketMap:["القيمة السوقية والعملات", "Market valuation and assets"],
   venuesSection:["المنصات والسيولة", "Exchanges and liquidity"],
   labCenter:["المختبر والتعلّم", "Research and learning"],
-  systemCenter:["تشغيل النظام", "System operations"]
+  systemCenter:["تشغيل النظام", "System operations"],
+  walletCenter:["مراقبة المحفظة", "Wallet observation"]
  };
  let current = null;
  function show(target, focus = false) {
