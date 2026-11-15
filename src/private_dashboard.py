@@ -381,7 +381,9 @@ class Handler(BaseHTTPRequestHandler):
   if path=="/healthz":
    # A 200 response must mean the deployment can actually serve its UI and archived data.
    try:
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","world-sessions.js","pipeline-3d.js","market-map.js","market-map.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
+    try:from src.world_sessions import session_status
+    except ImportError:from world_sessions import session_status
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","world-sessions.js","pipeline-3d.js","market-map.js","market-map.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None and all(item["status"]!="unknown" for item in session_status(dt.datetime.now(dt.timezone.utc)))
    except Exception:healthy=False
    if healthy and parse_qs(urlsplit(self.path).query).get("market")==["1"]:
     try:
