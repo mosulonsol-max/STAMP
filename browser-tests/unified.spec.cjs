@@ -169,7 +169,7 @@ test('wallet object shows verified Solana read without implying trading',async({
  await page.locator('#sceneDetailClose').click();
  await page.locator('.trace-module-list summary').click();
  await page.locator('[data-trace-stage="wallet"]').click();
- await expect(page.locator('#traceDetails')).toContainText('بلا توقيع');
+ await expect(page.locator('#traceDetails')).toContainText('التداول معطّل');
  await page.locator('#traceOpen').click();
  await expect(page.locator('#walletCenter')).toBeVisible();
  await page.locator('#walletForget').click();
