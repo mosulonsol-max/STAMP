@@ -528,8 +528,8 @@ class Handler(BaseHTTPRequestHandler):
    # Independently fetched public exchange quote; research can remain archived.
    # Endpoint stays authenticated, like the rest of the private dashboard.
    try:
-    quote=fetch_mexc_quote()
-    return self.send(200,json.dumps({"quote":quote,"server_utc":dt.datetime.now(dt.timezone.utc).isoformat()},allow_nan=False).encode(),"application/json; charset=utf-8")
+    live_quote=fetch_mexc_quote()
+    return self.send(200,json.dumps({"quote":live_quote,"server_utc":dt.datetime.now(dt.timezone.utc).isoformat()},allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"quote_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/dashboard":

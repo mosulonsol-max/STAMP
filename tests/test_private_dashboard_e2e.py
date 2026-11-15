@@ -3,7 +3,7 @@
 Uses isolated test credentials and real HTTP requests to the production handler,
 but never reads or changes production passwords.
 """
-import base64,http.client,json,os,pathlib,sys,threading,unittest,urllib.parse
+import base64,http.client,io,json,os,pathlib,sys,threading,unittest,urllib.parse
 from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -73,5 +73,15 @@ class AuthenticatedBrowserFlow(unittest.TestCase):
   for cookie in ("stamp_session=garbage","stamp_session=1.abc.def","stamp_session=0.abc."+("0"*64)):
    status,_,_=self.req("GET","/api/dashboard",cookie=cookie)
    self.assertEqual(status,401)
+ def test_learning_loop_proxies_the_requested_pair(self):
+  path="/api/assets/learning-loop?symbol=ETHUSDT"
+  self.assertEqual(self.req("GET",path)[0],401)
+  cookie="stamp_session="+app.make_session()
+  result={"symbol":"ETHUSDT","source":"worker_persistent_research_state","autonomous_review_counts":{"accepted":4,"rejected":2,"pending":1}}
+  with patch.object(app,"urlopen",return_value=io.BytesIO(json.dumps(result).encode())) as fetch:
+   status,_,body=self.req("GET",path,cookie=cookie)
+  self.assertEqual(status,200)
+  self.assertEqual(json.loads(body),result)
+  self.assertEqual(urllib.parse.urlsplit(fetch.call_args.args[0].full_url).query,"symbol=ETHUSDT")
 if __name__=="__main__":unittest.main()
 
