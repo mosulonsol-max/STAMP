@@ -164,7 +164,7 @@ test('wallet object shows verified Solana read without implying trading',async({
  await expect(page.locator('#walletSol')).toHaveText('1.23456789');
  await expect(page.locator('#walletStamp')).toHaveText('12.500001');
  await expect(page.locator('#walletPnl')).toContainText('غير محسوب');
- await expect(page.locator('#walletObserved')).toContainText('Solana JSON-RPC');
+ await expect(page.locator('#walletObserved')).toContainText('سولانا JSON-RPC');
  await expect(page.locator('#sceneEventFeed')).toContainText('قراءة رصيد المحفظة');
  await page.locator('#sceneDetailClose').click();
  await page.locator('.trace-module-list summary').click();
