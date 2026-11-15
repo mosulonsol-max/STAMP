@@ -182,8 +182,9 @@ window.StampPipeline3D = (() => {
         const a=positions.get(link.from),b=positions.get(link.to);if(!a||!b)continue;
         const active=selected?.from===link.from&&selected?.to===link.to;
         const related=selected?.id===link.from||selected?.id===link.to;
+        // A past execution does not make an entire route a perpetual buy/sell lane.
         const color=active?[.76,1,.88]:link.kind==="venue_execution_batch"?
-          (link.side==="buy"?[.26,.9,.64]:[1,.39,.52]):link.live?[.35,.78,.96]:related?[.28,.65,.59]:[.17,.34,.41];
+          [.25,.55,.64]:link.live?[.35,.78,.96]:related?[.28,.65,.59]:[.17,.34,.41];
         for(let i=0;i<28;i++)ribbon(curve(a,b,i/28),curve(a,b,(i+1)/28),color,active?4:link.live?2.8:1.6);
         // Fixed arrowheads indicate direction; only event packets move.
         const before=project(curve(a,b,.81)),tip=project(curve(a,b,.85));

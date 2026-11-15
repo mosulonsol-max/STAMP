@@ -1165,9 +1165,11 @@ function drawPipeline(pulse=null){
   ctx.textAlign="center";ctx.font=(w<550?"10":"12")+"px system-ui";
   const primary=new Set(["market_catalog","market_map","market_view","monitor","evidence","research","audit","governance","dashboard","lab"]);
   for(const node of pipelinePoints){
-   if(!primary.has(node.id)&&node.id!==pipelineSelected)continue;
+   const venue=node.id.startsWith("venue_");
+   if(!primary.has(node.id)&&node.id!==pipelineSelected&&!(venue&&w>=780))continue;
    const highlighted=node.id===pipelineSelected&&!selectedMarketPair;
-   const core=node.id==="research",cy=node.p[1]+(core?62:25),width=ctx.measureText(node.name).width+22;
+   ctx.font=(venue?"600 11":"600 12")+"px system-ui";
+   const core=node.id==="research",cy=node.p[1]+(core?62:venue?19:25),width=ctx.measureText(node.name).width+(venue?13:22);
    ctx.fillStyle=highlighted?"#1f5563ee":"#091d2bdb";
    ctx.strokeStyle=highlighted?"#b4ffed":"#416377";
    ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(node.p[0]-width/2,cy-13,width,24,6);ctx.fill();ctx.stroke();
@@ -1298,12 +1300,14 @@ function paintPipeline(){
     [copy("وقت وصول القياس","Telemetry received"),stamp(e.received_at_utc,true)],["SHA-256",e.sha256]);
   }else rows.splice(0,rows.length,...(e.kind==="venue_execution_batch"?[
    [copy("الزوج","Pair"),e.symbol],[copy("المنصة","Venue"),e.venue],
+   [copy("مصدر الدفعة","Batch source"),copy("تنفيذات فورية منشورة من المنصة","Public spot executions from venue")],
    [copy("اتجاه المنفذ","Execution side"),e.side==="buy"?copy("شراء","Buy"):copy("بيع","Sell")],
    [copy("عدد التنفيذات المرصودة","Observed executions"),e.count],
    [copy("قيمة العينة · USDT","Sample notional · USDT"),number(e.notional)],
    [copy("أول تنفيذ في الدفعة","First execution"),stamp(e.first_ms,true)],
    [copy("آخر تنفيذ في الدفعة","Last execution"),stamp(e.last_ms,true)],
    [copy("وقت استلام العينة","Sample received"),stamp(e.observed_utc,true)],
+   [copy("معرّفات التنفيذ في العينة","Sample execution IDs"),(e.ids||[]).slice(0,6).join(" · ")||"—"],
    [copy("التغطية","Coverage"),copy("عينة محدودة من الصفقات العامة؛ ليست جميع تداولات السوق","Bounded public execution sample; not all market trades")]]:e.live?[
    [copy("الزوج","Pair"),e.symbol],[copy("المنصة","Venue"),e.venue],
    [copy("وقت أحدث صفقة مرصودة","Last observed trade"),stamp(e.last_ms,true)],
