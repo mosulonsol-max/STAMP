@@ -1749,6 +1749,7 @@ const PAIR_SYMBOL=/^[A-Z0-9]{1,22}USDT$/;
 const starterPairs=["STAMPUSDT","BTCUSDT","ETHUSDT","SOLUSDT"];
 const pairLabel=pair=>pair.replace(/USDT$/," / USDT");
 let selectedAsset="STAMPUSDT",assetCache=null,assetPending=null,lastLaboratory={};
+let workerReview=null,workerReviewRequest=null,workerReviewUnavailable=false;
 let assetPairs=starterPairs,assetVenueMap={},catalogSources={},catalogState="loading",catalogPending=false,catalogObserved=null,visiblePairs=60;
 const pairCatalog=values=>Array.isArray(values)?[...new Set(values.filter(value=>typeof value==="string"&&PAIR_SYMBOL.test(value)))].sort():[];
 let favorites=[];
@@ -1854,6 +1855,12 @@ async function selectAsset(symbol){
  if(!PAIR_SYMBOL.test(symbol)||symbol===selectedAsset||offline)return;
  stopReplay();
  selectedAsset=symbol;
+ workerReviewRequest?.abort();
+ workerReviewRequest=null;
+ workerReview=null;
+ workerReviewUnavailable=false;
+ renderWorkerReview();
+ loadWorkerReview();
  window.dispatchEvent(new CustomEvent("stamp:assetchange",{detail:{symbol}}));
  eventRequest?.abort();
  eventRequest=null;
@@ -1953,6 +1960,53 @@ async function compareAssets(){
  '<div>'+Object.entries(r.lead_lag_hours||{}).map(([k,v])=>esc(r.secondary)+' قبل '+esc(k)+' ساعة: '+esc(text(v.correlation))+' (n='+esc(v.samples)+')').join(' | ')+'</div><small>'+esc(r.interpretation)+'</small>';
  }catch(e){if(pair===selectedAsset)container.textContent=copy("تعذّرت المقارنة","Comparison unavailable")+" · "+e.message}
 }
+function renderWorkerReview(){
+ if(offline||!el("workerReview"))return;
+ if(!workerReview){
+  set("workerReview",workerReviewUnavailable?
+   copy("تعذّر جلب مراجعة المحرك لهذا الزوج","Worker review unavailable for this pair"):
+   copy("جارٍ جلب مراجعة المحرك","Loading worker review"));
+  return;
+ }
+ const counts=workerReview.autonomous_review_counts;
+ const models=Object.keys(workerReview.model_selections||{}).length;
+ set("workerReview",[
+  copy("آخر مراجعة للمحرك","Last worker review")+" · "+pairLabel(workerReview.symbol),
+  copy("مقبول ","Accepted ")+number(counts.accepted),
+  copy("مرفوض ","Rejected ")+number(counts.rejected),
+  copy("معلّق ","Pending ")+number(counts.pending),
+  copy("نماذج مختارة للبحث ","Research models selected ")+number(models),
+  stamp(workerReview.review_updated_at_utc,true),
+  ...(workerReviewUnavailable?[copy("تعذّر التحديث","Refresh unavailable")]:[])
+ ].join(" · "));
+}
+async function loadWorkerReview(){
+ if(offline||document.hidden||workerReviewRequest||!el("workerReview"))return;
+ const symbol=selectedAsset;
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9500);
+ workerReviewRequest=controller;
+ try{
+  const response=await fetch("/api/assets/learning-loop?symbol="+encodeURIComponent(symbol),{
+   credentials:"same-origin",cache:"no-store",signal:controller.signal
+  });
+  if(!response.ok)throw Error("worker_review_unavailable");
+  const result=await response.json();
+  if(workerReviewRequest!==controller)return;
+  const checked=Date.parse(result.review_updated_at_utc),counts=result.autonomous_review_counts;
+  if(result.symbol!==symbol||result.source!=="worker_persistent_research_state"||
+   !Number.isFinite(checked)||checked>Date.now()+5000||
+   ![counts?.accepted,counts?.rejected,counts?.pending].every(value=>Number.isInteger(value)&&value>=0)){
+   throw Error("invalid_worker_review");
+  }
+  if(!workerReview||checked>=Date.parse(workerReview.review_updated_at_utc))workerReview=result;
+  workerReviewUnavailable=false;
+ }catch{
+  if(workerReviewRequest===controller)workerReviewUnavailable=true;
+ }finally{
+  clearTimeout(timer);
+  if(workerReviewRequest===controller){workerReviewRequest=null;renderWorkerReview()}
+ }
+}
 async function updateWorkerStatus(){
  try{
   const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),9000);
@@ -1989,6 +2043,7 @@ function translate(){
  el("langSelect").value=lang;
  el("zoneSelect").value=zone;
  favoritesUi();
+ renderWorkerReview();
  paintSystem();
  paintPipeline();
  paintOperations();
@@ -2238,13 +2293,13 @@ translate();setupPipeline();initializeSceneControls();refresh();
 syncProjectWorkspace();
 if(!offline&&pipelineWorld?.available())setOrbit(true);
 if(!offline){
- loadAssetUniverse();updateVenueNetwork();startStream();updateWorkerStatus();pollChartEvents(true);pollPipelineLive();pollPipelineEvents();pollSceneMarket();
+ loadAssetUniverse();updateVenueNetwork();startStream();updateWorkerStatus();loadWorkerReview();pollChartEvents(true);pollPipelineLive();pollPipelineEvents();pollSceneMarket();
  setInterval(()=>{if(!document.hidden)pollSceneMarket()},30000);
  setInterval(()=>{if(!document.hidden)pollPipelineLive()},60000);
  setInterval(()=>{if(!document.hidden)pollPipelineEvents()},5000);
  if(window.StampEvents)setInterval(()=>{if(!document.hidden){pollChartEvents();paintOperations()}},15000);
  setInterval(()=>{if(!document.hidden)updateVenueNetwork()},60000);
- setInterval(()=>{if(!document.hidden)updateWorkerStatus()},30000);
+ setInterval(()=>{if(!document.hidden){updateWorkerStatus();loadWorkerReview()}},30000);
  document.addEventListener?.("stamp:tabchange",()=>{
   syncProjectWorkspace();
   if(!el("trading").hidden){
@@ -2259,12 +2314,12 @@ if(!offline){
   if(!el("venuesSection").hidden)updateVenueNetwork();
   if(!el("labCenter").hidden)updateWorkerStatus();
  });
- setInterval(()=>{if(!document.hidden&&!el("trading").hidden)refresh()},60000);
+ setInterval(()=>{if(!document.hidden&&(!el("trading").hidden||selectedAsset!=="STAMPUSDT"))refresh()},60000);
  if(window.StampMarket){
   pollMarket(true);
-  setInterval(()=>{if(!document.hidden){if(!el("trading").hidden){updateFreshness();pollMarket()}}},1000);
+  setInterval(()=>{if(!document.hidden){updateFreshness();pollMarket()}},1000);
   const pause=()=>{stream?.stop();resetMarketPoll();if(replayTimer){pauseReplay();renderChart()}};
-  const resume=()=>{startStream();pollMarket(true);refresh()};
+  const resume=()=>{startStream();pollMarket(true);refresh();loadWorkerReview()};
   document.addEventListener("visibilitychange",()=>{if(document.hidden)pause();else resume()});
   window.addEventListener("online",resume);
   window.addEventListener("pagehide",pause);

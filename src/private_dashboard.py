@@ -584,7 +584,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
-  paths={"/":"private.html","/index.html":"private.html","/nexus":"nexus.html","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
+  paths={"/":"private.html","/index.html":"private.html","/nexus":"private.html","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:

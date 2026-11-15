@@ -54,10 +54,12 @@ class AuthenticatedBrowserFlow(unittest.TestCase):
   self.assertEqual(status,303)
   self.assertIn("HttpOnly",headers["Set-Cookie"]);self.assertIn("Secure",headers["Set-Cookie"])
   cookie=headers["Set-Cookie"].split(";",1)[0]
-  for path in ("/","/assets/app.js","/assets/market-stream.js","/assets/style.css","/api/dashboard","/api/dashboard-lite","/api/quote","/api/status","/api/assurance"):
+  for path in ("/","/nexus?build=previous","/assets/app.js","/assets/market-stream.js","/assets/style.css","/api/dashboard","/api/dashboard-lite","/api/quote","/api/status","/api/assurance"):
    status,head,body=self.req("GET",path,cookie=cookie)
    self.assertEqual(status,200,path+" "+body[:200].decode(errors="replace"))
-   if path=="/":self.assertIn(b'id="stamp-snapshot"',body);self.assertIn(b'id="price">$0.00019000',body)
+   if path in ("/","/nexus?build=previous"):
+    self.assertIn(b'id="stamp-snapshot"',body);self.assertIn(b'id="price">$0.00019000',body)
+    self.assertIn(b'id="traceCanvas"',body);self.assertIn(b'id="assetPickerButton"',body)
    if path=="/assets/app.js":self.assertIn(b'function render(',body)
    if path=="/api/dashboard":
     j=json.loads(body);self.assertEqual(j["market"]["price"],0.00019);self.assertEqual(j["live_quote"]["price"],0.000194)
