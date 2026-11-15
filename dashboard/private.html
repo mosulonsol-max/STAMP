@@ -42,7 +42,15 @@
         </div>
       </header>
 
-      <div id="sceneSnapshot" class="scene-snapshot" aria-label="السعر والتوقع الحالي"></div>
+      <div id="sceneSnapshot" class="scene-snapshot" aria-label="السوق العالمي والسعر والتوقع الحالي">
+        <section class="world-sessions" id="worldSessions" aria-labelledby="worldSessionsTitle">
+          <header class="world-header"><div><span class="scene-eyebrow" data-copy="GLOBAL SESSIONS · OBSERVED EXECUTIONS">الجلسات العالمية · الصفقات المرصودة</span><h2 id="worldSessionsTitle" data-copy="Markets open now">الأسواق المفتوحة الآن</h2></div><span id="worldStatus" role="status">جارٍ التحقق…</span></header>
+          <div id="worldClocks" class="world-clocks" aria-label="جلسات البورصات العالمية"></div>
+          <div class="world-flow-head"><h3 data-copy="Crypto spot · sampled executed buys and sells">العملات الفورية · عينة الشراء والبيع المنفذ</h3><span id="worldCoverage">—</span></div>
+          <div id="worldAssets" class="world-assets" aria-live="off"></div>
+          <p id="worldScope" class="world-scope" data-copy="Live samples from MEXC, OKX and Binance for BTC, ETH, SOL and ZEC / USDT. The public feeds cap trade counts, so the values can cover less than a minute. They are not total market volume or trades attributable to a city.">عينات حية من MEXC وOKX وBinance لأزواج BTC وETH وSOL وZEC. قد تغطي أقل من دقيقة ولا تمثل إجمالي حجم السوق أو تداولات مدينة بعينها.</p>
+        </section>
+      </div>
       <div class="trace-workspace">
         <div class="trace-visual">
           <div class="trace-scene-toolbar">
@@ -558,5 +566,6 @@
   <script src="/assets/app.js?v=unified-worker-review-1" defer></script>
   <script src="/assets/market-flow.js?v=stamp-venues-live-6" defer></script>
   <script src="/assets/market-map.js?v=unified-scene-1" defer></script>
+  <script src="/assets/world-sessions.js?v=global-sessions-1" defer></script>
 </body>
 </html>

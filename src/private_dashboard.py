@@ -381,7 +381,7 @@ class Handler(BaseHTTPRequestHandler):
   if path=="/healthz":
    # A 200 response must mean the deployment can actually serve its UI and archived data.
    try:
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","pipeline-3d.js","market-map.js","market-map.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","world-sessions.js","pipeline-3d.js","market-map.js","market-map.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None
    except Exception:healthy=False
    if healthy and parse_qs(urlsplit(self.path).query).get("market")==["1"]:
     try:
@@ -456,6 +456,13 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(200,body,"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"market_data_unavailable","detail":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/world-sessions":
+   try:
+    try:from src.world_sessions import snapshot as world_snapshot
+    except ImportError:from world_sessions import snapshot as world_snapshot
+    return self.send(200,json.dumps(world_snapshot(),allow_nan=False).encode(),"application/json; charset=utf-8")
+   except Exception as exc:
+    return self.send(503,json.dumps({"error":"world_sessions_unavailable","detail":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path=="/api/assets/learning-loop":
    try:
     q=parse_qs(urlsplit(self.path).query)
@@ -584,7 +591,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
-  paths={"/":"private.html","/index.html":"private.html","/nexus":"private.html","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
+  paths={"/":"private.html","/index.html":"private.html","/nexus":"private.html","/assets/world-sessions.js":"world-sessions.js","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:

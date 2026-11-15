@@ -513,6 +513,47 @@ body { background: radial-gradient(ellipse at 90% 0%, #162638 0%, transparent 58
  .stamp-map .map-nodes a { font-size:.74rem; padding:4px 3px; }
  .stamp-map .map-nodes a small { font-size:.64rem; }
 }
+
+/* Global exchange calendars and measured spot executions remain in the main scene. */
+.world-sessions { grid-column:1/-1; min-width:0; border:1px solid #355b6c; border-radius:16px;
+  padding:17px 20px 15px; background:linear-gradient(125deg,#0e2837,#102739 52%,#0c1a2b);
+  box-shadow:0 12px 34px #0003; }
+.world-header,.world-flow-head { display:flex; align-items:end; justify-content:space-between; gap:12px; }
+.world-header h2 { margin:4px 0 0; font-size:clamp(1.1rem,1.6vw,1.55rem); color:#e8fff9; }
+#worldStatus,.world-flow-head>span { color:#a2c2cc; font-size:.77rem; }
+#worldStatus[data-status="live"]::before { content:""; display:inline-block; width:7px; height:7px;
+  border-radius:50%; background:#63e9af; box-shadow:0 0 12px #63e9af; margin-inline-end:7px; }
+#worldStatus[data-status="delayed"] { color:#f1c981; }
+.world-clocks { display:grid; grid-template-columns:repeat(7,minmax(120px,1fr)); gap:7px;
+  overflow-x:auto; padding:15px 0 13px; }
+.world-clock { min-width:120px; min-height:88px; border:1px solid #2a4b5c; border-radius:11px;
+  padding:10px; background:#091d2c; }
+.world-clock[data-status="open"] { border-color:#368d7d; background:linear-gradient(145deg,#113d42,#0c2633); }
+.world-clock[data-status="break"] { border-color:#ab8750; }
+.world-clock-head { display:flex; justify-content:space-between; gap:6px; font-size:.82rem; }
+.world-clock-time { color:#acc7d3; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.world-clock-state { color:#91adbc; font-size:.7rem; letter-spacing:.07em; font-weight:750; margin-top:8px; }
+.world-clock[data-status="open"] .world-clock-state { color:#68e8bb; }
+.world-clock[data-status="break"] .world-clock-state { color:#e5ba70; }
+.world-clock small { color:#8daebb; font-size:.64rem; white-space:nowrap; }
+.world-flow-head { border-top:1px solid #2b5260; padding-top:11px; }
+.world-flow-head h3 { margin:0; font-size:.89rem; }
+.world-assets { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:9px; padding:12px 0 7px; }
+.world-asset { border:1px solid #335265; border-radius:11px; padding:11px; min-width:0; background:#0a2131; }
+.world-asset-head,.world-asset-values { display:flex; justify-content:space-between; gap:8px; font-size:.75rem; }
+.world-asset-head strong { color:#f4f9f4; white-space:nowrap; }
+.world-asset-head span { color:#bed6df; text-align:end; }
+.world-asset-bar { height:7px; border-radius:20px; background:#dd7f8e; overflow:hidden; margin:10px 0 8px; }
+.world-buy-bar { display:block; height:100%; background:#5fddae; transition:width .35s ease; }
+.world-buy { color:#69e6b3; }.world-sell { color:#f39ca9; }
+.world-asset-detail { display:block; margin-top:8px; color:#97b4c2; font-size:.67rem; line-height:1.45; }
+.world-scope { margin:6px 0 0; color:#a3c0ca; font-size:.72rem; line-height:1.5; }
+.world-empty { grid-column:1/-1; color:#d8bd92; margin:8px 0; }
+@media(max-width:1050px) { .world-clocks { grid-template-columns:repeat(7,125px); }
+  .world-assets { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:560px) { .world-sessions { padding:13px 12px; }
+  .world-header,.world-flow-head { align-items:start; flex-direction:column; gap:5px; }
+  .world-assets { grid-template-columns:1fr; } }
 @media(prefers-reduced-motion:reduce) { .map-sphere { animation:none; } }
 .trace-workspace { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; padding:14px 18px 8px; }
 .trace-visual,.trace-inspector { min-width:0; border:1px solid #2f4d63; border-radius:12px; background:#0c1726; }
