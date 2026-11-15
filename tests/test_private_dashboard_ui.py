@@ -19,7 +19,9 @@ class PrivateUIRegressionTests(unittest.TestCase):
   node=shutil.which('node')
   if not node:self.skipTest('Node unavailable')
   result=subprocess.run([node,str(ROOT/'tests/browser_runtime_smoke.cjs')],capture_output=True,text=True,timeout=20)
-  self.assertEqual(result.returncode,0,result.stdout+result.stderr);self.assertEqual(result.stdout.count('PASS '),4)
+  self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+  for mode in ('primary','recovery','embedded','unauthorized','live-scene'):
+   self.assertIn('PASS {"mode":"'+mode+'"',result.stdout)
  def test_chart_script_parses_and_is_self_hosted(self):
   node=shutil.which('node')
   if node:self.assertEqual(subprocess.run([node,'--check',str(ROOT/'dashboard/private.js')],capture_output=True).returncode,0)
