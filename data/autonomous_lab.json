@@ -1,14 +1,12 @@
 {
-  "generated_at_utc": "2026-11-15T09:17:07.342810+00:00",
+  "generated_at_utc": "2026-11-15T10:34:15.697128+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-15T09:17:07.342810+00:00",
-    "state": "degraded",
+    "generated_at_utc": "2026-11-15T10:34:15.697128+00:00",
+    "state": "healthy",
     "previous_pipeline_passed": true,
-    "previous_pipeline_at_utc": "2026-11-15T03:06:42.216093+00:00",
-    "failed_checks": [
-      "fresh_pipeline"
-    ],
+    "previous_pipeline_at_utc": "2026-11-15T10:33:44.939824+00:00",
+    "failed_checks": [],
     "checks": {
       "pipeline_steps": {
         "passed": true,
@@ -27,7 +25,7 @@
         "details": "No missing/future clock"
       },
       "fresh_pipeline": {
-        "passed": false,
+        "passed": true,
         "details": "Scheduled Actions are best effort; 3 hours is a health threshold."
       },
       "horizon_wiring": {
@@ -87,18 +85,18 @@
       },
       "dex": {
         "status": "missing",
-        "historical_points": 27,
+        "historical_points": 28,
         "currently_available": false
       },
       "onchain": {
-        "status": "used",
-        "historical_points": 94,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 101,
+        "currently_available": false
       },
       "news": {
-        "status": "used",
-        "historical_points": 94,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 101,
+        "currently_available": false
       },
       "project": {
         "status": "missing",
@@ -128,23 +126,23 @@
       "id": "8a651d882c6f59b3",
       "horizon": "1h",
       "candidate": "market_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "improvement_below_research_gate",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": -0.0017425823415089248,
+      "skill_vs_zero": 0.0007714724442267062,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
     {
-      "id": "d232bb57b9faecaa",
+      "id": "d9579f651ba22707",
       "horizon": "4h",
-      "candidate": "technical_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "candidate": "no_change",
+      "action": "revise_in_sandbox",
+      "reason": "failed_no_change_baseline",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": 7.318561592606354e-05,
+      "skill_vs_zero": 0.0,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -152,23 +150,23 @@
       "id": "bace7209c1d171e3",
       "horizon": "24h",
       "candidate": "forest_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 26.0,
-      "skill_vs_zero": -0.14540235594392326,
+      "skill_vs_zero": -0.06312854108381027,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
     {
-      "id": "7440be94f8179bf6",
+      "id": "df101fdeaea9f826",
       "horizon": "7d",
-      "candidate": "no_change",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "candidate": "technical_absolute",
+      "action": "continue_sandbox",
+      "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 3.0,
-      "skill_vs_zero": 0.0,
+      "skill_vs_zero": 0.09348391279178125,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     }
