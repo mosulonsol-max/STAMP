@@ -510,10 +510,24 @@
       pairData = data;
       pairFailed = false;
       for(const [venue,row] of Object.entries(data.venues||{})){
-        const key=symbol+":"+venue,previous=observedTrades.get(key),latest=row.status==="ok"?row.last_ms:null;
-        if(latest && (!previous||latest>previous)){
-          observedTrades.set(key,latest);
-          if(previous && Date.now()-latest<30000)window.dispatchEvent(new CustomEvent("stamp:venueflow",{detail:{venue,symbol,last_ms:latest,count:row.sample_count,observed_utc:row.observed_utc}}));
+        if(!Array.isArray(row.recent_executions))continue;
+        const key=symbol+":"+venue,previous=observedTrades.get(key);
+        const candidates=row.recent_executions.filter(trade=>typeof trade.id==="string"&&
+          Number.isFinite(trade.time_ms)&&Number.isFinite(trade.notional)&&trade.notional>0&&
+          (trade.side==="buy"||trade.side==="sell"));
+        const seen=new Set(previous||[]),newRows=previous?candidates.filter(trade=>!seen.has(trade.id)&&
+          Date.now()-trade.time_ms>=-5000&&Date.now()-trade.time_ms<30000):[];
+        for(const trade of candidates)seen.add(trade.id);
+        observedTrades.set(key,new Set([...seen].slice(-100)));
+        for(const side of ["buy","sell"]){
+          const trades=newRows.filter(trade=>trade.side===side);
+          if(!trades.length)continue;
+          window.dispatchEvent(new CustomEvent("stamp:venueflow",{detail:{venue,symbol,side,
+            count:trades.length,notional:trades.reduce((total,trade)=>total+trade.notional,0),
+            first_ms:Math.min(...trades.map(trade=>trade.time_ms)),
+            last_ms:Math.max(...trades.map(trade=>trade.time_ms)),
+            ids:trades.map(trade=>trade.id),observed_utc:row.observed_utc,
+            source:"public spot executions",sample_limited:true}}));
         }
       }
     } catch {
@@ -660,7 +674,7 @@
   // No visual pulse is emitted for the initial historic sample or a quiet venue.
   refreshPair();
   document.addEventListener("stamp:tabchange",()=>{if(!section.hidden)refreshScope()});
-  setInterval(() => { if (!document.hidden) refreshPair(); }, 15000);
+  setInterval(() => { if (!document.hidden) refreshPair(); }, 10000);
   setInterval(() => { if (!document.hidden && !section.hidden && mode === "pair") refreshDepth(); }, 45000);
   setInterval(() => { if (!document.hidden && !section.hidden && mode === "whole") refresh(); }, 300000);
 })();

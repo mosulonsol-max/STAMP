@@ -1012,6 +1012,7 @@ const pipelineTopology=[
 ];
 let pipelineSelected="monitor",pipelineRun=null,pipelineFrame=0,pipelineAngle=-.14,pipelinePitch=.55,pipelineZoom=1,pipelinePoints=[];
 let selectedHandoff=null, pipelineLinks=[],pipelineLive=null,liveObservation=null,pipelinePinned=false;
+let pipelinePacketHits=[];
 const livePipelineEvents=new Map();
 const liveObservations=new Map();
 const pipelineWorld=window.StampPipeline3D?.create(document.getElementById("traceWorld"));
@@ -1035,12 +1036,14 @@ function animateObserved(events){
  if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches)return;
  if(pipelineFrame){cancelAnimationFrame(pipelineFrame);pipelineFrame=0}
  const now=performance.now();
- for(const event of events)sceneMotion.push({...event,start:now,duration:1400});
+ for(const [index,event] of events.entries())sceneMotion.push({...event,start:now+index*180,
+  duration:event.kind==="venue_execution_batch"?3000:1700});
  if(sceneMotion.length>36)sceneMotion.splice(0,sceneMotion.length-36);
  if(liveMotionFrame)return;
  const animate=time=>{
   for(let i=sceneMotion.length-1;i>=0;i--)if(time-sceneMotion[i].start>=sceneMotion[i].duration)sceneMotion.splice(i,1);
-  drawPipeline(sceneMotion.map(item=>({...item,progress:Math.max(0,(time-item.start)/item.duration)})));
+  drawPipeline(sceneMotion.filter(item=>time>=item.start).map(item=>({...item,
+   progress:Math.max(0,Math.min(1,(time-item.start)/item.duration))})));
   liveMotionFrame=sceneMotion.length?requestAnimationFrame(animate):0;
   if(!liveMotionFrame)drawPipeline();
  };
@@ -1100,6 +1103,12 @@ function drawPipeline(pulse=null){
  }
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
  const worldReady=!!pipelineWorld?.available();
+ const activePulses=pulse?(Array.isArray(pulse)?pulse:[pulse]):[];
+ canvas.dataset.activePackets=String(activePulses.length);
+ canvas.dataset.cameraYaw=String(pipelineAngle);
+ canvas.dataset.cameraPitch=String(pipelinePitch);
+ canvas.dataset.packetKinds=JSON.stringify(activePulses.map(item=>({kind:item.kind||"recorded",side:item.side||null,
+  count:item.count||null,notional:item.notional||null,from:item.from,to:item.to})));
  if(worldReady)pipelineWorld.configure(w,h,pipelineAngle,pipelinePitch,pipelineZoom);
  const scale=Math.min(w/8.6,h/4.2), cos=Math.cos(pipelineAngle),sin=Math.sin(pipelineAngle);
  const project=([x,y,z])=>{
@@ -1122,6 +1131,16 @@ function drawPipeline(pulse=null){
  pipelineLinks=[...edges.values()].map(event=>({
   event,a:pipelinePoints.find(node=>node.id===event.from).p,b:pipelinePoints.find(node=>node.id===event.to).p
  }));
+ pipelinePacketHits=worldReady?activePulses.flatMap(event=>{
+  const a=pipelineStages.find(row=>row[0]===event.from)?.[4],b=pipelineStages.find(row=>row[0]===event.to)?.[4];
+  if(!a||!b||!Number.isFinite(event.progress))return [];
+  const t=Math.max(0,Math.min(1,event.progress)),lane=event.kind==="venue_execution_batch"?
+   (event.side==="buy"?.34:-.34):0;
+  const midpoint=[(a[0]+b[0])/2,Math.min(a[1],b[1])-.55,(a[2]+b[2])/2+lane];
+  const point=[0,1,2].map(k=>(1-t)**2*a[k]+2*(1-t)*t*midpoint[k]+t*t*b[k]);
+  const projected=pipelineWorld.project(point);
+  return [{event,x:projected.x,y:projected.y}];
+ }):[];
  if(worldReady){
   const states={};
   for(const node of pipelinePoints){
@@ -1131,7 +1150,7 @@ function drawPipeline(pulse=null){
     recent&&age(recent.observed_utc)<90?"running":steps[node.id];
   }
   const model=pipelineWorld.draw(pipelineStages.map(([id,,,,pos])=>({id,pos})),pipelineLinks.map(({event})=>event).filter(event=>!event.configured||selectedHandoff?.from===event.from&&selectedHandoff?.to===event.to),
-    pulse?(Array.isArray(pulse)?pulse:[pulse]):[],selectedMarketPair?{pair:selectedMarketPair}:selectedHandoff||{id:pipelineSelected},states,pipelineTopology,{markets:sceneMarkets});
+    activePulses,selectedMarketPair?{pair:selectedMarketPair}:selectedHandoff||{id:pipelineSelected},states,pipelineTopology,{markets:sceneMarkets});
   marketCapTiles=(model?.tiles||[]).map(tile=>({
    ...tile, corners:[[tile.x,1.51,tile.z],[tile.x+tile.w,1.51,tile.z],
      [tile.x+tile.w,1.51,tile.z+tile.d],[tile.x,1.51,tile.z+tile.d]]
@@ -1221,7 +1240,7 @@ function drawPipeline(pulse=null){
   face([left,top,right,middle],active?"#376b73":"#203d53",active?"#fff":color);
   ctx.fillStyle=color;ctx.textAlign="center";ctx.font=(w<460?"10":"13")+"px system-ui";ctx.fillText(node.name,x,y+size+13);
  }
- for(const moving of pulse?(Array.isArray(pulse)?pulse:[pulse]):[]){
+ for(const moving of activePulses){
   const link=pipelineLinks.find(({event})=>event.from===moving.from&&event.to===moving.to);
   if(link){
    const [x,y]=at(link.a,link.c,link.b,moving.progress);
@@ -1277,7 +1296,15 @@ function paintPipeline(){
    rows.splice(0,rows.length,[copy("الملف المقروء","Read artifact"),e.artifact],
     [copy("الحجم","Bytes"),number(e.bytes)+" B"],[copy("وقت القراءة","Read time"),stamp(e.observed_utc,true)],
     [copy("وقت وصول القياس","Telemetry received"),stamp(e.received_at_utc,true)],["SHA-256",e.sha256]);
-  }else rows.splice(0,rows.length,...(e.live?[
+  }else rows.splice(0,rows.length,...(e.kind==="venue_execution_batch"?[
+   [copy("الزوج","Pair"),e.symbol],[copy("المنصة","Venue"),e.venue],
+   [copy("اتجاه المنفذ","Execution side"),e.side==="buy"?copy("شراء","Buy"):copy("بيع","Sell")],
+   [copy("عدد التنفيذات المرصودة","Observed executions"),e.count],
+   [copy("قيمة العينة · USDT","Sample notional · USDT"),number(e.notional)],
+   [copy("أول تنفيذ في الدفعة","First execution"),stamp(e.first_ms,true)],
+   [copy("آخر تنفيذ في الدفعة","Last execution"),stamp(e.last_ms,true)],
+   [copy("وقت استلام العينة","Sample received"),stamp(e.observed_utc,true)],
+   [copy("التغطية","Coverage"),copy("عينة محدودة من الصفقات العامة؛ ليست جميع تداولات السوق","Bounded public execution sample; not all market trades")]]:e.live?[
    [copy("الزوج","Pair"),e.symbol],[copy("المنصة","Venue"),e.venue],
    [copy("وقت أحدث صفقة مرصودة","Last observed trade"),stamp(e.last_ms,true)],
    [copy("وقت استجابة الواجهة","UI response time"),stamp(e.observed_utc,true)]]:[
@@ -1360,7 +1387,7 @@ function setupPipeline(){
   if(event.button!==0)return;
   setOrbit(false);
   gesture={x:event.clientX,y:event.clientY,yaw:pipelineAngle,pitch:pipelinePitch,
-   scroll:canvas.parentElement.scrollLeft,pan:canvas.clientWidth>canvas.parentElement.clientWidth+20,moved:false};
+   scroll:canvas.parentElement.scrollLeft,pan:event.shiftKey&&canvas.clientWidth>canvas.parentElement.clientWidth+20,moved:false};
   canvas.setPointerCapture(event.pointerId);
  });
  canvas.addEventListener("pointermove",event=>{
@@ -1383,6 +1410,10 @@ function setupPipeline(){
  canvas.addEventListener("click",event=>{
   if(suppressClick){suppressClick=false;return}
   const bounds=canvas.getBoundingClientRect();
+  const packet=[...pipelinePacketHits].reverse().find(hit=>Math.hypot(hit.x-(event.clientX-bounds.left),
+   hit.y-(event.clientY-bounds.top))<20);
+  if(packet){el("traceInspectorClose").closest(".trace-inspector").hidden=false;pipelinePinned=true;
+   selectedMarketPair=null;selectedHandoff=packet.event;pipelineSelected=packet.event.to;paintPipeline();return}
   const hit=[...pipelinePoints].reverse().find(({p})=>Math.hypot(p[0]-(event.clientX-bounds.left),p[1]-(event.clientY-bounds.top))<20);
   if(hit){el("traceInspectorClose").closest(".trace-inspector").hidden=false;pipelinePinned=true;selectedMarketPair=null;selectedHandoff=null;pipelineSelected=hit.id;paintPipeline();return}
   const x=event.clientX-bounds.left,y=event.clientY-bounds.top;
@@ -1513,9 +1544,10 @@ async function pollPipelineEvents(){
   relay.textContent=payload.events.length?
    copy("وصلت قراءات ملفات موثّقة أثناء التشغيل · ","Observed file reads arrived during processing · ")+stamp(payload.checked_at_utc,true):
    copy("بث انتقالات الملفات متصل · لا انتقالات جديدة الآن · ","File handoff feed connected · no new transfers now · ")+stamp(payload.checked_at_utc,true);
-  set("scenePacket",payload.events.length?
-   copy("انتقالات موثقة ","Verified transfers ")+payload.events.length+" · "+stamp(payload.checked_at_utc,true):
-   copy("بث الملفات متصل · لا انتقال جديد","Artifact feed connected · no new transfer"));
+  if(!sceneHistory.length||age(sceneHistory[0].event.observed_utc||sceneHistory[0].event.received_at_utc)>30)
+   set("scenePacket",payload.events.length?
+    copy("انتقالات موثقة ","Verified transfers ")+payload.events.length+" · "+stamp(payload.checked_at_utc,true):
+    copy("لا انتقال جديد · بانتظار الحدث الفعلي","No new transfer · awaiting observed event"));
   if(payload.sequence<pipelineSequence)pipelineSequence=0;
   else pipelineSequence=payload.sequence;
   const nodes=new Set(pipelineStages.map(row=>row[0]));
@@ -1535,22 +1567,28 @@ async function pollPipelineEvents(){
  }catch{
   const relay=el("traceRelayStatus");relay.dataset.state="unavailable";
   relay.textContent=copy("بث انتقالات الملفات غير متاح؛ لا يمكن إثبات حركة فورية الآن.","File handoff feed unavailable; live motion cannot be verified now.");
-  set("scenePacket",copy("تعذّر التحقق من نقل البيانات الآن","Transfer feed unavailable"));
+  if(!sceneHistory.length||age(sceneHistory[0].event.observed_utc||sceneHistory[0].event.received_at_utc)>30)
+   set("scenePacket",copy("تعذّر التحقق من نقل الملفات الآن","Artifact feed unavailable"));
  }finally{pipelineEventRequest=false}
 }
 function observeVenueFlow(event){
  const update=event.detail;
- if(!update?.venue||!update?.symbol||!Number.isFinite(update.last_ms)||Date.now()-update.last_ms>30000)return;
+ if(!update?.venue||!update?.symbol||!["buy","sell"].includes(update.side)||
+  !Number.isInteger(update.count)||update.count<1||!Number.isFinite(update.notional)||update.notional<=0||
+  !Number.isFinite(update.last_ms)||Date.now()-update.last_ms>30000||
+  !Number.isFinite(Date.parse(update.observed_utc)))return;
  const source="venue_"+update.venue.toLowerCase();
  if(!pipelineStages.some(row=>row[0]===source))return;
  liveObservation=update;
  liveObservations.set(source,update);
  if(pipelineFrame)cancelAnimationFrame(pipelineFrame);
- const moving={from:source,to:"market_view",artifact:"spot_execution_observation",live:true,...update};
- if(!recordSceneEvent(moving,"venue",update.venue+" · "+pairLabel(update.symbol),
-  copy("آخر صفقة مرصودة ","Last observed trade ")+stamp(update.last_ms,true),
-  "venue:"+update.venue+":"+update.symbol+":"+update.last_ms))return;
- set("scenePacket",copy("صفقة مرصودة ","Observed trade ")+update.venue+" · "+stamp(update.last_ms,true));
+ const moving={from:source,to:"market_view",artifact:"spot_execution_sample",kind:"venue_execution_batch",live:true,...update};
+ const side=update.side==="buy"?copy("شراء","Buy"):copy("بيع","Sell");
+ if(!recordSceneEvent(moving,"venue",update.venue+" · "+pairLabel(update.symbol)+" · "+side,
+  number(update.count)+" × "+number(update.notional)+" USDT · "+stamp(update.last_ms,true),
+  "venue:"+update.venue+":"+update.symbol+":"+update.side+":"+(update.ids||[]).join("|")))return;
+ set("scenePacket",copy("تنفيذات مرصودة ","Observed executions ")+update.venue+" · "+side+
+  " · "+number(update.count)+" / "+number(update.notional)+" USDT · "+stamp(update.last_ms,true));
  if(!pipelinePinned){selectedHandoff=moving;pipelineSelected="market_view"}
  paintPipeline();
  animateObserved([moving]);

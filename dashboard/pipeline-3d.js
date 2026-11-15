@@ -172,17 +172,18 @@ window.StampPipeline3D = (() => {
       segment([-3.65,1.65,-1.15],[-2.65,1.65,-1.15],[.2,.61,.58]);
       segment([-2.65,1.65,-1.15],[-2.7,-.58,-1],[.18,.43,.5]);
       const positions=new Map(nodes.map(node=>[node.id,node.pos]));
-      const curve=(a,b,t)=>{const mid=[(a[0]+b[0])/2,Math.min(a[1],b[1])-.55,(a[2]+b[2])/2];
+      const curve=(a,b,t,lane=0)=>{const mid=[(a[0]+b[0])/2,Math.min(a[1],b[1])-.55,(a[2]+b[2])/2+lane];
         return [0,1,2].map(i=>(1-t)**2*a[i]+2*(1-t)*t*mid[i]+t*t*b[i])};
       for(const [from,to] of topology){
         const a=positions.get(from),b=positions.get(to);if(!a||!b)continue;
-        for(let i=0;i<28;i++)ribbon(curve(a,b,i/28),curve(a,b,(i+1)/28),[.11,.23,.30],1.4);
+        for(let i=0;i<28;i++)ribbon(curve(a,b,i/28),curve(a,b,(i+1)/28),[.17,.34,.41],1.8);
       }
       for(const link of links){
         const a=positions.get(link.from),b=positions.get(link.to);if(!a||!b)continue;
         const active=selected?.from===link.from&&selected?.to===link.to;
         const related=selected?.id===link.from||selected?.id===link.to;
-        const color=active?[.76,1,.88]:link.live?[.35,.78,.96]:related?[.28,.65,.59]:[.1,.25,.29];
+        const color=active?[.76,1,.88]:link.kind==="venue_execution_batch"?
+          (link.side==="buy"?[.26,.9,.64]:[1,.39,.52]):link.live?[.35,.78,.96]:related?[.28,.65,.59]:[.17,.34,.41];
         for(let i=0;i<28;i++)ribbon(curve(a,b,i/28),curve(a,b,(i+1)/28),color,active?4:link.live?2.8:1.6);
         // Fixed arrowheads indicate direction; only event packets move.
         const before=project(curve(a,b,.81)),tip=project(curve(a,b,.85));
@@ -207,13 +208,19 @@ window.StampPipeline3D = (() => {
       for(const pulse of pulses||[]){
         const a=positions.get(pulse.from),b=positions.get(pulse.to);if(a&&b&&Number.isFinite(pulse.progress)){
           const progress=Math.max(0,Math.min(1,pulse.progress));
-          const color=pulse.kind==="artifact_handoff"?[.62,1,.77]:pulse.kind==="api_response"?[1,.75,.42]:[.43,.84,1];
+          const execution=pulse.kind==="venue_execution_batch";
+          const color=execution?(pulse.side==="buy"?[.32,1,.7]:[1,.43,.52]):
+            pulse.kind==="artifact_handoff"?[.62,1,.77]:pulse.kind==="api_response"?[1,.75,.42]:[.43,.84,1];
+          const lane=execution?(pulse.side==="buy"?.34:-.34):0;
           for(let i=0;i<7;i++){
             const end=progress-i*.018,start=Math.max(0,end-.018);
             if(end<=0)break;
-            ribbon(curve(a,b,start),curve(a,b,end),mix(color,Math.max(.22,1-i*.12)),Math.max(1,5-i*.55));
+            ribbon(curve(a,b,start,lane),curve(a,b,end,lane),mix(color,Math.max(.22,1-i*.12)),Math.max(1,8-i*.8));
           }
-          sphere(curve(a,b,progress),.075,color);
+          const head=curve(a,b,progress,lane),radius=execution?
+            Math.min(.13,.065+Math.log10(1+Math.max(0,pulse.notional||0))*.014):.075;
+          sphere(head,radius,color);
+          ring(head,radius*1.8,mix(color,.76),.8);
           if(progress<.18)ring(a,.3,mix(color,.75));
           if(progress>.82)ring(b,.3,mix(color,.85));
         }

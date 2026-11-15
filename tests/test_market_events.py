@@ -67,6 +67,10 @@ class MarketEventTests(unittest.TestCase):
         self.assertIsNone(stamp_result["flow"])
         self.assertEqual(btc_result["available_venues"],3)
         self.assertEqual(btc_result["flow"]["buy"],600.0)
+        self.assertEqual(stamp_result["venues"]["OKX"]["recent_executions"][0]["side"],"buy")
+        self.assertEqual(stamp_result["venues"]["Bybit"]["recent_executions"][0]["notional"],300.0)
+        self.assertEqual(stamp_result["venues"]["Gate"]["recent_executions"][0]["time_ms"],CHECKED-800)
+        self.assertNotIn("_executions",stamp_result["venues"]["Gate"])
 
     def test_kucoin_nanosecond_execution_is_fresh_and_classified(self):
         upstream={"code":"200000","data":[{"time":str((CHECKED-750)*1_000_000),

@@ -186,7 +186,14 @@ def aggregate_samples(samples):
 def pair_market_flow(value):
     pair=symbol(value)
     samples=multi_venue_trade_samples(pair,int(dt.datetime.now(dt.timezone.utc).timestamp()//10))
-    venues={venue:{k:v for k,v in item.items() if k not in ("events","_executions")} for venue,item in samples.items()}
+    venues={}
+    for venue,item in samples.items():
+        row={k:v for k,v in item.items() if k not in ("events","_executions")}
+        # A bounded, individually identified execution sample lets the scene
+        # show only newly observed trades. It does not imply complete volume.
+        row["recent_executions"]=[{k:trade[k] for k in ("id","time_ms","side","notional","price")}
+            for trade in sorted(item.get("_executions") or [],key=lambda e:(e["time_ms"],e["id"]))[-40:]]
+        venues[venue]=row
     identity=pair in {"BTCUSDT","ETHUSDT","SOLUSDT"}
     eligible=[item for item in samples.values() if item.get("status")=="ok"]
     flow,count,first,last=aggregate_samples(eligible) if identity else (None,0,None,None)
