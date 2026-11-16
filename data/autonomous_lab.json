@@ -1,14 +1,12 @@
 {
-  "generated_at_utc": "2026-11-16T01:59:31.345972+00:00",
+  "generated_at_utc": "2026-11-16T02:47:48.746193+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-16T01:59:31.345972+00:00",
-    "state": "degraded",
+    "generated_at_utc": "2026-11-16T02:47:48.746193+00:00",
+    "state": "healthy",
     "previous_pipeline_passed": true,
-    "previous_pipeline_at_utc": "2026-11-15T22:50:25.262447+00:00",
-    "failed_checks": [
-      "fresh_pipeline"
-    ],
+    "previous_pipeline_at_utc": "2026-11-16T02:47:16.540501+00:00",
+    "failed_checks": [],
     "checks": {
       "pipeline_steps": {
         "passed": true,
@@ -27,7 +25,7 @@
         "details": "No missing/future clock"
       },
       "fresh_pipeline": {
-        "passed": false,
+        "passed": true,
         "details": "Scheduled Actions are best effort; 3 hours is a health threshold."
       },
       "horizon_wiring": {
@@ -86,18 +84,18 @@
         "currently_available": false
       },
       "dex": {
-        "status": "used",
-        "historical_points": 32,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 33,
+        "currently_available": false
       },
       "onchain": {
         "status": "used",
-        "historical_points": 112,
+        "historical_points": 113,
         "currently_available": true
       },
       "news": {
         "status": "used",
-        "historical_points": 112,
+        "historical_points": 113,
         "currently_available": true
       },
       "project": {
@@ -106,9 +104,9 @@
         "currently_available": false
       },
       "macro": {
-        "status": "used",
-        "historical_points": 31,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 32,
+        "currently_available": false
       },
       "derivatives": {
         "status": "missing",
@@ -128,11 +126,11 @@
       "id": "4b1db79fb44eb9c6",
       "horizon": "1h",
       "candidate": "technical_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "improvement_below_research_gate",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": 0.002730873565584657,
+      "skill_vs_zero": 0.004411237778897847,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -140,11 +138,11 @@
       "id": "d232bb57b9faecaa",
       "horizon": "4h",
       "candidate": "technical_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "revise_in_sandbox",
+      "reason": "failed_no_change_baseline",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": -0.006653633604686737,
+      "skill_vs_zero": -0.008583986404428368,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -152,11 +150,11 @@
       "id": "bace7209c1d171e3",
       "horizon": "24h",
       "candidate": "forest_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 26.0,
-      "skill_vs_zero": -0.02006755184935516,
+      "skill_vs_zero": -0.0724942352398521,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -164,8 +162,8 @@
       "id": "7440be94f8179bf6",
       "horizon": "7d",
       "candidate": "no_change",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 3.0,
       "skill_vs_zero": 0.0,
