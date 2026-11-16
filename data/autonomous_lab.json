@@ -1,14 +1,12 @@
 {
-  "generated_at_utc": "2026-11-16T20:24:00.007872+00:00",
+  "generated_at_utc": "2026-11-16T21:03:06.219462+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-16T20:24:00.007872+00:00",
-    "state": "degraded",
+    "generated_at_utc": "2026-11-16T21:03:06.219462+00:00",
+    "state": "healthy",
     "previous_pipeline_passed": true,
-    "previous_pipeline_at_utc": "2026-11-16T11:03:57.082586+00:00",
-    "failed_checks": [
-      "fresh_pipeline"
-    ],
+    "previous_pipeline_at_utc": "2026-11-16T21:02:23.800059+00:00",
+    "failed_checks": [],
     "checks": {
       "pipeline_steps": {
         "passed": true,
@@ -27,7 +25,7 @@
         "details": "No missing/future clock"
       },
       "fresh_pipeline": {
-        "passed": false,
+        "passed": true,
         "details": "Scheduled Actions are best effort; 3 hours is a health threshold."
       },
       "horizon_wiring": {
@@ -72,32 +70,32 @@
       },
       "ticker": {
         "status": "missing",
-        "historical_points": 8,
+        "historical_points": 7,
         "currently_available": false
       },
       "orderbook": {
         "status": "missing",
-        "historical_points": 8,
+        "historical_points": 7,
         "currently_available": false
       },
       "trades": {
         "status": "missing",
-        "historical_points": 7,
+        "historical_points": 6,
         "currently_available": false
       },
       "dex": {
         "status": "missing",
-        "historical_points": 33,
+        "historical_points": 28,
         "currently_available": false
       },
       "onchain": {
         "status": "missing",
-        "historical_points": 113,
+        "historical_points": 110,
         "currently_available": false
       },
       "news": {
         "status": "missing",
-        "historical_points": 113,
+        "historical_points": 110,
         "currently_available": false
       },
       "project": {
@@ -107,7 +105,7 @@
       },
       "macro": {
         "status": "missing",
-        "historical_points": 32,
+        "historical_points": 27,
         "currently_available": false
       },
       "derivatives": {
@@ -128,8 +126,8 @@
       "id": "34e1f4ff1b574e8f",
       "horizon": "1h",
       "candidate": "no_change",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "revise_in_sandbox",
+      "reason": "failed_no_change_baseline",
       "replay_consistent": true,
       "later_samples": 120.0,
       "skill_vs_zero": 0.0,
@@ -137,14 +135,14 @@
       "promotion_permitted_by_lab": false
     },
     {
-      "id": "d232bb57b9faecaa",
+      "id": "d9579f651ba22707",
       "horizon": "4h",
-      "candidate": "technical_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "candidate": "no_change",
+      "action": "revise_in_sandbox",
+      "reason": "failed_no_change_baseline",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": -0.009080379844343067,
+      "skill_vs_zero": 0.0,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -152,11 +150,11 @@
       "id": "bace7209c1d171e3",
       "horizon": "24h",
       "candidate": "forest_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
-      "later_samples": 26.0,
-      "skill_vs_zero": -0.06078167016159819,
+      "later_samples": 27.0,
+      "skill_vs_zero": 0.033481701736453484,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -164,8 +162,8 @@
       "id": "7440be94f8179bf6",
       "horizon": "7d",
       "candidate": "no_change",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 3.0,
       "skill_vs_zero": 0.0,
