@@ -1,11 +1,11 @@
 {
-  "generated_at_utc": "2026-11-18T21:54:54.113378+00:00",
+  "generated_at_utc": "2026-11-19T02:53:00.143931+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-18T21:54:54.113378+00:00",
+    "generated_at_utc": "2026-11-19T02:53:00.143931+00:00",
     "state": "healthy",
     "previous_pipeline_passed": true,
-    "previous_pipeline_at_utc": "2026-11-18T21:25:57.917358+00:00",
+    "previous_pipeline_at_utc": "2026-11-19T02:52:19.400159+00:00",
     "failed_checks": [],
     "checks": {
       "pipeline_steps": {
@@ -89,14 +89,14 @@
         "currently_available": false
       },
       "onchain": {
-        "status": "missing",
-        "historical_points": 99,
-        "currently_available": false
+        "status": "used",
+        "historical_points": 98,
+        "currently_available": true
       },
       "news": {
-        "status": "missing",
-        "historical_points": 93,
-        "currently_available": false
+        "status": "used",
+        "historical_points": 92,
+        "currently_available": true
       },
       "project": {
         "status": "missing",
@@ -123,38 +123,38 @@
   },
   "experiments": [
     {
-      "id": "34e1f4ff1b574e8f",
+      "id": "72fc3719819adc78",
       "horizon": "1h",
-      "candidate": "no_change",
-      "action": "revise_in_sandbox",
-      "reason": "failed_no_change_baseline",
-      "replay_consistent": true,
-      "later_samples": 120.0,
-      "skill_vs_zero": 0.0,
-      "production_status": "experimental",
-      "promotion_permitted_by_lab": false
-    },
-    {
-      "id": "d9579f651ba22707",
-      "horizon": "4h",
-      "candidate": "no_change",
-      "action": "revise_in_sandbox",
-      "reason": "failed_no_change_baseline",
-      "replay_consistent": true,
-      "later_samples": 120.0,
-      "skill_vs_zero": 0.0,
-      "production_status": "experimental",
-      "promotion_permitted_by_lab": false
-    },
-    {
-      "id": "65dd0297ae9c9cfa",
-      "horizon": "24h",
       "candidate": "hist_absolute",
+      "action": "continue_sandbox",
+      "reason": "improvement_below_research_gate",
+      "replay_consistent": true,
+      "later_samples": 120.0,
+      "skill_vs_zero": 0.030635301249769875,
+      "production_status": "experimental",
+      "promotion_permitted_by_lab": false
+    },
+    {
+      "id": "78e64496f69a5ab9",
+      "horizon": "4h",
+      "candidate": "forest_absolute",
+      "action": "revise_in_sandbox",
+      "reason": "failed_no_change_baseline",
+      "replay_consistent": true,
+      "later_samples": 120.0,
+      "skill_vs_zero": -0.04469521812205768,
+      "production_status": "experimental",
+      "promotion_permitted_by_lab": false
+    },
+    {
+      "id": "bace7209c1d171e3",
+      "horizon": "24h",
+      "candidate": "forest_absolute",
       "action": "continue_sandbox",
       "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 28.0,
-      "skill_vs_zero": -0.08267701543373263,
+      "skill_vs_zero": -0.09786962990376069,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -166,7 +166,7 @@
       "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 4.0,
-      "skill_vs_zero": 0.11304104899573986,
+      "skill_vs_zero": 0.13213917926674335,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     }
