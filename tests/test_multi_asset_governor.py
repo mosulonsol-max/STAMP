@@ -13,6 +13,19 @@ class GovernanceTests(unittest.TestCase):
  def test_invalid_database_payload_fails_closed(self):
   with self.assertRaises((OSError,ValueError)):
    gov.decode_state(b"not a gzip archive")
+ def test_overlapping_workers_merge_unique_records_and_settlements(self):
+  older={"loop_updated_at_utc":"2026-11-19T12:00:00+00:00","known_pairs":["BTCUSDT"],
+   "records":[{"id":"shared","reference_at_utc":"2026-11-19T11:00:00+00:00","outcome":None},
+              {"id":"old-only","reference_at_utc":"2026-11-19T11:01:00+00:00","outcome":None}]}
+  newer={"loop_updated_at_utc":"2026-11-19T12:01:00+00:00","known_pairs":["ETHUSDT"],
+   "records":[{"id":"shared","reference_at_utc":"2026-11-19T11:00:00+00:00","outcome":{"actual_price":1}},
+              {"id":"new-only","reference_at_utc":"2026-11-19T11:02:00+00:00","outcome":None}]}
+  with patch.object(gov,"autonomous_review",side_effect=lambda data:data):
+   result=gov.merge_state(older,newer)
+  self.assertEqual([r["id"] for r in result["records"]],["shared","old-only","new-only"])
+  self.assertEqual(result["records"][0]["outcome"],{"actual_price":1})
+  self.assertEqual(result["known_pairs"],["BTCUSDT","ETHUSDT"])
+  self.assertEqual(result["loop_updated_at_utc"],newer["loop_updated_at_utc"])
  def test_missing_historical_features_are_not_fabricated(self):
   with patch.object(gov,"audit_records",return_value={"passed":True}):
    state=gov.retrain_candidates({"records":[{"pair":"BTCUSDT","frame":"1h","outcome":{"actual_price":100}}]})

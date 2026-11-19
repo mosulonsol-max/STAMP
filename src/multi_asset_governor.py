@@ -12,6 +12,20 @@ def decode_state(payload):
     data=json.loads(gzip.decompress(bytes(payload)))
     if not isinstance(data,dict):raise ValueError("invalid_research_state")
     return data
+def merge_state(computed,persisted):
+    """Preserve the union of forecasts when overlapping worker deployments finish out of order."""
+    newest=max((computed,persisted),key=lambda state:str(state.get("loop_updated_at_utc") or ""))
+    merged=dict(newest)
+    by_id={}
+    for state in (persisted,computed):
+        for record in state.get("records") or []:
+            if not isinstance(record,dict) or not isinstance(record.get("id"),str):continue
+            previous=by_id.get(record["id"])
+            if previous is None or (record.get("outcome") and not previous.get("outcome")):
+                by_id[record["id"]]=record
+    merged["records"]=sorted(by_id.values(),key=lambda record:(str(record.get("reference_at_utc") or ""),record["id"]))
+    merged["known_pairs"]=sorted(set(persisted.get("known_pairs") or [])|set(computed.get("known_pairs") or []))
+    return autonomous_review(merged)
 def load():
     if os.getenv("DATABASE_URL"):
         import psycopg
@@ -314,9 +328,11 @@ def cycle(pairs=None):
     data["cycle_result"]={"processed":processed,"failed":failed,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     if os.getenv("DATABASE_URL"):
         import psycopg
-        payload=encode_state(data)
         with psycopg.connect(os.environ["DATABASE_URL"],connect_timeout=10) as conn:
-            conn.execute("INSERT INTO research_state_compact (id,payload) VALUES (1,%s) ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()",(payload,))
+            row=conn.execute("SELECT payload FROM research_state_compact WHERE id=1 FOR UPDATE").fetchone()
+            if not row:raise RuntimeError("research_state_not_initialized")
+            data=merge_state(data,decode_state(row[0]))
+            conn.execute("UPDATE research_state_compact SET payload=%s,updated_at=NOW() WHERE id=1",(encode_state(data),))
     else:
         PATH.parent.mkdir(parents=True,exist_ok=True)
         temp=PATH.with_suffix(".json.tmp")
