@@ -5,6 +5,14 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"src"))
 import multi_asset_governor as gov
 class GovernanceTests(unittest.TestCase):
+ def test_compressed_state_roundtrip_preserves_forecasts(self):
+  original={"records":[{"id":f"BTCUSDT|1h|{n}","outcome":{"actual_price":0.01*n}} for n in range(1,1001)],"cursor":497,"note":"بيانات حية"}
+  payload=gov.encode_state(original)
+  self.assertEqual(gov.decode_state(memoryview(payload)),original)
+  self.assertLess(len(payload),len(str(original).encode("utf-8")))
+ def test_invalid_database_payload_fails_closed(self):
+  with self.assertRaises((OSError,ValueError)):
+   gov.decode_state(b"not a gzip archive")
  def test_missing_historical_features_are_not_fabricated(self):
   with patch.object(gov,"audit_records",return_value={"passed":True}):
    state=gov.retrain_candidates({"records":[{"pair":"BTCUSDT","frame":"1h","outcome":{"actual_price":100}}]})

@@ -1,18 +1,25 @@
 """Autonomous per-asset prospective validation. Never promote from backtests alone."""
-import datetime as dt,json,math,os,pathlib
+import datetime as dt,gzip,json,math,os,pathlib
 from multi_asset import symbol,forecasts,candles,universe
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 PATH=ROOT/"data"/"multi_asset_forecasts.json"
 HORIZONS={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000}
 MIN_VERIFIED=30
+def encode_state(data):
+    return gzip.compress(json.dumps(data,separators=(",",":"),ensure_ascii=False,allow_nan=False).encode("utf-8"),compresslevel=3,mtime=0)
+def decode_state(payload):
+    data=json.loads(gzip.decompress(bytes(payload)))
+    if not isinstance(data,dict):raise ValueError("invalid_research_state")
+    return data
 def load():
     if os.getenv("DATABASE_URL"):
         import psycopg
         with psycopg.connect(os.environ["DATABASE_URL"],connect_timeout=10) as conn:
-            conn.execute("CREATE TABLE IF NOT EXISTS research_state (id INTEGER PRIMARY KEY, payload JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW())")
-            row=conn.execute("SELECT payload FROM research_state WHERE id=1").fetchone()
-            return row[0] if row else {}
+            conn.execute("CREATE TABLE IF NOT EXISTS research_state_compact (id INTEGER PRIMARY KEY, payload BYTEA NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW())")
+            row=conn.execute("SELECT payload FROM research_state_compact WHERE id=1").fetchone()
+            if not row:raise RuntimeError("research_state_not_initialized")
+            return decode_state(row[0])
     try:
         d=json.loads(PATH.read_text())
         return d if isinstance(d,dict) else {}
@@ -307,10 +314,9 @@ def cycle(pairs=None):
     data["cycle_result"]={"processed":processed,"failed":failed,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     if os.getenv("DATABASE_URL"):
         import psycopg
-        from psycopg.types.json import Jsonb
+        payload=encode_state(data)
         with psycopg.connect(os.environ["DATABASE_URL"],connect_timeout=10) as conn:
-            conn.execute("CREATE TABLE IF NOT EXISTS research_state (id INTEGER PRIMARY KEY, payload JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW())")
-            conn.execute("INSERT INTO research_state (id,payload) VALUES (1,%s) ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()",(Jsonb(data),))
+            conn.execute("INSERT INTO research_state_compact (id,payload) VALUES (1,%s) ON CONFLICT (id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()",(payload,))
     else:
         PATH.parent.mkdir(parents=True,exist_ok=True)
         temp=PATH.with_suffix(".json.tmp")
