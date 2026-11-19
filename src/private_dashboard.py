@@ -383,7 +383,7 @@ class Handler(BaseHTTPRequestHandler):
    try:
     try:from src.world_sessions import session_status
     except ImportError:from world_sessions import session_status
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("private.html","private.js","private.css","world-sessions.js","pipeline-3d.js","market-map.js","market-map.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None and all(item["status"]!="unknown" for item in session_status(dt.datetime.now(dt.timezone.utc)))
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("command.html","command.js","command.css","private.html","private.js","private.css","world-sessions.js","pipeline-3d.js","market-map.js","market-map.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None and all(item["status"]!="unknown" for item in session_status(dt.datetime.now(dt.timezone.utc)))
    except Exception:healthy=False
    if healthy and parse_qs(urlsplit(self.path).query).get("market")==["1"]:
     try:
@@ -465,18 +465,19 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(200,json.dumps(world_snapshot(),allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"world_sessions_unavailable","detail":type(exc).__name__}).encode(),"application/json; charset=utf-8")
-  if path=="/api/assets/learning-loop":
+  if path in ("/api/assets/learning-loop","/api/engine-state"):
    try:
     q=parse_qs(urlsplit(self.path).query)
     pair=q.get("symbol",[""])[0].upper()
     if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():raise ValueError("invalid_symbol")
-    upstream="https://stamp-autonomous-worker.onrender.com/research/loop?symbol="+quote(pair)
+    engine=path=="/api/engine-state"
+    upstream="https://stamp-autonomous-worker.onrender.com/research/"+("engine" if engine else "loop")+"?symbol="+quote(pair)
     req=Request(upstream,headers={"Accept":"application/json","User-Agent":"STAMP-dashboard-loop-proxy"})
     with urlopen(req,timeout=8) as response:
      raw=response.read(150000)
      if len(raw)>=150000:raise ValueError("oversized_research_response")
      result=json.loads(raw)
-    if result.get("symbol")!=pair or result.get("source")!="worker_persistent_research_state":raise ValueError("invalid_worker_response")
+    if result.get("symbol")!=pair or result.get("source")!=("worker_recorded_computation" if engine else "worker_persistent_research_state"):raise ValueError("invalid_worker_response")
     return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
    except ValueError as exc:return self.send(400,json.dumps({"error":str(exc)}).encode(),"application/json; charset=utf-8")
    except Exception as exc:return self.send(503,json.dumps({"error":"learning_loop_unavailable","reason":type(exc).__name__}).encode(),"application/json; charset=utf-8")
@@ -593,7 +594,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
-  paths={"/":"private.html","/index.html":"private.html","/nexus":"private.html","/assets/world-sessions.js":"world-sessions.js","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
+  paths={"/":"command.html","/index.html":"command.html","/nexus":"command.html","/assets/command.js":"command.js","/assets/command.css":"command.css","/assets/world-sessions.js":"world-sessions.js","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:

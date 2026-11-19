@@ -27,6 +27,14 @@ class Health(BaseHTTPRequestHandler):
   except Exception:return self.respond(503,{"error":"telemetry_verification_unavailable"})
  def do_GET(self):
   path=urlsplit(self.path).path
+  if path=="/research/engine":
+   pair=parse_qs(urlsplit(self.path).query).get("symbol",[""])[0].upper()
+   if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
+   try:
+    from engine_observatory import summarize
+    worker={"running":LAST["running"],"cycles":LAST["cycles"],"failures":LAST["failures"],"error":LAST["error"],"last_success_utc":dt.datetime.fromtimestamp(LAST["success"],dt.timezone.utc).isoformat() if LAST["success"] else None,"storage":"postgres" if os.getenv("DATABASE_URL") else "ephemeral_filesystem"}
+    return self.respond(200,summarize(load(),pair,worker))
+   except Exception as exc:return self.respond(503,{"error":"engine_evidence_unavailable","reason":type(exc).__name__})
   if path=="/pipeline/events":
    try:return self.respond(200,pipeline_telemetry.read(parse_qs(urlsplit(self.path).query).get("after",["0"])[0]))
    except ValueError:return self.respond(400,{"error":"invalid_cursor"})

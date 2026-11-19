@@ -54,12 +54,12 @@ class AuthenticatedBrowserFlow(unittest.TestCase):
   self.assertEqual(status,303)
   self.assertIn("HttpOnly",headers["Set-Cookie"]);self.assertIn("Secure",headers["Set-Cookie"])
   cookie=headers["Set-Cookie"].split(";",1)[0]
-  for path in ("/","/nexus?build=previous","/assets/app.js","/assets/world-sessions.js","/assets/market-stream.js","/assets/style.css","/api/dashboard","/api/dashboard-lite","/api/quote","/api/status","/api/assurance"):
+  for path in ("/","/nexus?build=previous","/assets/app.js","/assets/world-sessions.js","/assets/command.js","/assets/command.css","/assets/market-stream.js","/assets/style.css","/api/dashboard","/api/dashboard-lite","/api/quote","/api/status","/api/assurance"):
    status,head,body=self.req("GET",path,cookie=cookie)
    self.assertEqual(status,200,path+" "+body[:200].decode(errors="replace"))
    if path in ("/","/nexus?build=previous"):
-    self.assertIn(b'id="stamp-snapshot"',body);self.assertIn(b'id="price">$0.00019000',body)
-    self.assertIn(b'id="traceCanvas"',body);self.assertIn(b'id="assetPickerButton"',body)
+    self.assertIn(b'id="engineScene"',body);self.assertIn(b'id="stageFacts"',body)
+    self.assertIn(b'id="history"',body);self.assertIn(b'id="pairForm"',body)
    if path=="/assets/app.js":self.assertIn(b'function render(',body)
    if path=="/assets/world-sessions.js":self.assertIn(b'/api/world-sessions',body)
    if path=="/api/dashboard":
@@ -91,5 +91,18 @@ class AuthenticatedBrowserFlow(unittest.TestCase):
   self.assertEqual(status,200)
   self.assertEqual(json.loads(body),result)
   self.assertEqual(urllib.parse.urlsplit(fetch.call_args.args[0].full_url).query,"symbol=ETHUSDT")
+ def test_engine_view_requires_auth_and_rejects_cross_pair_evidence(self):
+  path="/api/engine-state?symbol=BTCUSDT"
+  self.assertEqual(self.req("GET",path)[0],401)
+  cookie="stamp_session="+app.make_session()
+  result={"symbol":"BTCUSDT","source":"worker_recorded_computation","latest":{}}
+  with patch.object(app,"urlopen",return_value=io.BytesIO(json.dumps(result).encode())) as fetch:
+   status,_,body=self.req("GET",path,cookie=cookie)
+  self.assertEqual(status,200)
+  self.assertEqual(json.loads(body),result)
+  self.assertEqual(urllib.parse.urlsplit(fetch.call_args.args[0].full_url).path,"/research/engine")
+  result["symbol"]="ETHUSDT"
+  with patch.object(app,"urlopen",return_value=io.BytesIO(json.dumps(result).encode())):
+   self.assertEqual(self.req("GET",path,cookie=cookie)[0],400)
 if __name__=="__main__":unittest.main()
 

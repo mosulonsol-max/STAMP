@@ -98,7 +98,7 @@ class PrivateDashboardTests(unittest.TestCase):
     conn.request("POST","/login",body="user=private&password=test-long-password",headers={"Content-Type":"application/x-www-form-urlencoded"})
     res=conn.getresponse();self.assertEqual(res.status,303)
     cookie=res.getheader("Set-Cookie").split(";",1)[0];res.read()
-    for path,expected in (("/",b'id="stamp-snapshot"'),("/assets/app.js",b'function refresh()'),("/assets/style.css",b'body'),("/api/dashboard-lite",b'0.0001751'),("/api/status",b'"api": "ok"')):
+    for path,expected in (("/",b'id="engineScene"'),("/assets/app.js",b'function refresh()'),("/assets/style.css",b'body'),("/api/dashboard-lite",b'0.0001751'),("/api/status",b'"api": "ok"')):
      conn.request("GET",path,headers={"Cookie":cookie})
      res=conn.getresponse();self.assertEqual(res.status,200,path)
      self.assertIn(expected,res.read(),path)
@@ -160,7 +160,7 @@ class PrivateDashboardTests(unittest.TestCase):
    try:
     conn=http.client.HTTPConnection("127.0.0.1",server.server_address[1],timeout=3)
     auth={"Authorization":"Basic "+base64.b64encode(b"private:test-password").decode()}
-    conn.request("GET","/",headers=auth)
+    conn.request("GET","/legacy",headers=auth)
     response=conn.getresponse();self.assertEqual(response.status,200)
     body=response.read().decode()
     self.assertIn('<template id="stamp-snapshot">',body)
