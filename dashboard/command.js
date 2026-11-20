@@ -24,16 +24,19 @@ function renderInspector(){
  const r=activeRecord(),e=engine,valid=!!e&&!engineFailed&&age(e.archive_updated_at_utc)<600;
  const config=stages.find(s=>s.id===stage);set('stageLabel',config.name.toUpperCase());set('stageTitle',config.short);set('stageExtra',"");
  for(const b of $('stageControls').children)b.setAttribute('aria-pressed',String(b.dataset.stage===stage));
- if(!e){set('stageSummary',"No worker evidence is available. The diagram does not prove a stage completed.");facts([]);draw();return}
+ if(!e){
+  if(r&&(stage==='compute'||stage==='forecast')){set('stageSummary','Current projection computed from the selected venue’s closed candles. It has not yet been saved or measured by the worker.');facts([['Source',r.inputs.source],['Model',r.model_version],['Reference',price(r.reference_price)],['Forecast',price(r.predicted_price)],['Target time',utc(r.due_at_utc)],['Recomputed',r.calculation.matches_recorded?'Matches calculation':'Unverified']])}
+  else{set('stageSummary','Saved worker evidence is unavailable. Current venue projections remain in the forecast cards.');facts([])}draw();return}
+
  if(stage==='collect'){
   set('stageSummary',"The worker rotates through the discovered MEXC USDT universe. The selected record uses closed candle prices; the live chart has its own source and timestamp.");
   facts([["Universe",number(e.coverage.universe)+" pairs"],["Selected market",e.symbol],["Latest batch",e.collection.processed_in_last_batch?"Included in latest batch":"Not in latest batch"],["Batch completed",utc(e.collection.last_batch_at_utc)],["Collection error",e.collection.last_error||"None recorded for this batch"],["Record's input features",r?.inputs.available?number(r.inputs.recent_log_returns.length)+" recorded log returns":"Unavailable for this record"]]);
  }else if(stage==='compute'){
-  set('stageSummary',"Inspect the calculation behind the selected forecast. Its original return values are saved with the record, so the output can be independently recomputed.");
-  facts([["Record",r?.id||"No forecast"],["Model",r?.model_version||"Unavailable"],["Input source",r?.inputs.source||"Unavailable"],["Lookback",r?.inputs.lookback?number(r.inputs.lookback)+" returns":"Unavailable"],["Recomputed price",price(r?.calculation.recomputed_price)],["Matches recorded output",r?.calculation.matches_recorded===true?"Yes":r?.calculation.matches_recorded===false?"No · investigate":"Cannot verify · original features missing"]]);
+  set('stageSummary',r?.recorded===false?'Recompute the current projection from this venue’s closed candle returns. These inputs have not yet been saved as a worker record.':'Inspect the calculation behind the selected forecast. Its original returns are saved with the record and can be independently recomputed.');
+  facts([["Record",r?.id||"No forecast"],["Model",r?.model_version||"Unavailable"],["Input source",r?.inputs.source||"Unavailable"],["Lookback",r?.inputs.lookback?number(r.inputs.lookback)+" returns":"Unavailable"],["Recomputed price",price(r?.calculation.recomputed_price)],[r?.recorded===false?"Matches computed projection":"Matches recorded output",r?.calculation.matches_recorded===true?"Yes":r?.calculation.matches_recorded===false?"No · investigate":"Cannot verify · original features missing"]]);
   set('stageExtra',r?.inputs.available?"Saved log returns: "+r.inputs.recent_log_returns.map(x=>Number(x).toFixed(6)).join(', '):"Historical records without saved features cannot be reconstructed reliably.");
  }else if(stage==='forecast'){
-  set('stageSummary',"This is an immutable issued forecast from the worker archive. Changing the chart interval selects a corresponding recorded horizon.");
+  set('stageSummary',r?.recorded===false?'Current projection from the selected venue. Its target and reference times are shown below; measurement has not occurred.':'This is an immutable issued forecast from the worker archive. Changing the chart interval selects the corresponding horizon.');
   facts([["Record",r?.id||"No record"],["Issued",utc(r?.reference_at_utc)],["Target time",utc(r?.due_at_utc)],["Reference",price(r?.reference_price)],["Predicted",price(r?.predicted_price)],["Status at issue",r?.validation_at_issue||"Unavailable"]]);
  }else if(stage==='verify'){
   set('stageSummary',"After the target time, the worker looks for the matching closed candle and compares squared log error with the unchanged-price baseline. Accepted means lower error, not a profitable trade.");
@@ -82,7 +85,7 @@ function renderEngine(){
 }
 async function loadEngine(){if(pending.has('engine')||document.hidden)return;const version=epoch;
  try{const d=await request('/api/engine-state?symbol='+encodeURIComponent(pair),'engine');if(version!==epoch)return;if(d.symbol!==pair||d.source!=='worker_recorded_computation')throw Error('Invalid worker evidence');engine=d;engineFailed=false;if(d.archive_updated_at_utc!==lastArchive){if(lastArchive)pulseAt=performance.now();lastArchive=d.archive_updated_at_utc}if(selected){selected=d.recent_outcomes.find(r=>r.id===selected.id)||selected}renderEngine()}
- catch(e){if(version!==epoch)return;engineFailed=true;if(engine)renderEngine();else{notify('Worker evidence unavailable · '+e.message+'. Saved worker forecasts are unavailable; current venue projections appear when candle data arrives.','error');set('workerState','Unavailable');renderInspector()}}
+ catch(e){if(version!==epoch)return;engineFailed=true;if(engine)renderEngine();else{notify('Saved worker history unavailable · '+e.message+'. Current venue projections load independently.','loading');set('workerState','Unavailable');renderInspector()}}
 }
 function initChart(){if(chart||!window.LightweightCharts)return;const L=window.LightweightCharts;
  chart=L.createChart($('priceChart'),{autoSize:true,layout:{background:{type:'solid',color:'#101c26'},textColor:'#9ab2c4',attributionLogo:false},grid:{vertLines:{color:'#20313d'},horzLines:{color:'#20313d'}},timeScale:{timeVisible:true},rightPriceScale:{borderColor:'#34505f'},handleScale:{pinch:true,mouseWheel:true},handleScroll:{pressedMouseMove:true,horzTouchDrag:true}});
@@ -153,7 +156,7 @@ function draw(){
  const scale=Math.min(w/980,h/345),yaw=rotate?Math.sin(angle)*.24:.13;
  const project=(x,y,z)=>({x:w/2+(x*Math.cos(yaw)-z*Math.sin(yaw))*scale,y:h*.59+((x*Math.sin(yaw)+z*Math.cos(yaw))*.34-y)*scale});
  ctx.strokeStyle='#25506466';ctx.lineWidth=1;for(let i=-5;i<=5;i++){let a=project(i*95,0,-170),b=project(i*95,0,190);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();a=project(-475,0,i*35);b=project(475,0,i*35);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
- const r=activeRecord(),states=[!!r?.inputs.available,!!r?.calculation.matches_recorded,!!r,!!r?.outcome,!!engine?.learning.selected_models[frame]],fresh=engine&&!engineFailed&&age(engine.archive_updated_at_utc)<600;
+ const r=activeRecord(),states=[!!r?.inputs.available,!!r?.calculation.matches_recorded,!!r,!!r?.outcome,!!engine?.learning.selected_models[frame]],fresh=!!r&&((engine&&!engineFailed&&age(engine.archive_updated_at_utc)<600)||(r.recorded===false&&age(market?.retrieved_at_utc)<120));
  hitboxes=[];const nodes=stages.map((s,i)=>({...s,x:(i-2)*188,z:i%2?15:-15,height:i===2?115:80}));
  for(let i=0;i<4;i++){const a=project(nodes[i].x+47,10,nodes[i].z),b=project(nodes[i+1].x-47,10,nodes[i+1].z);ctx.strokeStyle=states[i]&&states[i+1]&&fresh?'#609bab':'#314856';ctx.setLineDash(states[i]&&states[i+1]?[]:[4,5]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([])}
  for(let i=0;i<nodes.length;i++){
