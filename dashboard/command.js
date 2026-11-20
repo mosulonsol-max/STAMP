@@ -8,7 +8,8 @@ const age=v=>{const t=Date.parse(v);return Number.isFinite(t)?Math.max(0,(Date.n
 const set=(id,v)=>{$(id).textContent=v};
 const element=(tag,text,cls)=>{const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;return e};
 let pair="BTCUSDT",frame="1h",engine=null,market=null,selected=null,stage="collect",epoch=0,engineFailed=false,rotate=false,angle=.1,lastArchive=null,pulseAt=-Infinity;
-let chart,series,predicted,actualLine;
+let chart,series,predicted,actualLine,catalog={pairs:['BTCUSDT','ETHUSDT','SOLUSDT','STAMPUSDT','ZECUSDT']},lastQuote=null,venuePinned=false;
+const Model=window.StampObservatory;
 const pending=new Map(),MS={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000};
 const stages=[{id:"collect",name:"Collection",short:"Closed candles",color:"#64dce1"},{id:"compute",name:"Calculation",short:"Recorded returns",color:"#69bbc9"},{id:"forecast",name:"Forecast",short:"Issued output",color:"#e9b976"},{id:"verify",name:"Verification",short:"Measured outcome",color:"#a6d59a"},{id:"learn",name:"Learning",short:"Holdout selection",color:"#b9b2e5"}];
 async function request(path,key,timeout=14000){
@@ -16,7 +17,7 @@ async function request(path,key,timeout=14000){
  try{const r=await fetch(path,{credentials:"same-origin",cache:"no-store",signal:ctl.signal});if(r.status===401){location.href="/login";throw Error("Sign in required")}if(!r.ok)throw Error("Source returned "+r.status);return await r.json()}
  finally{clearTimeout(timer);if(pending.get(key)===ctl)pending.delete(key)}
 }
-function activeRecord(){return selected||(engine?.latest||{})[frame]||null}
+function activeRecord(){return selected||Model.active(engine,market,frame)}
 function notify(text,state){set('notice',text);$('notice').dataset.state=state}
 function facts(rows){$('stageFacts').replaceChildren();for(const [label,value] of rows){$('stageFacts').append(element('dt',label),element('dd',value))}}
 function renderInspector(){
@@ -45,15 +46,19 @@ function renderInspector(){
  if(!valid)set('stageExtra',$('stageExtra').textContent+' · Worker evidence is delayed or unavailable. Last saved state: '+utc(e.archive_updated_at_utc));draw();
 }
 function renderOutput(){
- const r=activeRecord(),v=engine?.validation?.[r?.frame||frame]||{};
- set('outputTitle',pair.replace('USDT',' / USDT')+' · '+(r?.frame||frame));set('recordId',r?.id||'No saved forecast for this horizon');
+ const r=activeRecord(),v=r?.venue==='MEXC'?(engine?.validation?.[r?.frame||frame]||{}):{};
+ renderForecastCards();
+ set('recordKind',selected?'HISTORICAL RESULT':r?.recorded===false?'CURRENT CANDLE PROJECTION':'SAVED UPCOMING FORECAST');
+ const change=r?100*(r.predicted_price/r.reference_price-1):null;
+ set('forecastDirection',r?(change>=0?'Up ':'Down ')+(change>=0?'+':'')+change.toFixed(3)+'% · '+(r.venue||'MEXC')+' · '+r.frame:'No current forecast · checking source data');
+ set('outputTitle',pair.replace('USDT',' / USDT')+' · '+(r?.frame||frame));set('recordId',r?.id||'No current forecast. Expired records remain in the history below.');
  set('outputState',String(r?.review.status||'NO RECORD').toUpperCase());$('outputState').dataset.state=r?.review.status||'unknown';
  for(const [id,value] of [['reference',r?.reference_price],['prediction',r?.predicted_price],['actual',r?.outcome?.actual_price]])set(id,price(value));
  set('issued','Issued '+utc(r?.reference_at_utc));set('due','Target '+utc(r?.due_at_utc));set('measured',r?.outcome?'Measured '+utc(r.outcome.measured_at_utc):r&&age(r.due_at_utc)<1?'Target not yet reached':'Awaiting matching target candle');
- const reasons={outperformed_no_change_baseline:'The forecast had lower squared price error than the unchanged-price baseline.',did_not_outperform_no_change_baseline:'The forecast did not beat the unchanged-price baseline.',integrity_or_chronology_failure:'The record failed integrity or chronology checks.',awaiting_verified_target_candle:'The worker is waiting for a verified target candle.'};
+ const reasons={computed_from_current_closed_candles:'Computed now from '+(r?.venue||'selected venue')+' closed candles. This projection has not yet been measured. Historical worker validation applies only to its saved MEXC models.',outperformed_no_change_baseline:'The forecast had lower squared price error than the unchanged-price baseline.',did_not_outperform_no_change_baseline:'The forecast did not beat the unchanged-price baseline.',integrity_or_chronology_failure:'The record failed integrity or chronology checks.',awaiting_verified_target_candle:'The worker is waiting for a verified target candle.'};
  set('outputReason',reasons[r?.review.reason]||'No saved automatic review for this record.');set('model',r?.model_version||'Unavailable');
  set('formula',r?.inputs.available?'Reference × exp(mean of the last '+r.inputs.lookback+' saved log returns)' :'Original calculation inputs are unavailable.');
- set('recompute',r?.calculation.matches_recorded===true?'Recomputed from saved inputs · matches recorded prediction':r?.calculation.matches_recorded===false?'Calculation mismatch · investigate':'Cannot independently reproduce this historical record');
+ set('recompute',r?.calculation.matches_recorded===true?(r.recorded===false?'Recomputed from current source candles · matches projection':'Recomputed from saved inputs · matches recorded prediction'):r?.calculation.matches_recorded===false?'Calculation mismatch · investigate':'Cannot independently reproduce this historical record');
  const skill=v.observed_skill;set('skill',skill==null?'Insufficient evidence':(skill>=0?'+':'')+(skill*100).toFixed(2)+'%');
  set('quality',(v.observed_samples??0)+' verified samples · '+(v.status||'unverified').replaceAll('_',' ')+'. Positive skill means lower error than unchanged price. This is separate from the selected record’s review.');
  renderInspector();renderChart();
@@ -77,30 +82,69 @@ function renderEngine(){
 }
 async function loadEngine(){if(pending.has('engine')||document.hidden)return;const version=epoch;
  try{const d=await request('/api/engine-state?symbol='+encodeURIComponent(pair),'engine');if(version!==epoch)return;if(d.symbol!==pair||d.source!=='worker_recorded_computation')throw Error('Invalid worker evidence');engine=d;engineFailed=false;if(d.archive_updated_at_utc!==lastArchive){if(lastArchive)pulseAt=performance.now();lastArchive=d.archive_updated_at_utc}if(selected){selected=d.recent_outcomes.find(r=>r.id===selected.id)||selected}renderEngine()}
- catch(e){if(version!==epoch)return;engineFailed=true;if(engine)renderEngine();else{notify('Worker evidence unavailable · '+e.message+'. No generated output can be verified.','error');set('workerState','Unavailable');renderInspector()}}
+ catch(e){if(version!==epoch)return;engineFailed=true;if(engine)renderEngine();else{notify('Worker evidence unavailable · '+e.message+'. Saved worker forecasts are unavailable; current venue projections appear when candle data arrives.','error');set('workerState','Unavailable');renderInspector()}}
 }
 function initChart(){if(chart||!window.LightweightCharts)return;const L=window.LightweightCharts;
  chart=L.createChart($('priceChart'),{autoSize:true,layout:{background:{type:'solid',color:'#101c26'},textColor:'#9ab2c4',attributionLogo:false},grid:{vertLines:{color:'#20313d'},horzLines:{color:'#20313d'}},timeScale:{timeVisible:true},rightPriceScale:{borderColor:'#34505f'},handleScale:{pinch:true,mouseWheel:true},handleScroll:{pressedMouseMove:true,horzTouchDrag:true}});
  series=chart.addSeries(L.CandlestickSeries,{upColor:'#67c9c7',downColor:'#d28294',wickUpColor:'#67c9c7',wickDownColor:'#d28294',borderVisible:false,priceFormat:{type:'price',precision:8,minMove:.00000001}});
- predicted=chart.addSeries(L.LineSeries,{color:'#edbb74',lineStyle:2,lineWidth:2,pointMarkersVisible:true,priceLineVisible:false,lastValueVisible:false});actualLine=chart.addSeries(L.LineSeries,{color:'#8addb0',lineWidth:2,pointMarkersVisible:true,priceLineVisible:false,lastValueVisible:false});
+ predicted=chart.addSeries(L.LineSeries,{color:'#edbb74',lineStyle:2,lineWidth:3,pointMarkersVisible:true,priceLineVisible:true,lastValueVisible:true,title:'Forecast',priceFormat:{type:'price',precision:8,minMove:.00000001}});actualLine=chart.addSeries(L.LineSeries,{color:'#8addb0',lineWidth:2,pointMarkersVisible:true,priceLineVisible:false,lastValueVisible:false});
 }
-let chartView='';function renderChart(){initChart();const rows=market?.candles?.[frame]||[];const bars=rows.filter(c=>c.t+MS[frame]<=Date.now()).map(c=>({time:Math.floor(c.t/1000),open:c.o,high:c.h,low:c.l,close:c.c}));
+let chartView='';function renderChart(){initChart();const rows=market?.candles?.[frame]||[];const bars=rows.filter(c=>c.t<=Date.now()).map(c=>({time:Math.floor(c.t/1000),open:c.o,high:c.h,low:c.l,close:c.c}));
  if(!chart){set('chartStatus','Chart library unavailable. Recorded prices remain in the evidence panel.');return}
  series.setData(bars);const r=activeRecord(),ref=Date.parse(r?.reference_at_utc)/1000,due=Date.parse(r?.due_at_utc)/1000;
  const points=r&&Number.isFinite(ref)&&Number.isFinite(due)&&due>ref?[{time:ref,value:r.reference_price},{time:due,value:r.predicted_price}]:[];predicted.setData(points);actualLine.setData(points.length&&r?.outcome?[{time:ref,value:r.reference_price},{time:due,value:r.outcome.actual_price}]:[]);
- const key=pair+'|'+frame+'|'+(selected?.id||'latest');if(chartView!==key){chartView=key;if(bars.length){const end=selected?due+MS[frame]/1000*4:Math.max(bars.at(-1).time,due||0);chart.timeScale().setVisibleRange({from:selected?ref-MS[frame]/1000*18:bars[Math.max(0,bars.length-70)].time,to:end+MS[frame]/1000*2})}}
- set('chartTitle',pair.replace('USDT',' / USDT')+' · '+frame);set('chartStatus',bars.length?'Chart: '+market.source+' · fetched '+utc(market.retrieved_at_utc)+'. Forecast: saved MEXC worker record; source and time may differ.'+(selected&&bars[0].time>due?' Selected record predates the returned candle window; only its saved reference and result are drawn.':''):'No current closed candles returned. Recorded forecast prices remain available.');
+ const key=pair+'|'+frame+'|'+(r?.id||'none')+'|'+String(!!bars.length);if(chartView!==key){const range=Model.chartRange(bars,r,frame,!!selected);if(range){chart.timeScale().setVisibleRange(range);chartView=key}}
+ set('chartTitle',pair.replace('USDT',' / USDT')+' · '+(market?.venue||r?.venue||'—')+' · '+frame);
+ set('chartStatus',bars.length?'Candles: '+market.source+' · fetched '+utc(market.retrieved_at_utc)+'. Last candle may be forming; forecasts use closed candles only. '+(r?'Forecast '+(r.venue||'MEXC')+' · issued '+utc(r.reference_at_utc)+' · target '+utc(r.due_at_utc):'No upcoming forecast from fresh candles.')+(selected&&bars[0].time>due?' Historical result predates the candle window.':''):'Current candles unavailable. '+(r?'The saved reference and target are drawn.':'No forecast can be plotted until data arrives.'));
 }
-async function loadMarket(){if(pending.has('market')||document.hidden)return;const version=epoch;
- try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair),'market',22000);if(version!==epoch)return;if(d.symbol!==pair)throw Error('Wrong market');market=d;set('quote',price(d.ticker?.lastPrice));set('quoteTime',d.source+' · '+utc(d.retrieved_at_utc));renderChart()}
- catch(e){if(version===epoch){set('quote','—');set('quoteTime','Quote unavailable · '+e.message);set('chartStatus','Chart refresh failed; previously fetched candles retain their source timestamp.')}}
+function applyQuote(value,venue,fetched,provider){
+ if(!(Number(value)>0)||venue!==market?.venue)return;
+ const providerMs=Date.parse(provider),fetchedMs=Date.parse(fetched);
+ if(!Number.isFinite(fetchedMs)||fetchedMs>Date.now()+5000)return;
+ if(lastQuote?.venue===venue&&Number.isFinite(providerMs)&&Number.isFinite(lastQuote.providerMs)&&providerMs<lastQuote.providerMs)return;
+ if(lastQuote?.venue===venue&&fetchedMs<lastQuote.fetchedMs)return;
+ lastQuote={value:Number(value),venue,providerMs,fetchedMs};set('quote',price(value));paintQuote();
+ const tail=market.candles?.[frame]?.at(-1);if(tail&&providerMs>=tail.t&&providerMs<tail.t+MS[frame]&&tail.t+MS[frame]>Date.now()){tail.c=Number(value);tail.h=Math.max(tail.h,tail.c);tail.l=Math.min(tail.l,tail.c);series?.update({time:Math.floor(tail.t/1000),open:tail.o,high:tail.h,low:tail.l,close:tail.c})}
 }
-async function loadQuote(){if(!market||pending.has('quote')||document.hidden)return;const version=epoch;
- try{const d=await request('/api/market-update?symbol='+encodeURIComponent(pair)+'&frame='+frame,'quote',6500);if(version!==epoch)return;const q=d.quote;if(q?.status==='fresh'&&q.price>0&&age(q.retrieved_at_utc)<20){set('quote',price(q.price));set('quoteTime','MEXC Spot · '+utc(q.retrieved_at_utc))}}
- catch{/* The independently timestamped snapshot remains visible. */}}
+function paintQuote(){if(!lastQuote)return;const stale=Date.now()-lastQuote.fetchedMs>20000;const timed=Number.isFinite(lastQuote.providerMs);const oldProvider=timed&&Date.now()-lastQuote.providerMs>60000;
+ $('quote').dataset.state=stale||oldProvider?'stale':'current';set('quoteTime',lastQuote.venue+' Spot · '+(stale||oldProvider?'DELAYED · ':'')+(timed?'exchange '+utc(new Date(lastQuote.providerMs).toISOString()):'exchange time unavailable')+' · fetched '+utc(new Date(lastQuote.fetchedMs).toISOString()));$('quoteTime').dataset.state=stale||oldProvider?'error':'ok';}
+async function loadMarket(){if(pending.has('market')||document.hidden)return;const version=epoch,venue=$('venue').value;
+ try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair)+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000);if(version!==epoch)return;if(d.symbol!==pair||venue&&d.venue!==venue)throw Error('Mismatched market source');market=d;$('venue').value=d.venue;
+ const close=d.ticker?.closeTime;applyQuote(d.ticker?.lastPrice,d.venue,d.retrieved_at_utc,close?new Date(Number(close)).toISOString():null);renderOutput();
+ }catch(e){if(version===epoch){set('quoteTime','Selected venue unavailable · '+e.message);$('quoteTime').dataset.state='error';set('chartStatus','Current source unavailable. No replacement venue was selected.');if(!market){set('quote','—');renderOutput()}}}
+}
+async function loadQuote(){if(!market||pending.has('quote')||document.hidden)return;const version=epoch,venue=market.venue;
+ try{const d=await request('/api/assets/quote?symbol='+encodeURIComponent(pair)+'&venue='+encodeURIComponent(venue),'quote',13000);if(version!==epoch)return;if(d.symbol!==pair||d.venue!==venue)throw Error('Mismatched quote');applyQuote(d.price,d.venue,d.retrieved_at_utc,d.provider_at_utc)}
+ catch{paintQuote()}}
+function renderForecastCards(){
+ const container=$('forecastStrip');container.replaceChildren();
+ for(const horizon of Object.keys(MS)){
+  const r=Model.active(engine,market,horizon),card=element('button','','forecast-card');card.type='button';card.dataset.state=r?'available':'unavailable';card.setAttribute('aria-pressed',String(frame===horizon&&!selected));
+  card.append(element('span',horizon+' · '+(r?.venue||market?.venue||'waiting')));
+  card.append(element('strong',r?price(r.predicted_price):'No current target'));
+  if(r){const delta=100*(r.predicted_price/r.reference_price-1);card.append(element('span',(delta>=0?'+':'')+delta.toFixed(3)+'% from '+price(r.reference_price)),element('small','Target '+utc(r.due_at_utc)),element('small',r.recorded===false?'Current computed projection':'Saved worker forecast'))}
+  else card.append(element('small',market?'Insufficient fresh closed candles for this horizon.':'Loading source candles…'));
+  card.addEventListener('click',()=>{selected=null;frame=horizon;$('frame').value=frame;chartView='';renderOutput()});container.append(card);
+ }
+}
+function renderCurrencyList(){
+ const previous=$('pairSelect').value,rows=Model.currencyList(catalog,$('pair').value);
+ const typed=$('pair').value.toUpperCase().replace(/\//g,'').trim();if(!rows.length&&/^[A-Z0-9]{1,22}USDT$/.test(typed))rows.push(typed);$('pairSelect').replaceChildren();
+ if(!rows.length){const o=element('option','No matching currencies');o.value='';$('pairSelect').append(o);return}
+ for(const symbol of rows){const venues=catalog.venues?.[symbol]||[];const o=element('option',symbol.replace('USDT',' / USDT')+(venues.length?' · '+venues.join(', '):' · listing unverified'));o.value=symbol;$('pairSelect').append(o)}
+ const exact=typed.endsWith('USDT')?typed:typed+'USDT';if(typed&&rows.includes(exact))$('pairSelect').value=exact;else if(rows.includes(previous))$('pairSelect').value=previous;else if(rows.includes(pair))$('pairSelect').value=pair;
+ set('catalogStatus',rows.length+' matching markets · '+Model.currencyList(catalog).length+' exchange / watched USDT symbols'+(catalog.retrieved_at_utc?' · fetched '+utc(catalog.retrieved_at_utc):' · starter list; refreshing exchange catalogs'));
+}
+async function loadCatalog(){if(pending.has('universe'))return;set('catalogStatus','Loading connected exchange listings…');$('retryCatalog').hidden=true;
+ try{const d=await request('/api/assets/universe','universe',25000);if(!Model.currencyList(d).length)throw Error('Empty exchange catalog');d.pairs=[...new Set([...d.pairs,...catalog.pairs.filter(p=>['BTCUSDT','ETHUSDT','SOLUSDT','STAMPUSDT','ZECUSDT',pair].includes(p))])];catalog=d;renderCurrencyList()}
+ catch(e){set('catalogStatus','Exchange list unavailable · '+e.message+'. Starter markets remain selectable.');$('retryCatalog').hidden=false}}
 async function loadWorld(){if(pending.has('world')||document.hidden)return;try{const d=await request('/api/world-sessions','world',14000);$('sessions').replaceChildren();for(const s of d.sessions){const el=element('span',s.name+' · '+s.status.toUpperCase());el.dataset.state=s.status;$('sessions').append(el)}$('flow').replaceChildren();if(age(d.crypto.observed_utc)>45||d.crypto.status!=='ok')throw Error('No recent executions');for(const a of d.crypto.assets){const row=element('div','','flow-row');row.append(element('strong',a.symbol.replace('USDT','')),element('span','Buy '+number(a.buy_usdt)),element('span','Sell '+number(a.sell_usdt)));$('flow').append(row)}set('flowTime','Sampled USDT executions · '+utc(d.crypto.observed_utc)+'. Count-limited public samples, not total volume or geographic trading.')}catch(e){$('flow').replaceChildren(element('p','Recent flow unavailable. '+e.message,'footnote'))}}
-async function choosePair(){const value=$('pair').value.toUpperCase().replace('/','').trim();if(!/^[A-Z0-9]{1,22}USDT$/.test(value)){notify('Enter a valid USDT market such as BTCUSDT.','error');return}epoch++;for(const ctl of pending.values())ctl.abort();pending.clear();pair=value;engine=null;market=null;selected=null;lastArchive=null;chartView='';set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();$('contract').replaceChildren();if(series){series.setData([]);predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' from the worker archive…','loading');renderOutput();loadEngine();loadMarket();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
-$('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('frame').addEventListener('change',()=>{frame=$('frame').value;selected=null;chartView='';renderOutput()});$('latest').addEventListener('click',()=>{selected=null;renderOutput()});$('signout').addEventListener('click',async()=>{await fetch('/logout',{method:'POST',credentials:'same-origin'});location.href='/'});
+async function choosePair(){const value=$('pairSelect').value;if(!/^[A-Z0-9]{1,22}USDT$/.test(value)){notify('Select a currency from the list.','error');return}
+ epoch++;for(const key of ['engine','market','quote']){pending.get(key)?.abort();pending.delete(key)}pair=value;engine=null;market=null;selected=null;lastQuote=null;lastArchive=null;chartView='';
+ for(const o of $('venue').options)o.disabled=false;if(!venuePinned)$('venue').value='';
+ set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();$('contract').replaceChildren();if(series){series.setData([]);predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');renderOutput();loadEngine();loadMarket();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
+$('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{venuePinned=!!$('venue').value;choosePair()});
+$('frame').addEventListener('change',()=>{frame=$('frame').value;selected=null;chartView='';renderOutput()});$('latest').addEventListener('click',()=>{selected=null;renderOutput()});$('signout').addEventListener('click',async()=>{await fetch('/logout',{method:'POST',credentials:'same-origin'});location.href='/'});
 for(const s of stages){const b=element('button',s.name);b.dataset.stage=s.id;b.type='button';b.setAttribute('aria-pressed',String(s.id===stage));b.addEventListener('click',()=>{stage=s.id;renderInspector()});$('stageControls').append(b)}
 $('rotate').addEventListener('click',()=>{rotate=!rotate;$('rotate').setAttribute('aria-pressed',String(rotate));$('rotate').textContent=rotate?'Pause rotation':'Rotate scene';draw()});
 const canvas=$('engineScene'),ctx=canvas.getContext('2d');let hitboxes=[];
@@ -122,8 +166,8 @@ function draw(){
 }
 canvas.addEventListener('click',e=>{const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;const hit=hitboxes.find(h=>x>=h.x&&x<=h.x+h.w&&y>=h.y&&y<=h.y+h.h);if(hit){stage=hit.id;renderInspector()}});
 new ResizeObserver(draw).observe(canvas);let lastTick=0;function animate(now){if(!document.hidden&&(rotate||now-pulseAt<1600)&&now-lastTick>32){angle+=.009;draw();lastTick=now}requestAnimationFrame(animate)}requestAnimationFrame(animate);
-try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0-9]{1,22}USDT$/.test(saved))$('pair').value=saved}catch{}
-choosePair();loadWorld();request('/api/assets/universe','universe',25000).then(d=>{if(Array.isArray(d.pairs)){$('pairs').replaceChildren(...d.pairs.map(p=>{const o=document.createElement('option');o.value=p;return o}))}}).catch(()=>{});
-setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(loadWorld,30000);setInterval(()=>{if(engine&&(engineFailed||age(engine.worker.last_success_utc)>600))renderEngine()},5000);
+try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0-9]{1,22}USDT$/.test(saved)){if(!catalog.pairs.includes(saved))catalog.pairs.push(saved);renderCurrencyList();$('pairSelect').value=saved}}catch{}
+choosePair();loadWorld();loadCatalog();
+setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,30000);setInterval(()=>{if(engine&&(engineFailed||age(engine.worker.last_success_utc)>600))renderEngine()},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld()}});
 })();

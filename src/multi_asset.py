@@ -257,11 +257,13 @@ def venue_candles(venue,pair,frame):
         except (ValueError,TypeError,IndexError):continue
     return [out[t] for t in sorted(out)]
 
-def snapshot(pair):
+def snapshot(pair,preferred=None):
     pair = symbol(pair)
+    if preferred and preferred not in VENUES:raise ValueError("unsupported_venue")
     with _CATALOG_LOCK:catalog=_CATALOG["value"]
     candidates=(catalog.get("venues",{}).get(pair,[]) if catalog else list(VENUES))
     if not candidates:candidates=list(VENUES)
+    if preferred:candidates=[preferred]
     # A venue's actual response, not a catalog entry alone, establishes availability.
     def probe(name):
         try:
@@ -281,12 +283,27 @@ def snapshot(pair):
         for frame,task in tasks.items():
             try:frames[frame]=task.result()
             except (OSError,ValueError,KeyError,TypeError,IndexError):frames[frame]=[]
+    projections=forecasts(frames)
+    for frame,result in projections.items():
+        result["source"]=venue+" closed spot candles"
+        result["recorded"]=False
     return {
         "symbol": pair, "ticker": ticker, "candles": frames,
-        "research_forecasts": forecasts(frames), "source": venue+" public spot REST","venue":venue,
+        "research_forecasts": projections, "source": venue+" public spot REST","venue":venue,
         "available_venues":available,"venue_identity":"symbol_match_only" if pair not in {"BTCUSDT","ETHUSDT","SOLUSDT"} else "major_pair",
         "retrieved_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
+
+def quote_snapshot(pair,venue):
+    pair=symbol(pair)
+    if venue not in VENUES:raise ValueError("unsupported_venue")
+    ticker=venue_ticker(venue,pair)
+    value=float(ticker["lastPrice"])
+    if ticker.get("symbol")!=pair or not math.isfinite(value) or value<=0:raise ValueError("invalid_venue_quote")
+    now=dt.datetime.now(dt.timezone.utc)
+    provider=ticker.get("closeTime")
+    provider_at=dt.datetime.fromtimestamp(float(provider)/1000,dt.timezone.utc).isoformat() if provider else None
+    return {"symbol":pair,"venue":venue,"price":value,"provider_at_utc":provider_at,"retrieved_at_utc":now.isoformat(),"source":venue+" spot ticker"}
 
 
 def venue_comparison(pair):

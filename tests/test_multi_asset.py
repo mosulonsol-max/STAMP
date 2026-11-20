@@ -5,6 +5,18 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"src"))
 import multi_asset as assets
 class MultiAssetTests(unittest.TestCase):
+ def test_explicit_venue_cannot_silently_fall_back(self):
+  with patch.object(assets,"venue_ticker",side_effect=OSError("unavailable")) as ticker:
+   with self.assertRaises(OSError):assets.snapshot("BTCUSDT","OKX")
+  self.assertEqual(ticker.call_args_list[0].args,("OKX","BTCUSDT"))
+  self.assertEqual(ticker.call_count,1)
+ def test_quote_keeps_requested_venue_and_rejects_wrong_symbol(self):
+  with patch.object(assets,"venue_ticker",return_value={"symbol":"BTCUSDT","lastPrice":"123","closeTime":1795176000000}):
+   quote=assets.quote_snapshot("BTCUSDT","OKX")
+  self.assertEqual(quote["venue"],"OKX")
+  self.assertEqual(quote["price"],123)
+  with patch.object(assets,"venue_ticker",return_value={"symbol":"ETHUSDT","lastPrice":"123"}):
+   with self.assertRaises(ValueError):assets.quote_snapshot("BTCUSDT","OKX")
  def test_validation_rejects_unbounded_or_non_usdt_symbols(self):
   self.assertEqual(assets.symbol("btc/usdt"),"BTCUSDT")
   self.assertEqual(assets.symbol("s/usdt"),"SUSDT")

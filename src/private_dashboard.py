@@ -383,7 +383,7 @@ class Handler(BaseHTTPRequestHandler):
    try:
     try:from src.world_sessions import session_status
     except ImportError:from world_sessions import session_status
-    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("command.html","command.js","command.css","private.html","private.js","private.css","world-sessions.js","pipeline-3d.js","market-map.js","market-map.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None and all(item["status"]!="unknown" for item in session_status(dt.datetime.now(dt.timezone.utc)))
+    healthy=all((ROOT/"dashboard"/name).is_file() for name in ("command.html","command.js","command.css","command-model.js","private.html","private.js","private.css","world-sessions.js","pipeline-3d.js","market-map.js","market-map.css","nexus.html","nexus.js","nexus.css","market-flow.js","market-stream.js","technical-overlays.js","chart-events.js","workspace-tabs.js","market-lens.js","vendor/lightweight-charts-5.0.9.js")) and read_embedded() is not None and all(item["status"]!="unknown" for item in session_status(dt.datetime.now(dt.timezone.utc)))
    except Exception:healthy=False
    if healthy and parse_qs(urlsplit(self.path).query).get("market")==["1"]:
     try:
@@ -495,8 +495,11 @@ class Handler(BaseHTTPRequestHandler):
     try:from src import multi_asset
     except ImportError:import multi_asset
     query=parse_qs(urlsplit(self.path).query)
-    if path=="/api/assets/universe":result=multi_asset.dashboard_universe()
-    elif path=="/api/assets/snapshot":result=multi_asset.snapshot(query.get("symbol",[""])[0])
+    try:from src import market_gateway
+    except ImportError:import market_gateway
+    if path=="/api/assets/universe":result=market_gateway.catalog()
+    elif path=="/api/assets/snapshot":result=market_gateway.snapshot(query.get("symbol",[""])[0],query.get("venue",[None])[0])
+    elif path=="/api/assets/quote":result=market_gateway.quote(query.get("symbol",[""])[0],query.get("venue",[""])[0])
     elif path=="/api/assets/venues":result=multi_asset.venue_comparison(query.get("symbol",[""])[0])
     elif path=="/api/assets/diagnostics":result=multi_asset.venue_diagnostics(query.get("symbol",[""])[0])
     elif path=="/api/assets/compare":result=multi_asset.compare(query.get("primary",[""])[0],query.get("secondary",[""])[0])
@@ -594,7 +597,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
-  paths={"/":"command.html","/index.html":"command.html","/nexus":"command.html","/assets/command.js":"command.js","/assets/command.css":"command.css","/assets/world-sessions.js":"world-sessions.js","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
+  paths={"/":"command.html","/index.html":"command.html","/nexus":"command.html","/assets/command.js":"command.js","/assets/command-model.js":"command-model.js","/assets/command.css":"command.css","/assets/world-sessions.js":"world-sessions.js","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:

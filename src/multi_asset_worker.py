@@ -1,8 +1,9 @@
 """Resilient independent worker loop. Run under a platform process supervisor."""
-import datetime as dt,json,logging,os,pathlib,signal,time,threading
+import datetime as dt,gc,json,logging,os,pathlib,signal,time,threading
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import urlsplit,parse_qs
-from multi_asset_governor import cycle,load,audit_records
+from multi_asset_governor import cycle,audit_records
+from research_storage import load_pair
 import pipeline_telemetry
 STOP=False
 def stop(*_):
@@ -27,13 +28,20 @@ class Health(BaseHTTPRequestHandler):
   except Exception:return self.respond(503,{"error":"telemetry_verification_unavailable"})
  def do_GET(self):
   path=urlsplit(self.path).path
+  if path.startswith("/market/"):
+   try:
+    from market_gateway import serve
+    query=parse_qs(urlsplit(self.path).query)
+    return self.respond(200,serve(path.rsplit("/",1)[1],query.get("symbol",[""])[0],query.get("venue",[""])[0]))
+   except ValueError as exc:return self.respond(400,{"error":str(exc)})
+   except Exception as exc:return self.respond(503,{"error":"market_source_unavailable","reason":type(exc).__name__})
   if path=="/research/engine":
    pair=parse_qs(urlsplit(self.path).query).get("symbol",[""])[0].upper()
    if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
    try:
     from engine_observatory import summarize
     worker={"running":LAST["running"],"cycles":LAST["cycles"],"failures":LAST["failures"],"error":LAST["error"],"last_success_utc":dt.datetime.fromtimestamp(LAST["success"],dt.timezone.utc).isoformat() if LAST["success"] else None,"storage":"postgres" if os.getenv("DATABASE_URL") else "ephemeral_filesystem"}
-    return self.respond(200,summarize(load(),pair,worker))
+    return self.respond(200,summarize(load_pair(pair),pair,worker))
    except Exception as exc:return self.respond(503,{"error":"engine_evidence_unavailable","reason":type(exc).__name__})
   if path=="/pipeline/events":
    try:return self.respond(200,pipeline_telemetry.read(parse_qs(urlsplit(self.path).query).get("after",["0"])[0]))
@@ -42,7 +50,7 @@ class Health(BaseHTTPRequestHandler):
    pair=parse_qs(urlsplit(self.path).query).get("symbol",["BTCUSDT"])[0].upper()
    if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
    try:
-    archive=load()
+    archive=load_pair(pair)
     records=[r for r in archive.get("records",[]) if r.get("pair")==pair]
     decisions=(archive.get("autonomous_review") or {}).get("decisions") or {}
     rows=[]
@@ -56,7 +64,7 @@ class Health(BaseHTTPRequestHandler):
    pair=parse_qs(urlsplit(self.path).query).get("symbol",["BTCUSDT"])[0].upper()
    if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
    try:
-    archive=load()
+    archive=load_pair(pair)
     rows=[r for r in archive.get("records",[]) if r.get("pair")==pair]
     result=audit_records(rows)
     reviews=(archive.get("autonomous_review") or {}).get("decisions") or {}
@@ -70,7 +78,7 @@ class Health(BaseHTTPRequestHandler):
    pair=parse_qs(urlsplit(self.path).query).get("symbol",["BTCUSDT"])[0].upper()
    if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
    try:
-    archive=load()
+    archive=load_pair(pair)
     rows=[r for r in archive.get("records",[]) if r.get("pair")==pair]
     settled=[r for r in rows if r.get("outcome")]
     selected={k:v for k,v in (archive.get("model_selections") or {}).items() if k.startswith(pair+"|")}
@@ -86,7 +94,7 @@ class Health(BaseHTTPRequestHandler):
    pair=parse_qs(urlsplit(self.path).query).get("symbol",[""])[0].upper()
    if not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum():return self.respond(400,{"error":"invalid_symbol"})
    try:
-    archive=load()
+    archive=load_pair(pair)
     records=[r for r in archive.get("records",[]) if r.get("pair")==pair]
     return self.respond(200,{"symbol":pair,"source":"worker_persistent_research_state","storage":"postgres" if os.getenv("DATABASE_URL") else "ephemeral_filesystem","loop_updated_at_utc":archive.get("loop_updated_at_utc"),"archive_checked_at_utc":archive.get("checked_at_utc"),"records_total":len(records),"settled_total":sum(bool(r.get("outcome")) for r in records),"pending_forecasts":[{"id":r.get("id"),"frame":r.get("frame"),"reference_price":r.get("reference_price"),"predicted_price":r.get("predicted_price"),"reference_at_utc":r.get("reference_at_utc"),"due_at_utc":r.get("due_at_utc"),"model_version":r.get("model_version"),"validation_at_issue":r.get("validation_at_issue")} for r in records if not r.get("outcome")][-40:],"recent_outcomes":[{"id":r.get("id"),"frame":r.get("frame"),"reference_price":r.get("reference_price"),"predicted_price":r.get("predicted_price"),"outcome":r.get("outcome"),"due_at_utc":r.get("due_at_utc")} for r in records if r.get("outcome")][-12:],"learning":{k:v for k,v in archive.get("learning",{}).items() if k.startswith(pair+"|")},"feedback":{k:v for k,v in archive.get("feedback",{}).items() if k.startswith(pair+"|")},"validation":{k:v for k,v in archive.get("validation",{}).items() if k.startswith(pair+"|")},"model_retraining_active":bool([k for k in archive.get("model_selections",{}) if k.startswith(pair+"|")]),"model_selections":{k:v for k,v in archive.get("model_selections",{}).items() if k.startswith(pair+"|")},"venue_evidence":(archive.get("venue_evidence") or {}).get("pairs",{}).get(pair,{}),"measurement_summary":{k:v for k,v in (archive.get("measurement_summary") or {}).items() if k.startswith(pair+"|")},"autonomous_review_counts":{status:sum(v.get("status")==status for k,v in ((archive.get("autonomous_review") or {}).get("decisions") or {}).items() if k.startswith(pair+"|")) for status in ("accepted","rejected","pending")},"review_updated_at_utc":(archive.get("autonomous_review") or {}).get("checked_at_utc"),"venue_evidence_at_utc":(archive.get("venue_evidence") or {}).get("retrieved_at_utc")})
    except Exception as exc:return self.respond(503,{"error":"research_state_unavailable","reason":type(exc).__name__})
@@ -124,12 +132,16 @@ def run(interval=None):
    LAST.update(discovered=coverage["discovered"],processed=actual)
    failures=0
    LAST.update(success=time.time(),error=None,failures=0,cycles=LAST["cycles"]+1)
+   del result
+   gc.collect()
   except Exception:
    failures+=1
    LAST.update(error="cycle_failed",failures=failures)
    logging.exception("cycle failed: will retry")
   finally:
    LAST["running"]=False
+   if "result" in locals():del result
+   gc.collect()
   backoff=min(interval, min(300,2**min(8,failures))) if failures else interval
   sleep=max(1,backoff-(time.monotonic()-start)) if failures else max(1,interval-(time.monotonic()-start))
   end=time.monotonic()+sleep

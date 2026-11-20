@@ -32,7 +32,7 @@ def summarize(data,pair,worker=None):
     diagnostic=data.get("model_selection_diagnostics") or {}
     return {"symbol":pair,"source":"worker_recorded_computation","generated_utc":now.isoformat(),"storage":"postgres" if worker and worker.get("storage")=="postgres" else "ephemeral_filesystem",
         "worker":worker or {},"archive_updated_at_utc":data.get("loop_updated_at_utc"),"review_updated_at_utc":(data.get("autonomous_review") or {}).get("checked_at_utc"),
-        "coverage":{"universe":(data.get("universe") or {}).get("count"),"archive_records":len(data.get("records",[])),"pair_records":len(records),"settled":len(settled),"decisions":counts},
+        "coverage":{"universe":(data.get("universe") or {}).get("count"),"archive_records":data.get("archive_records_total",len(data.get("records",[]))),"pair_records":len(records),"settled":len(settled),"decisions":counts},
         "collection":{"source":"MEXC closed spot candles","processed_in_last_batch":pair in last_cycle.get("processed",[]),"last_batch_at_utc":last_cycle.get("at_utc"),"last_error":last_cycle.get("failed",{}).get(pair),"retry_queued":pair in data.get("retry_pairs",[])},
         "latest":latest,"recent_outcomes":[entry(r) for r in settled[-16:]],
         "validation":{frame:(data.get("validation") or {}).get(pair+"|"+frame,{}) for frame in FRAMES},
