@@ -24,7 +24,7 @@
   const step=durations[frame]/1000,ref=Date.parse(record?.reference_at_utc)/1000,due=Date.parse(record?.due_at_utc)/1000;
   if(!bars.length&&!Number.isFinite(ref))return null;
   const last=bars.at(-1)?.time??ref;
-  const from=historical&&Number.isFinite(ref)?ref-step*18:bars[Math.max(0,bars.length-55)]?.time??ref-step*8;
+  const from=historical&&Number.isFinite(ref)?ref-step*18:bars[Math.max(0,bars.length-24)]?.time??ref-step*8;
   const to=(historical?due:Math.max(last,Number.isFinite(due)?due:last))+step*4;
   return to>from?{from,to}:null;
  }
