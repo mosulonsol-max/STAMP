@@ -17,7 +17,7 @@ async function request(path,key,timeout=14000){
  try{const r=await fetch(path,{credentials:"same-origin",cache:"no-store",signal:ctl.signal});if(r.status===401){location.href="/login";throw Error("Sign in required")}if(!r.ok)throw Error("Source returned "+r.status);return await r.json()}
  finally{clearTimeout(timer);if(pending.get(key)===ctl)pending.delete(key)}
 }
-function activeRecord(){return selected||Model.active(engine,market,frame)}
+function activeRecord(){return selected?{...selected,recorded:true,venue:'MEXC'}:Model.active(engine,market,frame)}
 function notify(text,state){set('notice',text);$('notice').dataset.state=state}
 function facts(rows){$('stageFacts').replaceChildren();for(const [label,value] of rows){$('stageFacts').append(element('dt',label),element('dd',value))}}
 function renderInspector(){
@@ -77,7 +77,7 @@ function renderEngine(){
  for(const r of [...e.recent_outcomes].reverse()){
   const tr=document.createElement('tr');tr.append(element('td',pair+' / '+r.frame),element('td',utc(r.reference_at_utc)),element('td',price(r.predicted_price)),element('td',price(r.outcome?.actual_price)));
   const decision=element('td',r.review.status);decision.dataset.state=r.review.status;tr.append(decision);
-  const td=document.createElement('td'),button=element('button','Open record');button.type='button';button.addEventListener('click',()=>{selected=r;frame=r.frame;$('frame').value=frame;stage='compute';renderOutput();$('engineScene').scrollIntoView({behavior:'smooth',block:'center'})});td.append(button);tr.append(td);$('history').append(tr);
+  const td=document.createElement('td'),button=element('button','Open record');button.type='button';button.addEventListener('click',()=>{selected=r;frame=r.frame;$('frame').value=frame;stage='compute';if(market?.venue!=='MEXC'){pending.get('market')?.abort();pending.delete('market');pending.get('quote')?.abort();pending.delete('quote');market=null;lastQuote=null;$('venue').value='MEXC';venuePinned=true;set('quote','—');set('quoteTime','Loading MEXC candles for the saved record…');loadMarket()}renderOutput();$('engineScene').scrollIntoView({behavior:'smooth',block:'center'})});td.append(button);tr.append(td);$('history').append(tr);
  }
  if(!e.recent_outcomes.length){const tr=document.createElement('tr'),td=element('td','No verified outcomes for this market yet.');td.colSpan=6;tr.append(td);$('history').append(tr)}
  $('contract').replaceChildren();for(const [title,key] of [['Used in this model','used'],['Observed as context','observed_only'],['Not implemented in this engine','not_implemented']]){const ul=document.createElement('ul');for(const text of e.input_contract[key])ul.append(element('li',text));$('contract').append(element('h3',title),ul)}
