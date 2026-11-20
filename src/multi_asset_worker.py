@@ -28,6 +28,13 @@ class Health(BaseHTTPRequestHandler):
   except Exception:return self.respond(503,{"error":"telemetry_verification_unavailable"})
  def do_GET(self):
   path=urlsplit(self.path).path
+  if path=="/world/rankings":
+   try:
+    from session_rankings import snapshot
+    code=parse_qs(urlsplit(self.path).query).get("exchange",[""])[0]
+    return self.respond(200,snapshot(code))
+   except ValueError:return self.respond(400,{"error":"unknown_exchange"})
+   except Exception:return self.respond(503,{"error":"rankings_source_unavailable"})
   if path.startswith("/market/"):
    try:
     from market_gateway import serve

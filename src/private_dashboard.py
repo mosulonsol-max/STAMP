@@ -458,6 +458,31 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(200,body,"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"market_data_unavailable","detail":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/world-rankings":
+   try:
+    from src.session_rankings import snapshot as ranking_snapshot
+   except ImportError:
+    from session_rankings import snapshot as ranking_snapshot
+   try:
+    query=parse_qs(urlsplit(self.path).query)
+    code=query.get("exchange",[""])[0]
+    if not code:
+     try:from src.world_sessions import session_status
+     except ImportError:from world_sessions import session_status
+     result={"sessions":session_status(dt.datetime.now(dt.timezone.utc))}
+    else:
+     from urllib.parse import urlencode
+     from urllib.request import urlopen
+     try:
+      with urlopen("https://stamp-autonomous-worker.onrender.com/world/rankings?"+urlencode({"exchange":code}),timeout=16) as upstream:
+       result=json.load(upstream)
+     except (OSError,ValueError):
+      result=ranking_snapshot(code)
+    return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except ValueError:
+    return self.send(400,b'{"error":"unknown_exchange"}',"application/json; charset=utf-8")
+   except Exception:
+    return self.send(503,b'{"error":"rankings_source_unavailable"}',"application/json; charset=utf-8")
   if path=="/api/world-sessions":
    try:
     try:from src.world_sessions import snapshot as world_snapshot

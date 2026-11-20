@@ -141,7 +141,69 @@ function renderCurrencyList(){
 async function loadCatalog(){if(pending.has('universe'))return;set('catalogStatus','Loading connected exchange listings…');$('retryCatalog').hidden=true;
  try{const d=await request('/api/assets/universe','universe',25000);if(!Model.currencyList(d).length)throw Error('Empty exchange catalog');d.pairs=[...new Set([...d.pairs,...catalog.pairs.filter(p=>['BTCUSDT','ETHUSDT','SOLUSDT','STAMPUSDT','ZECUSDT',pair].includes(p))])];catalog=d;renderCurrencyList()}
  catch(e){set('catalogStatus','Exchange list unavailable · '+e.message+'. Starter markets remain selectable.');$('retryCatalog').hidden=false}}
-async function loadWorld(){if(pending.has('world')||document.hidden)return;try{const d=await request('/api/world-sessions','world',14000);$('sessions').replaceChildren();for(const s of d.sessions){const el=element('span',s.name+' · '+s.status.toUpperCase());el.dataset.state=s.status;$('sessions').append(el)}$('flow').replaceChildren();if(age(d.crypto.observed_utc)>45||d.crypto.status!=='ok')throw Error('No recent executions');for(const a of d.crypto.assets){const row=element('div','','flow-row');row.append(element('strong',a.symbol.replace('USDT','')),element('span','Buy '+number(a.buy_usdt)),element('span','Sell '+number(a.sell_usdt)));$('flow').append(row)}set('flowTime','Sampled USDT executions · '+utc(d.crypto.observed_utc)+'. Count-limited public samples, not total volume or geographic trading.')}catch(e){$('flow').replaceChildren(element('p','Recent flow unavailable. '+e.message,'footnote'))}}
+let worldExchange, worldEpoch=0;
+const worldClock=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',dateStyle:'medium',timeStyle:'short'});
+function worldTime(value){return Number.isFinite(Date.parse(value))?worldClock.format(Date.parse(value)):'—'}
+function renderSessionButtons(sessions){
+ const group=$('sessions');
+ const buttons=new Map([...group.querySelectorAll('button')].map(button=>[button.dataset.exchange,button]));
+ for(const session of sessions){
+  let button=buttons.get(session.exchange);
+  if(!button){
+   if(!buttons.size)group.replaceChildren();
+   button=element('button','');button.type='button';button.dataset.exchange=session.exchange;
+   button.addEventListener('click',()=>{
+    if(worldExchange===session.exchange)return;
+    worldExchange=session.exchange;worldEpoch++;
+    pending.get('world-ranking')?.abort();pending.delete('world-ranking');
+    $('flow').replaceChildren();set('flowTime','Loading '+session.name+' rankings…');
+    renderSessionButtons(sessions);loadSessionRanking();
+   });
+   group.append(button);buttons.set(session.exchange,button);
+  }
+  button.textContent=session.name+' · '+session.status.toUpperCase();
+  button.dataset.state=session.status;
+  button.setAttribute('aria-pressed',String(session.exchange===worldExchange));
+ }
+}
+async function loadSessionRanking(){
+ if(!worldExchange||pending.has('world-ranking')||document.hidden)return;
+ const version=worldEpoch;
+ try{
+  const result=await request('/api/world-rankings?exchange='+encodeURIComponent(worldExchange),'world-ranking',24000);
+  if(version!==worldEpoch)return;
+  const mode={open:'Last 5 completed minutes of the open session',break:'Session so far · recess',closed:'Last completed session'}[result.session_status]||'Session status unknown';
+  const rows=result.pairs.map((pair,index)=>{
+   const row=element('tr','');
+   const values=[index+1,pair.symbol.replace(/USDT$/,' / USDT'),...['last_price','buy_quantity','buy_price','buy_usdt','sell_quantity','sell_price','sell_usdt','volume_usdt','trades','change_pct'].map(key=>{
+    const value=pair[key];
+    if(value==null||!Number.isFinite(value))return '—';
+    if(key==='change_pct')return (value>0?'+':'')+value.toFixed(2)+'%';
+    if(key.endsWith('price'))return value.toLocaleString('en-US',{maximumSignificantDigits:9});
+    return value.toLocaleString('en-US',{maximumFractionDigits:key.endsWith('quantity')?6:2});
+   })];
+   row.append(...values.map((value,column)=>{const cell=element(column===1?'th':'td',String(value));if(column===1)cell.scope='row';return cell}));
+   return row;
+  });
+  $('flow').replaceChildren(...rows);
+  const coverage=result.covered_count==null?'': ' · '+result.covered_count+'/'+result.candidate_count+' pairs checked';
+  const window=result.window_end_utc?' · '+worldTime(result.window_start_utc)+' → '+worldTime(result.window_end_utc)+' Baghdad':'';
+  set('flowTime',result.name+' · '+mode+window+coverage+(result.status==='partial'?' · Partial data':'')+(rows.length?'':' · No ranking available yet'));
+ }catch(error){
+  if(version===worldEpoch)set('flowTime','Ranking update unavailable. '+($('flow').children.length?'Showing prior results.':'Waiting for source data.'));
+ }
+}
+async function loadWorld(){
+ if(pending.has('world')||document.hidden)return;
+ try{
+  const data=await request('/api/world-rankings','world',8000);
+  if(!worldExchange)worldExchange=(data.sessions.find(session=>session.status==='open')||data.sessions[0])?.exchange;
+  renderSessionButtons(data.sessions);
+ }catch(error){
+  if(!worldExchange)set('flowTime','Session calendars unavailable.');
+ }
+ await loadSessionRanking();
+}
 async function choosePair(){const value=$('pairSelect').value;if(!/^[A-Z0-9]{1,22}USDT$/.test(value)){notify('Select a currency from the list.','error');return}
  epoch++;for(const key of ['engine','market','quote']){pending.get(key)?.abort();pending.delete(key)}pair=value;engine=null;market=null;selected=null;lastQuote=null;lastArchive=null;chartView='';
  for(const o of $('venue').options)o.disabled=false;if(!venuePinned)$('venue').value='';
@@ -171,6 +233,6 @@ canvas.addEventListener('click',e=>{const rect=canvas.getBoundingClientRect(),x=
 new ResizeObserver(draw).observe(canvas);let lastTick=0;function animate(now){if(!document.hidden&&(rotate||now-pulseAt<1600)&&now-lastTick>32){angle+=.009;draw();lastTick=now}requestAnimationFrame(animate)}requestAnimationFrame(animate);
 try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0-9]{1,22}USDT$/.test(saved)){if(!catalog.pairs.includes(saved))catalog.pairs.push(saved);renderCurrencyList();$('pairSelect').value=saved}}catch{}
 choosePair();loadWorld();loadCatalog();
-setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,30000);setInterval(()=>{if(engine&&(engineFailed||age(engine.worker.last_success_utc)>600))renderEngine()},5000);
+setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,15000);setInterval(()=>{if(engine&&(engineFailed||age(engine.worker.last_success_utc)>600))renderEngine()},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld()}});
 })();
