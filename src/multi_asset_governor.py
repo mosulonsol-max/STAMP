@@ -260,7 +260,10 @@ def autonomous_review(data):
     return data
 
 def cycle(pairs=None):
+    import logging,resource
+    def checkpoint(stage):logging.info('cycle stage=%s peak_rss_mib=%.1f',stage,resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024)
     data=load()
+    checkpoint('archive_loaded')
     if pairs is None:
         # Rotate through the entire discovered market universe to respect API quotas.
         try:
@@ -290,8 +293,10 @@ def cycle(pairs=None):
         data["coverage"]={"discovered":len(requested),"processed_this_cycle":len(pairs),
                           "next_cursor":data["cursor"],"complete_this_cycle":batch==len(requested)}
     data=reconcile(data)
+    checkpoint('outcomes_reconciled')
     data=autonomous_review(data)
     data=retrain_candidates(data)
+    checkpoint('models_evaluated')
     issued={r["id"] for r in data["records"]}
     processed=[]
     failed={}
@@ -341,6 +346,7 @@ def cycle(pairs=None):
         except Exception as exc:data["venue_evidence_error"]=type(exc).__name__
     data=autonomous_review(data)
     data["retry_pairs"]=sorted(failed)
+    checkpoint('forecasts_issued')
     data["cycle_result"]={"processed":processed,"failed":failed,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     if os.getenv("DATABASE_URL"):
         import psycopg
@@ -354,6 +360,7 @@ def cycle(pairs=None):
                 del stored
             conn.execute("UPDATE research_state_compact SET payload=%s,updated_at=NOW() WHERE id=1",(encode_state(data),))
             publish_pair_states(conn,data)
+            checkpoint('archive_published')
     else:
         PATH.parent.mkdir(parents=True,exist_ok=True)
         temp=PATH.with_suffix(".json.tmp")

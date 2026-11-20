@@ -1,5 +1,6 @@
 """Bounded HTTP reads and streaming archive serialization."""
 import gzip,io,json
+import ijson
 
 def encode_state(data):
     output=io.BytesIO()
@@ -10,7 +11,9 @@ def encode_state(data):
 
 def decode_state(payload):
     with gzip.GzipFile(fileobj=io.BytesIO(payload),mode='rb') as zipped:
-        data=json.load(zipped)
+        # Parse incrementally: json.load first materializes the entire decompressed
+        # UTF-8 string alongside the archive objects, exceeding small workers.
+        data=next(ijson.items(zipped,'',use_float=True))
     if not isinstance(data,dict):raise ValueError('invalid_research_state')
     return data
 
