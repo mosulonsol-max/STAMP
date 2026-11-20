@@ -162,26 +162,45 @@ def reconcile(data,now=None):
         if isinstance(rec,dict) and isinstance(rec.get("id"),str):by_id.setdefault(rec["id"],rec)
     records=list(by_id.values())
     # Never evaluate against a later/future candle without matching the recorded target.
-    due_pairs={r.get("pair") for r in records if r.get("pair") and not r.get("outcome") and r.get("due_at_utc") and dt.datetime.fromisoformat(r["due_at_utc"])<=now}
-    for pair in sorted(due_pairs):
-        for frame in HORIZONS:
-            pending=[r for r in records if r.get("pair")==pair and r.get("frame")==frame and r.get("outcome") is None]
-            pending=[r for r in pending if r.get("due_at_utc") and dt.datetime.fromisoformat(r["due_at_utc"])<=now]
-            if not pending:continue
-            try:rows=candles(pair,{"1h":"60m"}.get(frame,frame),500)
-            except (OSError,ValueError):continue
+    due_groups={}
+    for record in records:
+        if record.get("outcome") or record.get("frame") not in HORIZONS or not record.get("pair"):continue
+        try:
+            if dt.datetime.fromisoformat(record["due_at_utc"])>now:continue
+        except (KeyError,TypeError,ValueError):continue
+        due_groups.setdefault((record["pair"],record["frame"]),[]).append(record)
+    due_pairs=sorted({key[0] for key in due_groups})
+    limit=min(256,max(8,int(os.getenv("STAMP_SETTLEMENT_BATCH","96"))))
+    cursor=int(data.get("settlement_cursor",0))%max(1,len(due_pairs))
+    priorities=[pair for pair in os.getenv("STAMP_PRIORITY_PAIRS","BTCUSDT,ETHUSDT,SOLUSDT,STAMPUSDT").split(",") if pair in due_pairs]
+    chosen=list(dict.fromkeys(priorities))[:limit]
+    scanned=0
+    while due_pairs and len(chosen)<min(limit,len(due_pairs)) and scanned<len(due_pairs):
+        pair=due_pairs[(cursor+scanned)%len(due_pairs)]
+        if pair not in chosen:chosen.append(pair)
+        scanned+=1
+    data["settlement_cursor"]=(cursor+scanned)%max(1,len(due_pairs))
+    diagnostics={"due_pairs":len(due_pairs),"processed_pairs":len(chosen),"settled_this_cycle":0,"failed_groups":0,"next_cursor":data["settlement_cursor"],"at_utc":now.isoformat()}
+    from concurrent.futures import ThreadPoolExecutor,as_completed
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        jobs={pool.submit(candles,pair,{"1h":"60m"}.get(frame,frame),500):(pair,frame) for pair,frame in due_groups if pair in chosen}
+        for task in as_completed(jobs):
+            pair,frame=jobs.pop(task)
+            try:rows=task.result()
+            except (OSError,ValueError,TimeoutError):
+                diagnostics["failed_groups"]+=1
+                continue
             indexed={int(c["t"]):c for c in rows}
-            for rec in pending:
+            for rec in due_groups[(pair,frame)]:
                 due=dt.datetime.fromisoformat(rec["due_at_utc"])
-                if due>now:continue
-                # The target is at candle opening, so an already-closed preceding
-                # candle is needed. Its close corresponds to the target boundary.
                 prev=indexed.get(int(due.timestamp()*1000)-HORIZONS[frame])
                 if prev is None or int(prev["t"])+HORIZONS[frame]>int(now.timestamp()*1000):continue
                 actual=float(prev["c"])
                 rec["outcome"]={"actual_price":actual,"measured_at_utc":now.isoformat(),"target_at_utc":due.isoformat(),
                     "squared_log_error":math.log(actual/rec["predicted_price"])**2,
                     "baseline_squared_log_error":math.log(actual/rec["reference_price"])**2}
+                diagnostics["settled_this_cycle"]+=1
+    data["settlement"]=diagnostics
     # Keep every issued forecast and outcome. Do not truncate evidence or silently discard history.
     data["records"]=records
     approvals={}

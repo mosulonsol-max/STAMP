@@ -5,6 +5,22 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"src"))
 import multi_asset_governor as gov
 class GovernanceTests(unittest.TestCase):
+ def test_settlement_is_bounded_rotates_and_keeps_every_pending_record(self):
+  import os
+  now=dt.datetime.now(dt.timezone.utc)
+  rows=[{"id":str(i),"pair":f"ASSET{i:03}USDT","frame":"1h","reference_at_utc":(now-dt.timedelta(hours=2)).isoformat(),"due_at_utc":(now-dt.timedelta(hours=1)).isoformat(),"reference_price":100,"predicted_price":100,"outcome":None} for i in range(24)]
+  with patch.dict(os.environ,{"STAMP_SETTLEMENT_BATCH":"8"}),patch.object(gov,"candles",return_value=[]) as fetch:
+   first=gov.reconcile({"records":rows},now=now)
+   first_pairs={c.args[0] for c in fetch.call_args_list}
+   self.assertEqual(len(first_pairs),8)
+   fetch.reset_mock()
+   second=gov.reconcile(first,now=now)
+   second_pairs={c.args[0] for c in fetch.call_args_list}
+  self.assertEqual(len(second_pairs),8)
+  self.assertFalse(first_pairs&second_pairs)
+  self.assertEqual(len(second["records"]),24)
+  self.assertEqual(second["settlement"]["due_pairs"],24)
+  self.assertEqual(second["settlement"]["settled_this_cycle"],0)
  def test_compressed_state_roundtrip_preserves_forecasts(self):
   original={"records":[{"id":f"BTCUSDT|1h|{n}","outcome":{"actual_price":0.01*n}} for n in range(1,1001)],"cursor":497,"note":"بيانات حية"}
   payload=gov.encode_state(original)
