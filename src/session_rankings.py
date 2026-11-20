@@ -1,4 +1,5 @@
 """Rank Binance spot executions inside exchange calendar windows."""
+from bisect import bisect_right
 import datetime as dt
 import json
 import math
@@ -7,6 +8,7 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
+from pathlib import Path
 from threading import Lock
 
 from urllib.parse import urlencode
@@ -17,6 +19,47 @@ BASE = "https://data-api.binance.vision/api/v3/"
 CANDIDATES = 48
 UTC = dt.timezone.utc
 LOCK = Lock()
+EXCHANGES = {
+    "XNYS": ("New York", "America/New_York"),
+    "XLON": ("London", "Europe/London"),
+    "XETR": ("Frankfurt", "Europe/Berlin"),
+    "XTKS": ("Tokyo", "Asia/Tokyo"),
+    "XSHG": ("Shanghai", "Asia/Shanghai"),
+    "XHKG": ("Hong Kong", "Asia/Hong_Kong"),
+    "XASX": ("Sydney", "Australia/Sydney"),
+}
+
+
+@lru_cache(maxsize=1)
+def exchange_schedule():
+    return json.loads(Path(__file__).with_name("session_calendar.json").read_text())
+
+
+def light_session(code, now):
+    schedule = exchange_schedule()
+    minute = int(now.timestamp()) // 60
+    first, end = schedule["bounds"]
+    rows = schedule["exchanges"][code]
+    if not max(first, rows[0][0]) <= minute < min(end, rows[-1][0]):
+        return None
+    index = bisect_right(rows, minute, key=lambda row: row[0]) - 1
+    opening, lunch, resume, close = rows[index]
+    if minute >= close:
+        status, change = "closed", rows[index + 1][0]
+        windows = [(opening, lunch), (resume, close)] if lunch else [(opening, close)]
+    elif lunch and lunch <= minute < resume:
+        status, change, windows = "break", resume, [(opening, lunch)]
+    else:
+        status = "open"
+        change = lunch if lunch and minute < lunch else close
+        segment_start = resume if resume and minute >= resume else opening
+        start = max(segment_start, minute - 5)
+        windows = [(start, minute)] if start < minute else []
+    name, zone = EXCHANGES[code]
+    session = {"name": name, "exchange": code, "timezone": zone, "status": status,
+               "next_change_utc": dt.datetime.fromtimestamp(change * 60, UTC).isoformat()}
+    return session, tuple((a * 60000, b * 60000) for a, b in windows)
+
 
 
 def public(endpoint, **params):
@@ -150,16 +193,21 @@ def archived_rank(code, periods):
 
 
 def snapshot(code, now=None):
-    try:
-        from src.world_sessions import session_status
-    except ImportError:
-        from world_sessions import session_status
-    now = now or dt.datetime.now(UTC)
-    session = next((entry for entry in session_status(now) if entry["exchange"] == code), None)
-    if session is None:
+    if code not in EXCHANGES:
         raise ValueError("unknown_exchange")
-    status = session["status"]
-    periods = periods_for(code, status, now) if status != "unknown" else ()
+    now = now or dt.datetime.now(UTC)
+    computed = light_session(code, now)
+    if computed is None:
+        try:
+            from src.world_sessions import session_status
+        except ImportError:
+            from world_sessions import session_status
+        session = next(entry for entry in session_status(now) if entry["exchange"] == code)
+        status = session["status"]
+        periods = periods_for(code, status, now) if status != "unknown" else ()
+    else:
+        session, periods = computed
+        status = session["status"]
     if not periods:
         return {**session, "pairs": [], "status": "waiting", "session_status": status}
     # Collapse simultaneous requests for the same opening-session window.
