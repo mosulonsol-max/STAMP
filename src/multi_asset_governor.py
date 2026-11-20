@@ -170,7 +170,7 @@ def reconcile(data,now=None):
         except (KeyError,TypeError,ValueError):continue
         due_groups.setdefault((record["pair"],record["frame"]),[]).append(record)
     due_pairs=sorted({key[0] for key in due_groups})
-    limit=min(256,max(8,int(os.getenv("STAMP_SETTLEMENT_BATCH","96"))))
+    limit=min(256,max(8,int(os.getenv("STAMP_SETTLEMENT_BATCH","16"))))
     cursor=int(data.get("settlement_cursor",0))%max(1,len(due_pairs))
     priorities=[pair for pair in os.getenv("STAMP_PRIORITY_PAIRS","BTCUSDT,ETHUSDT,SOLUSDT,STAMPUSDT").split(",") if pair in due_pairs]
     chosen=list(dict.fromkeys(priorities))[:limit]
@@ -183,7 +183,7 @@ def reconcile(data,now=None):
     diagnostics={"due_pairs":len(due_pairs),"processed_pairs":len(chosen),"settled_this_cycle":0,"failed_groups":0,"next_cursor":data["settlement_cursor"],"at_utc":now.isoformat()}
     from concurrent.futures import ThreadPoolExecutor,as_completed
     with ThreadPoolExecutor(max_workers=8) as pool:
-        jobs={pool.submit(candles,pair,{"1h":"60m"}.get(frame,frame),500):(pair,frame) for pair,frame in due_groups if pair in chosen}
+        jobs={pool.submit(candles,pair,{"1h":"60m"}.get(frame,frame),500,timeout=4):(pair,frame) for pair,frame in due_groups if pair in chosen}
         for task in as_completed(jobs):
             pair,frame=jobs.pop(task)
             try:rows=task.result()
@@ -207,8 +207,13 @@ def reconcile(data,now=None):
     learning={}
     feedback={}
     validation={}
-    for pair,frame in sorted({(r["pair"],r["frame"]) for r in records}):
-        settled=[r for r in records if r["pair"]==pair and r["frame"]==frame and r.get("outcome") and audit_records([r])["passed"]]
+    grouped_settled={}
+    for record in records:
+        key=(record["pair"],record["frame"])
+        group=grouped_settled.setdefault(key,[])
+        if record.get("outcome") and audit_records([record])["passed"]:group.append(record)
+    for pair,frame in sorted(grouped_settled):
+        settled=grouped_settled[(pair,frame)]
         settled=settled[-120:]
         skill=None
         if settled:
@@ -358,7 +363,7 @@ def cycle(pairs=None):
                 stored=conn.execute("SELECT payload FROM research_state_compact WHERE id=1").fetchone()
                 data=merge_state(data,decode_state(stored[0]))
                 del stored
-            conn.execute("UPDATE research_state_compact SET payload=%s,updated_at=NOW() WHERE id=1",(encode_state(data),))
+            conn.execute("UPDATE research_state_compact SET payload=%b,updated_at=NOW() WHERE id=1",(encode_state(data),))
             publish_pair_states(conn,data)
             checkpoint('archive_published')
     else:

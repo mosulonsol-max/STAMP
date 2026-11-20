@@ -37,7 +37,7 @@ def pair_states(data):
 def publish_pair_states(conn,data):
     conn.execute('CREATE TABLE IF NOT EXISTS research_pair_state (pair TEXT PRIMARY KEY, payload BYTEA NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW())')
     with conn.cursor() as cursor:
-        cursor.executemany('INSERT INTO research_pair_state (pair,payload) VALUES (%s,%s) ON CONFLICT (pair) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()',((pair,encode_state(state)) for pair,state in pair_states(data)))
+        cursor.executemany('INSERT INTO research_pair_state (pair,payload) VALUES (%s,%b) ON CONFLICT (pair) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()',((pair,encode_state(state)) for pair,state in pair_states(data)))
 
 def load_pair(pair):
     import os
