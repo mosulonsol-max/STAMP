@@ -30,3 +30,29 @@
 .world { padding: clamp(15px, 2vw, 26px); }
 .world .intro { margin-top: 8px; }
 .rank-table th:nth-child(2) { position: sticky; left: 0; background: var(--panel); }
+
+/* One primary scene with connected evidence below it. */
+body { background: radial-gradient(ellipse at 31% 9%, #173246 0, #0b151e 36%, #080e14 75%); }
+main { padding-top: 27px; }
+.heading { margin-bottom: 19px; align-items: center; }
+.heading h1 { margin-bottom: 5px; }
+.engine.panel { margin: 0 0 16px; overflow: hidden; }
+.engine .scene-layout { grid-template-columns: minmax(0, 1fr) minmax(220px, 29%); }
+.engine .scene-wrap { background: radial-gradient(ellipse at 36% 46%, #102d3b, #080f19 70%); min-width: 0; }
+#engineScene { display: block; width: 100%; height: clamp(350px, 45vw, 535px); cursor: grab; touch-action: pan-y; }
+#engineScene:active { cursor: grabbing; }
+.engine .scene-caption { padding: 0 18px; text-align: center; }
+.scene-key, .scene-navigation { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px 18px; padding: 10px 14px; font-size: .8rem; }
+.scene-key span:nth-child(1) { color: var(--cyan); }
+.scene-key span:nth-child(2) { color: var(--amber); }
+.scene-key span:nth-child(3) { color: var(--green); }
+.scene-navigation { border-top: 1px solid var(--line); margin: 0 14px; padding-bottom: 15px; }
+.scene-navigation a { color: #c2d8e9; text-underline-offset: .24em; }
+.signal-event { min-height: 2.5em; text-align: center; margin: 4px 12px; color: #a9c4d8; font-size: .82rem; }
+#worldTitle, #chartTitle, #historySummary { scroll-margin-top: 20px; }
+@media(max-width: 780px) {
+  .engine .scene-layout { grid-template-columns: minmax(0, 1fr); }
+  #engineScene { height: clamp(300px, 85vw, 425px); }
+  .engine .inspector { border-left: 0; border-top: 1px solid var(--line); }
+  .heading { align-items: stretch; }
+}
