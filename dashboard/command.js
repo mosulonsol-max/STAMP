@@ -87,15 +87,47 @@ async function loadEngine(){if(pending.has('engine')||document.hidden)return;con
  try{const d=await request('/api/engine-state?symbol='+encodeURIComponent(pair),'engine');if(version!==epoch)return;if(d.symbol!==pair||d.source!=='worker_recorded_computation')throw Error('Invalid worker evidence');const previous=engine;engine=d;engineFailed=false;observeArchive(previous,d);if(selected){selected=d.recent_outcomes.find(r=>r.id===selected.id)||selected}renderEngine()}
  catch(e){if(version!==epoch)return;engineFailed=true;if(engine)renderEngine();else{notify('Saved worker history unavailable · '+e.message+'. Current venue projections load independently.','loading');set('workerState','Unavailable');renderInspector()}}
 }
+let forecastArrowPoints=[];
+function attachForecastArrow(){
+ const renderer={draw(target){
+  if(forecastArrowPoints.length!==2)return;
+  const [start,end]=forecastArrowPoints.map(point=>({
+   x:chart.timeScale().timeToCoordinate(point.time),y:predicted.priceToCoordinate(point.value)
+  }));
+  if([start.x,start.y,end.x,end.y].some(value=>value===null))return;
+  target.useMediaCoordinateSpace(({context:ctx,mediaSize})=>{
+   const {width,height}=mediaSize;
+   if(end.x<0||end.x>width||end.y<0||end.y>height)return;
+   const angle=Math.atan2(end.y-start.y,end.x-start.x),size=13;
+   const direction=Math.sign(forecastArrowPoints[1].value-forecastArrowPoints[0].value);
+   const caption=(direction>0?'↑ ':direction<0?'↓ ':'→ ')+'Target '+price(forecastArrowPoints[1].value);
+   ctx.save();ctx.lineCap='round';
+   ctx.strokeStyle='#ffd185';ctx.fillStyle='#ffd185';ctx.lineWidth=3;
+   ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(end.x,end.y);
+   for(const offset of [-.48,.48])ctx.lineTo(end.x-size*Math.cos(angle+offset),end.y-size*Math.sin(angle+offset));
+   ctx.closePath();ctx.fill();
+   ctx.font='bold 13px system-ui';
+   const w=ctx.measureText(caption).width+16;
+   const x=Math.max(2,Math.min(width-w-2,end.x-w/2));
+   const y=Math.max(2,Math.min(height-26,end.y+(end.y<31?10:-31)));
+   ctx.fillStyle='#241c12';ctx.fillRect(x,y,w,24);
+   ctx.strokeStyle='#ffd185';ctx.lineWidth=1;ctx.strokeRect(x,y,w,24);
+   ctx.fillStyle='#fff0ce';ctx.textBaseline='middle';ctx.fillText(caption,x+8,y+12);
+   ctx.restore();
+  });
+ }};
+ predicted.attachPrimitive({paneViews:()=>[{zOrder:()=> 'top',renderer:()=>renderer}]});
+}
 function initChart(){if(chart||!window.LightweightCharts)return;const L=window.LightweightCharts;
  chart=L.createChart($('priceChart'),{autoSize:true,layout:{background:{type:'solid',color:'#101c26'},textColor:'#9ab2c4',attributionLogo:false},grid:{vertLines:{color:'#20313d'},horzLines:{color:'#20313d'}},timeScale:{timeVisible:true},rightPriceScale:{borderColor:'#34505f'},handleScale:{pinch:true,mouseWheel:true},handleScroll:{pressedMouseMove:true,horzTouchDrag:true}});
  series=chart.addSeries(L.CandlestickSeries,{upColor:'#67c9c7',downColor:'#d28294',wickUpColor:'#67c9c7',wickDownColor:'#d28294',borderVisible:false,priceFormat:{type:'price',precision:8,minMove:.00000001}});
- predicted=chart.addSeries(L.LineSeries,{color:'#edbb74',lineStyle:2,lineWidth:3,pointMarkersVisible:true,priceLineVisible:true,lastValueVisible:true,title:'Forecast',priceFormat:{type:'price',precision:8,minMove:.00000001}});actualLine=chart.addSeries(L.LineSeries,{color:'#8addb0',lineWidth:2,pointMarkersVisible:true,priceLineVisible:false,lastValueVisible:false});
+ predicted=chart.addSeries(L.LineSeries,{color:'#edbb74',lineVisible:false,priceLineVisible:false,lastValueVisible:false,priceFormat:{type:'price',precision:8,minMove:.00000001}});attachForecastArrow();actualLine=chart.addSeries(L.LineSeries,{color:'#8addb0',lineWidth:2,pointMarkersVisible:true,priceLineVisible:false,lastValueVisible:false});
 }
 let chartView='';function renderChart(){initChart();const rows=market?.candles?.[frame]||[];const bars=rows.filter(c=>c.t<=Date.now()).map(c=>({time:Math.floor(c.t/1000),open:c.o,high:c.h,low:c.l,close:c.c}));
  if(!chart){set('chartStatus','Chart library unavailable. Recorded prices remain in the evidence panel.');return}
  series.setData(bars);const r=activeRecord(),ref=Date.parse(r?.reference_at_utc)/1000,due=Date.parse(r?.due_at_utc)/1000;
- const points=r&&Number.isFinite(ref)&&Number.isFinite(due)&&due>ref?[{time:ref,value:r.reference_price},{time:due,value:r.predicted_price}]:[];predicted.setData(points);actualLine.setData(points.length&&r?.outcome?[{time:ref,value:r.reference_price},{time:due,value:r.outcome.actual_price}]:[]);
+ const points=r&&Number.isFinite(ref)&&Number.isFinite(due)&&due>ref?[{time:ref,value:r.reference_price},{time:due,value:r.predicted_price}]:[];forecastArrowPoints=points;predicted.setData(points);actualLine.setData(points.length&&r?.outcome?[{time:ref,value:r.reference_price},{time:due,value:r.outcome.actual_price}]:[]);
  const key=pair+'|'+frame+'|'+(r?.id||'none')+'|'+String(!!bars.length);if(chartView!==key){const range=Model.chartRange(bars,r,frame,!!selected);if(range){chart.timeScale().setVisibleRange(range);chartView=key}}
  set('chartTitle',pair.replace('USDT',' / USDT')+' · '+(market?.venue||r?.venue||'—')+' · '+frame);
  set('chartStatus',bars.length?'Candles: '+market.source+' · fetched '+utc(market.retrieved_at_utc)+'. Last candle may be forming; forecasts use closed candles only. '+(r?'Forecast '+(r.venue||'MEXC')+' · issued '+utc(r.reference_at_utc)+' · target '+utc(r.due_at_utc):'No upcoming forecast from fresh candles.')+(selected&&bars[0].time>due?' Historical result predates the candle window.':''):'Current candles unavailable. '+(r?'The saved reference and target are drawn.':'No forecast can be plotted until data arrives.'));
@@ -264,7 +296,7 @@ async function choosePair(){
  const value=$('pairSelect').value;if(!/^[A-Z0-9]{1,22}USDT$/.test(value)){notify('Select a currency from the list.','error');return}
  epoch++;for(const key of ['engine','market','quote']){pending.get(key)?.abort();pending.delete(key)}pair=value;renderFavorites();engine=null;market=null;selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
  for(const o of $('venue').options)o.disabled=false;if(!venuePinned)$('venue').value='';
- set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');renderOutput();loadEngine();loadMarket();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
+ set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);forecastArrowPoints=[];predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');renderOutput();loadEngine();loadMarket();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
 $('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{venuePinned=!!$('venue').value;choosePair()});
 $('frame').addEventListener('change',()=>{frame=$('frame').value;selected=null;chartView='';renderOutput()});$('latest').addEventListener('click',()=>{selected=null;chartView='';renderOutput()});$('focusForecast').addEventListener('click',()=>{chartView='';renderChart()});$('signout').addEventListener('click',async()=>{await fetch('/logout',{method:'POST',credentials:'same-origin'});location.href='/'});
 for(const s of stages){const b=element('button',s.name);b.dataset.stage=s.id;b.type='button';b.setAttribute('aria-pressed',String(s.id===stage));b.addEventListener('click',()=>{stage=s.id;renderInspector()});$('stageControls').append(b)}
@@ -302,10 +334,22 @@ function observeArchive(previous,next){
  const measured=(next.recent_outcomes||[]).find(record=>!previousIds.has(record.id)&&
   Date.parse(record.outcome?.measured_at_utc)>Date.parse(previous.generated_utc));
  if(measured)signal([measured.frame,'verify'],colors.green,'Measured '+measured.frame+' result',measured.outcome.measured_at_utc);
+ const evaluated=next.learning?.adaptation?.[frame],prior=previous.learning?.adaptation?.[frame];
+ if(evaluated&&prior&&(evaluated.samples!==prior.samples||evaluated.status!==prior.status||
+  evaluated.forward_samples!==prior.forward_samples))
+  signal(['verify','learn'],colors.violet,'Evaluation updated',next.review_updated_at_utc);
  const model=next.learning?.selected_models?.[frame],old=previous.learning?.selected_models?.[frame];
  if(model?.selected_at_utc&&model.selected_at_utc!==old?.selected_at_utc)
   signal(['learn','compute'],colors.violet,'Model selection recorded',model.selected_at_utc);
 }
+$('replayEvidence').addEventListener('click',()=>{
+ const record=activeRecord();
+ if(!record)return;
+ const path=record.calculation?.matches_recorded?['collect','compute','forecast',frame]:['forecast',frame];
+ signal(path,colors.amber,record.recorded?'Replay · saved forecast':'Replay · current projection',record.reference_at_utc);
+ const outcome=record.outcome;
+ if(outcome)signal([frame,'verify'],colors.green,'Replay · verified outcome',outcome.measured_at_utc);
+});
 function draw(now=performance.now()){
  if(!ctx)return;
  const {width:w,height:h}=canvas.getBoundingClientRect();
@@ -361,7 +405,8 @@ function draw(now=performance.now()){
   [[-83,-3,0],[4,67,0],[91,30,0],[78,-79,0],[-13,-91,0]];
  const stagesAreFresh=engine&&!engineFailed&&age(engine.worker?.last_success_utc)<600;
  const record=activeRecord();
- const states=[!!record?.inputs?.available,!!record?.calculation?.matches_recorded,!!record,!!record?.outcome,!!engine?.learning?.selected_models?.[frame]];
+ $('replayEvidence').disabled=!record;
+ const states=[!!record?.inputs?.available,!!record?.calculation?.matches_recorded,!!record,!!record?.outcome||engine?.recent_outcomes?.some(item=>item.frame===frame),!!engine?.learning?.adaptation?.[frame]||!!engine?.learning?.selected_models?.[frame]];
  stages.forEach((item,i)=>{points[item.id]=camera(...stagePositions[i])});
  const freshQuote=lastQuote&&Date.now()-lastQuote.fetchedMs<20000&&
   Number.isFinite(lastQuote.providerMs)&&Date.now()-lastQuote.providerMs<60000;
@@ -370,7 +415,8 @@ function draw(now=performance.now()){
  label({x:points.quote.x,y:points.quote.y+16},lastQuote?lastQuote.venue+' quote':'Venue quote',
   freshQuote?colors.cyan:'#a1b4c4',compact?10:11);
  line([points.collect,points.compute,points.forecast],stagesAreFresh?'#55b4c0':'#3d596e',2);
- line([points.forecast,points.verify,points.learn,points.compute],'#536a8d',1,true);
+ line([points.forecast,points.verify],states[3]&&stagesAreFresh?'#6fa785':'#536a8d',1,true);
+ line([points.verify,points.learn,points.compute],states[4]&&stagesAreFresh?'#a493d4':'#536a8d',1,true);
  hitboxes=[];
  const addHit=(point,kind,id,radius=18)=>hitboxes.push({x:point.x,y:point.y,kind,id,radius});
  const horizons=Object.keys(MS);
