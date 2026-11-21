@@ -1,6 +1,10 @@
 """A bounded view of the worker's actual computation and prospective evidence."""
 import datetime as dt
 import math
+try:
+    from forecast_adaptation import transferred_model
+except ImportError:
+    from src.forecast_adaptation import transferred_model
 
 FRAMES=("15m","1h","4h","1d")
 def summarize(data,pair,worker=None):
@@ -22,7 +26,7 @@ def summarize(data,pair,worker=None):
                 if not math.isfinite(expected) or expected<=0:raise ValueError("invalid_calculation")
                 matches=math.isclose(expected,float(r["predicted_price"]),rel_tol=1e-9)
             except (KeyError,TypeError,ValueError,OverflowError):expected=None
-        return {k:r.get(k) for k in ("id","frame","reference_at_utc","due_at_utc","reference_price","predicted_price","outcome","validation_at_issue")}|{
+        return {k:r.get(k) for k in ("id","frame","reference_at_utc","due_at_utc","reference_price","predicted_price","outcome","validation_at_issue","model_origin")}|{
             "model_version":version,"inputs":{"source":"MEXC closed spot candles","recent_log_returns":returns if valid else [],"lookback":lookback,"available":valid},
             "calculation":{"formula":f"Reference × exp({scale:g} × mean of last {lookback} log returns)","recomputed_price":expected,"matches_recorded":matches},
             "review":reviews.get(r.get("id"),{"status":"unreviewed","reason":"no_saved_decision"})}
@@ -37,6 +41,6 @@ def summarize(data,pair,worker=None):
         "collection":{"source":"MEXC closed spot candles","processed_in_last_batch":pair in last_cycle.get("processed",[]),"last_batch_at_utc":last_cycle.get("at_utc"),"last_error":last_cycle.get("failed",{}).get(pair),"retry_queued":pair in data.get("retry_pairs",[])},
         "settlement_queue":data.get("settlement") or {},"latest":latest,"recent_outcomes":[entry(r) for r in settled[-16:]],
         "validation":{frame:(data.get("validation") or {}).get(pair+"|"+frame,{}) for frame in FRAMES},
-        "learning":{"selected_models":{frame:value for frame in FRAMES if (value:=(data.get("model_selections") or {}).get(pair+"|"+frame))},"adaptation":{frame:value for frame in FRAMES if (value:=(data.get("forecast_adaptation") or {}).get(pair+"|"+frame))},"next_action":diagnostic.get("next_action"),"missing_historical_features":diagnostic.get("historical_features_unrecoverable"),"policy":"Candidates must improve error by 5% on a chronological holdout and 20 later outcomes. Degraded adaptive models revert to unchanged price."},
+        "learning":{"peer_models":{frame:model for frame in FRAMES if (model:=transferred_model(data,pair,frame))},"selected_models":{frame:value for frame in FRAMES if (value:=(data.get("model_selections") or {}).get(pair+"|"+frame))},"adaptation":{frame:value for frame in FRAMES if (value:=(data.get("forecast_adaptation") or {}).get(pair+"|"+frame))},"next_action":diagnostic.get("next_action"),"missing_historical_features":diagnostic.get("historical_features_unrecoverable"),"policy":"Candidates must improve error by 5% on a chronological holdout and 20 later outcomes. Degraded adaptive models revert to unchanged price."},
         "input_contract":{"used":["Closed candle prices","Recorded recent log returns","Verified target candle outcomes for evaluation"],"observed_only":["Cross-venue order books","Cross-venue candle momentum","Global exchange sessions","Public executed buy/sell samples"],"not_implemented":["News-driven forecasts","On-chain holder features in this model","Automatic live trade execution"]},
         "trading_approved":False}

@@ -71,7 +71,7 @@ def write_archive(conn, data):
     conn.execute("DELETE FROM research_state_chunks WHERE revision<>%s", (revision,))
 
 
-PAIR_MAPS=('approvals','learning','feedback','validation','measurement_summary','model_selections','forecast_adaptation')
+PAIR_MAPS=('approvals','learning','feedback','validation','measurement_summary','model_selections','forecast_adaptation','peer_model_overrides')
 def pair_states(data):
     groups={}
     for row in data.get('records') or []:
@@ -79,7 +79,7 @@ def pair_states(data):
         if pair:groups.setdefault(pair,[]).append(row)
     decisions=(data.get('autonomous_review') or {}).get('decisions') or {}
     for pair,records in groups.items():
-        state={key:data.get(key) for key in ('universe','loop_updated_at_utc','checked_at_utc','cycle_result','model_selection_diagnostics','settlement')}
+        state={key:data.get(key) for key in ('universe','loop_updated_at_utc','checked_at_utc','cycle_result','model_selection_diagnostics','settlement','peer_models')}
         state.update(records=records,archive_records_total=len(data.get('records') or []),retry_pairs=[pair] if pair in (data.get('retry_pairs') or []) else [])
         for key in PAIR_MAPS:state[key]={k:v for k,v in (data.get(key) or {}).items() if k.startswith(pair+'|')}
         state['autonomous_review']={key:(data.get('autonomous_review') or {}).get(key) for key in ('checked_at_utc','policy')}
@@ -90,6 +90,7 @@ def pair_states(data):
 
 def publish_pair_states(conn,data):
     conn.execute('CREATE TABLE IF NOT EXISTS research_pair_state (pair TEXT PRIMARY KEY, payload BYTEA NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW())')
+    conn.execute("INSERT INTO research_pair_state(pair,payload) VALUES ('__peer_models__',%b) ON CONFLICT (pair) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()", (encode_state({'records':[], 'peer_models':data.get('peer_models',{}), 'loop_updated_at_utc':data.get('loop_updated_at_utc')}),))
     with conn.cursor() as cursor:
         cursor.executemany('INSERT INTO research_pair_state (pair,payload) VALUES (%s,%b) ON CONFLICT (pair) DO UPDATE SET payload=EXCLUDED.payload,updated_at=NOW()',((pair,encode_state(state)) for pair,state in pair_states(data)))
 
@@ -102,7 +103,9 @@ def load_pair(pair):
     with psycopg.connect(os.environ['DATABASE_URL'],connect_timeout=5) as conn:
         exists=conn.execute("SELECT to_regclass('public.research_pair_state')").fetchone()[0]
         if not exists:raise RuntimeError('pair_index_initializing')
-        row=conn.execute('SELECT payload FROM research_pair_state WHERE pair=%s',(pair,)).fetchone()
-        if row:return decode_state(row[0])
-        # An unobserved pair must not trigger a full-archive decode in a request thread.
-        return {'records':[]}
+        row=conn.execute("""
+            SELECT payload FROM research_pair_state
+            WHERE pair=%s OR pair='__peer_models__'
+            ORDER BY (pair=%s) DESC LIMIT 1
+        """,(pair,pair)).fetchone()
+        return decode_state(row[0]) if row else {'records':[]}

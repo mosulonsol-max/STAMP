@@ -104,3 +104,50 @@ def advance(rows, incumbent, state, now):
                            "last_tested_reference": rows[-1]["reference_at_utc"]}
     return incumbent, {**report, "status": "shadow_evaluation", "forward_samples": 0,
                        "pending": {"model": challenger, "proposed_at_utc": now, "holdout": result}}
+
+
+def shared_models(groups):
+    """Transfer models only when they beat both baselines on multiple other pairs."""
+    from collections import defaultdict
+
+    evidence = defaultdict(dict)
+    for (pair, frame), rows in groups.items():
+        if len(rows) < 30:
+            continue
+        recent = sorted(rows, key=lambda row: row["reference_at_utc"])[-30:]
+        baseline = model_error(recent, BASELINE)
+        reference = min(baseline, model_error(recent, DEFAULT))
+        if reference <= 0:
+            continue
+        evidence[frame][pair] = [
+            min(4.0, model_error(recent, model) / reference) for model in CANDIDATES
+        ]
+
+    defaults, per_pair = {}, {}
+    for frame, donors in evidence.items():
+        totals = [sum(scores[i] for scores in donors.values()) for i in range(len(CANDIDATES))]
+        wins = [sum(scores[i] < .95 for scores in donors.values()) for i in range(len(CANDIDATES))]
+
+        def select(excluded=None):
+            count = len(donors) - int(excluded is not None)
+            if count < 5:
+                return None
+            ratios = [(value - (excluded[i] if excluded is not None else 0)) / count
+                      for i, value in enumerate(totals)]
+            supported = [i for i, ratio in enumerate(ratios) if ratio < .95
+                         and (wins[i] - int(excluded is not None and excluded[i] < .95)) / count >= .65]
+            if not supported:
+                return None
+            index = min(supported, key=ratios.__getitem__)
+            return {**CANDIDATES[index], "peer_count": count, "relative_error": ratios[index]}
+
+        if model := select():
+            defaults[frame] = model
+        for pair, scores in donors.items():
+            per_pair[pair+"|"+frame] = select(scores)
+    return defaults, per_pair
+
+
+def transferred_model(data, pair, frame):
+    overrides = data.get("peer_model_overrides") or {}
+    return overrides.get(pair+"|"+frame, (data.get("peer_models") or {}).get(frame))

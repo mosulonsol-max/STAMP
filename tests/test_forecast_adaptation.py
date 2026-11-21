@@ -2,7 +2,7 @@ import datetime as dt
 import math
 import unittest
 
-from src.forecast_adaptation import DEFAULT, advance
+from src.forecast_adaptation import DEFAULT, advance, shared_models, transferred_model
 
 
 class ForecastAdaptationTests(unittest.TestCase):
@@ -29,3 +29,14 @@ class ForecastAdaptationTests(unittest.TestCase):
         drift = [row(i, 0, model["version"]) for i in range(82, 102)]
         model, state = advance(training+forward+drift, model, state, stamp(103))
         self.assertEqual((model["version"], state["status"]), ("no_change", "rolled_back_to_baseline"))
+
+    def test_shared_model_never_counts_target_as_a_donor(self):
+        rows = [{"reference_at_utc": str(n).zfill(2), "reference_price": 100,
+                 "features": {"recent_returns": [.02]*20},
+                 "outcome": {"actual_price": 100*math.exp(-.01)}} for n in range(30)]
+        groups = {(f"COIN{n}USDT", "1h"): rows for n in range(5)}
+        defaults, overrides = shared_models(groups)
+        state = {"peer_models": defaults, "peer_model_overrides": overrides}
+        self.assertEqual(transferred_model(state, "NEWUSDT", "1h")["peer_count"], 5)
+        self.assertIsNone(transferred_model(state, "COIN0USDT", "1h"))
+        self.assertIsNone(transferred_model(state, "NEWUSDT", "4h"))

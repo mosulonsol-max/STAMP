@@ -1,7 +1,7 @@
 """Autonomous per-asset prospective validation. Never promote from backtests alone."""
 import datetime as dt,gzip,json,math,os,pathlib
 from multi_asset import symbol,forecasts,candles,universe
-from forecast_adaptation import DEFAULT, advance, drift
+from forecast_adaptation import DEFAULT, advance, drift, shared_models, transferred_model
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 PATH=ROOT/"data"/"multi_asset_forecasts.json"
@@ -89,6 +89,7 @@ def retrain_candidates(data):
         else:
             diagnostics["no_holdout_improvement"]+=int(report["status"]=="retain_incumbent")
     data["forecast_adaptation"]=adaptation
+    data["peer_models"],data["peer_model_overrides"]=shared_models(grouped)
     # Self-governed next action; do not bypass holdout evidence.
     if diagnostics["selected_this_cycle"]:
         action="monitor_promoted_models"
@@ -317,14 +318,14 @@ def cycle(pairs=None):
             rid=pair+"|"+frame+"|"+result["reference_at_utc"]
             if rid in issued:continue
             key=pair+"|"+frame
-            selected=(data.get("model_selections") or {}).get(key)
+            selected=(data.get("model_selections") or {}).get(key) or transferred_model(data,pair,frame)
             gate=(data.get("validation") or {}).get(key) or {}
             reference_ms=int(dt.datetime.fromisoformat(result["reference_at_utc"]).timestamp()*1000)
             closed=[bar for bar in frame_rows[frame] if bar["t"]+HORIZONS[frame]<=reference_ms]
             recent=[math.log(b["c"]/a["c"]) for a,b in zip(closed,closed[1:]) if b["t"]-a["t"]==HORIZONS[frame]][-20:]
             if selected and len(recent)>=selected["lookback"]:
                 result=dict(result,predicted_price=result["reference_price"]*math.exp(drift(recent,selected)),method=selected["version"])
-            data["records"].append(dict(features={"recent_returns":recent},validation_at_issue=gate.get("status","research_only"),model_version=result["method"],id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
+            data["records"].append(dict(features={"recent_returns":recent},validation_at_issue=gate.get("status","research_only"),model_version=result["method"],model_origin=("pair" if key in (data.get("model_selections") or {}) else "peer" if selected else "default"),id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
             issued.add(rid)
