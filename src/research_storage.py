@@ -71,7 +71,7 @@ def write_archive(conn, data):
     conn.execute("DELETE FROM research_state_chunks WHERE revision<>%s", (revision,))
 
 
-PAIR_MAPS=('approvals','learning','feedback','validation','measurement_summary','model_selections')
+PAIR_MAPS=('approvals','learning','feedback','validation','measurement_summary','model_selections','forecast_adaptation')
 def pair_states(data):
     groups={}
     for row in data.get('records') or []:

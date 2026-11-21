@@ -1,6 +1,7 @@
 """Autonomous per-asset prospective validation. Never promote from backtests alone."""
 import datetime as dt,gzip,json,math,os,pathlib
 from multi_asset import symbol,forecasts,candles,universe
+from forecast_adaptation import DEFAULT, advance, drift
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 PATH=ROOT/"data"/"multi_asset_forecasts.json"
@@ -40,6 +41,7 @@ def retrain_candidates(data):
     """Prospective research-only model selection with chronological holdout."""
     selections=data.get("model_selections") or {}
     records=data.get("records") or []
+    adaptation=data.get("forecast_adaptation") or {}
     diagnostics={"evaluated_pairs":0,"insufficient_samples":0,"no_holdout_improvement":0,"selected_this_cycle":0,"eligible_samples":0,"at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
     diagnostics["exclusions"]={"unsettled":0,"invalid_audit":0,"missing_features":0,"short_returns":0,"eligible":0}
     valid_settled=[]
@@ -54,7 +56,7 @@ def retrain_candidates(data):
         if not isinstance(returns,list):
             diagnostics["exclusions"]["missing_features"]+=1
             continue
-        if len(returns)<20:
+        if len(returns)<20 or not all(isinstance(v,(int,float)) and math.isfinite(v) for v in returns[-20:]):
             diagnostics["exclusions"]["short_returns"]+=1
             continue
         valid_settled.append(rec)
@@ -77,20 +79,16 @@ def retrain_candidates(data):
         if len(eligible)<40:
             diagnostics["insufficient_samples"]+=1
             continue
-        split=int(len(eligible)*0.7)
-        train,test=eligible[:split],eligible[split:]
-        def error(rows,n):
-            return sum(math.log(float(r["outcome"]["actual_price"])/(float(r["reference_price"])*math.exp(sum(r["features"]["recent_returns"][-n:])/n)))**2 for r in rows)/len(rows)
-        best=min((3,6,12,20),key=lambda n:error(train,n))
         key=pair+"|"+frame
-        incumbent=int(selections.get(key,{}).get("lookback",6))
-        baseline=sum(r["outcome"]["baseline_squared_log_error"] for r in test)/len(test)
-        candidate_mse=error(test,best);incumbent_mse=error(test,incumbent)
-        if best!=incumbent and candidate_mse<incumbent_mse*0.95 and candidate_mse<baseline*0.95:
-            diagnostics["selected_this_cycle"]+=1
-            selections[key]={"lookback":best,"version":"momentum_"+str(best),"holdout_samples":len(test),"holdout_mse":candidate_mse,"incumbent_mse":incumbent_mse,"approved_for":"research_only","selected_at_utc":dt.datetime.now(dt.timezone.utc).isoformat()}
+        incumbent=selections.get(key,DEFAULT)
+        chosen,report=advance(eligible,incumbent,adaptation.get(key,{}),diagnostics["at_utc"])
+        adaptation[key]=report
+        if chosen is not incumbent:
+            selections[key]=chosen
+            diagnostics["selected_this_cycle"]+=int(report["status"]=="promoted")
         else:
-            diagnostics["no_holdout_improvement"]+=1
+            diagnostics["no_holdout_improvement"]+=int(report["status"]=="retain_incumbent")
+    data["forecast_adaptation"]=adaptation
     # Self-governed next action; do not bypass holdout evidence.
     if diagnostics["selected_this_cycle"]:
         action="monitor_promoted_models"
@@ -316,19 +314,16 @@ def cycle(pairs=None):
         processed.append(pair)
         for frame,result in values.items():
             if result.get("status")!="research_only":continue
-            selected=(data.get("model_selections") or {}).get(pair+"|"+frame) or {}
-            lookback=int(selected.get("lookback",6))
-            if lookback!=6:
-                closed=[bar for bar in frame_rows[frame] if bar["t"]+HORIZONS[frame]<=int(dt.datetime.now(dt.timezone.utc).timestamp()*1000)]
-                rr=[math.log(b["c"]/a["c"]) for a,b in zip(closed,closed[1:]) if b["t"]-a["t"]==HORIZONS[frame]]
-                if len(rr)>=lookback:
-                    drift=sum(rr[-lookback:])/lookback
-                    result=dict(result,predicted_price=result["reference_price"]*math.exp(drift),method="momentum_"+str(lookback))
             rid=pair+"|"+frame+"|"+result["reference_at_utc"]
             if rid in issued:continue
-            gate=(data.get("validation") or {}).get(pair+"|"+frame) or {}
-            closed=[bar for bar in frame_rows[frame] if bar["t"]+HORIZONS[frame]<=int(dt.datetime.now(dt.timezone.utc).timestamp()*1000)]
+            key=pair+"|"+frame
+            selected=(data.get("model_selections") or {}).get(key)
+            gate=(data.get("validation") or {}).get(key) or {}
+            reference_ms=int(dt.datetime.fromisoformat(result["reference_at_utc"]).timestamp()*1000)
+            closed=[bar for bar in frame_rows[frame] if bar["t"]+HORIZONS[frame]<=reference_ms]
             recent=[math.log(b["c"]/a["c"]) for a,b in zip(closed,closed[1:]) if b["t"]-a["t"]==HORIZONS[frame]][-20:]
+            if selected and len(recent)>=selected["lookback"]:
+                result=dict(result,predicted_price=result["reference_price"]*math.exp(drift(recent,selected)),method=selected["version"])
             data["records"].append(dict(features={"recent_returns":recent},validation_at_issue=gate.get("status","research_only"),model_version=result["method"],id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
