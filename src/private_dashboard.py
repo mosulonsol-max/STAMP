@@ -5,7 +5,7 @@ from functools import lru_cache
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
-from urllib.parse import urlsplit,quote,parse_qs
+from urllib.parse import urlsplit,quote,parse_qs,urlencode
 try:
  from src.market_events import STAMP, dashboard_events, pair_market_flow, symbol as event_symbol
  from src.operations import archive_view, worker_status
@@ -471,8 +471,6 @@ class Handler(BaseHTTPRequestHandler):
      except ImportError:from world_sessions import session_status
      result={"sessions":session_status(dt.datetime.now(dt.timezone.utc))}
     else:
-     from urllib.parse import urlencode
-     from urllib.request import urlopen
      try:
       with urlopen("https://stamp-autonomous-worker.onrender.com/world/rankings?"+urlencode({"exchange":code}),timeout=16) as upstream:
        result=json.load(upstream)

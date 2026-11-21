@@ -26,6 +26,25 @@ class PrivateDashboardTests(unittest.TestCase):
   self.assertEqual(app.github_connection_state({"source":"private_github_api","errors":{"candles/1h.json":"HTTPError"}},True),"degraded")
   self.assertEqual(app.github_connection_state({"source":"private_github_api","errors":{"latest.json":"HTTPError"}},True),"failed")
   self.assertEqual(app.github_connection_state({"source":"deployment_snapshot_github_fallback","github_errors":{"latest.json":"HTTPError"}},True),"failed_fallback")
+ def test_engine_history_proxy_returns_saved_worker_data(self):
+  upstream={"symbol":"BTCUSDT","source":"worker_recorded_computation","coverage":{"pair_records":3}}
+  response=io.BytesIO(json.dumps(upstream).encode())
+  with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"test-only"}), patch.object(app,"urlopen",return_value=response) as fetch:
+   with ThreadingHTTPServer(("127.0.0.1",0),app.Handler) as server:
+    worker=threading.Thread(target=server.serve_forever,daemon=True)
+    worker.start()
+    conn=http.client.HTTPConnection("127.0.0.1",server.server_port,timeout=3)
+    try:
+     header="Basic "+base64.b64encode(b"private:test-only").decode()
+     conn.request("GET","/api/engine-state?symbol=BTCUSDT",headers={"Authorization":header})
+     result=conn.getresponse()
+     self.assertEqual(result.status,200)
+     self.assertEqual(json.load(result),upstream)
+     self.assertTrue(fetch.call_args.args[0].full_url.endswith("/research/engine?symbol=BTCUSDT"))
+    finally:
+     conn.close()
+     server.shutdown()
+
  def test_authentication_denies_missing_and_invalid(self):
   with patch.dict(os.environ,{"DASHBOARD_USER":"private","DASHBOARD_PASSWORD":"long-test-password"},clear=True):
    self.assertFalse(app.authorized(None))
