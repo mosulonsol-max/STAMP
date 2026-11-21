@@ -117,6 +117,14 @@ class Health(BaseHTTPRequestHandler):
 def serve():
  server=ThreadingHTTPServer(("0.0.0.0",int(os.getenv("PORT","10000"))),Health)
  server.serve_forever()
+def release_cycle_memory():
+ gc.collect()
+ # A long-lived Linux worker can retain freed pages in libc's heap.
+ if os.name=="posix":
+  import ctypes
+  trim=getattr(ctypes.CDLL(None),"malloc_trim",None)
+  if trim:trim(0)
+
 def run(interval=None):
  logging.basicConfig(level=logging.INFO,format="%(asctime)s %(levelname)s %(message)s")
  interval=max(60,int(interval or os.environ.get("STAMP_WORKER_INTERVAL_SECONDS","1800")))
@@ -139,8 +147,6 @@ def run(interval=None):
    LAST.update(discovered=coverage["discovered"],processed=actual)
    failures=0
    LAST.update(success=time.time(),error=None,failures=0,cycles=LAST["cycles"]+1)
-   del result
-   gc.collect()
   except Exception:
    failures+=1
    LAST.update(error="cycle_failed",failures=failures)
@@ -148,7 +154,7 @@ def run(interval=None):
   finally:
    LAST["running"]=False
    if "result" in locals():del result
-   gc.collect()
+   release_cycle_memory()
   backoff=min(interval, min(300,2**min(8,failures))) if failures else interval
   sleep=max(1,backoff-(time.monotonic()-start)) if failures else max(1,interval-(time.monotonic()-start))
   end=time.monotonic()+sleep

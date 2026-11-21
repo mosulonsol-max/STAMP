@@ -10,10 +10,22 @@ def encode_state(data):
     return output.getvalue()
 
 def decode_state(payload):
+    # Share repeated JSON field names inside this decode. The table is local
+    # and capped so growing archive identifiers cannot accumulate across cycles.
+    field_names = {}
+
+    class ArchiveMap(dict):
+        __slots__ = ()
+
+        def __setitem__(self, key, value):
+            if "|" not in key and len(key) <= 48 and len(field_names) < 512:
+                key = field_names.setdefault(key, key)
+            super().__setitem__(key, value)
+
     with gzip.GzipFile(fileobj=io.BytesIO(payload),mode='rb') as zipped:
         # Parse incrementally: json.load first materializes the entire decompressed
         # UTF-8 string alongside the archive objects, exceeding small workers.
-        data=next(ijson.items(zipped,'',use_float=True))
+        data=next(ijson.items(zipped,'',use_float=True,map_type=ArchiveMap))
     if not isinstance(data,dict):raise ValueError('invalid_research_state')
     return data
 
