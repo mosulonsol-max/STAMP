@@ -6,7 +6,7 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 PATH=ROOT/"data"/"multi_asset_forecasts.json"
 HORIZONS={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000}
 MIN_VERIFIED=30
-from research_storage import encode_state,decode_state,publish_pair_states
+from research_storage import encode_state, decode_state, prepare_archive_chunks, read_archive, write_archive, publish_pair_states
 def merge_state(computed,persisted):
     """Preserve the union of forecasts when overlapping worker deployments finish out of order."""
     newest=max((computed,persisted),key=lambda state:str(state.get("loop_updated_at_utc") or ""))
@@ -26,10 +26,11 @@ def load():
         import psycopg
         with psycopg.connect(os.environ["DATABASE_URL"],connect_timeout=10) as conn:
             conn.execute("CREATE TABLE IF NOT EXISTS research_state_compact (id INTEGER PRIMARY KEY, payload BYTEA NOT NULL, updated_at TIMESTAMPTZ DEFAULT NOW())")
-            row=conn.execute("SELECT payload,updated_at FROM research_state_compact WHERE id=1").fetchone()
+            prepare_archive_chunks(conn)
+            row=conn.execute("SELECT updated_at FROM research_state_compact WHERE id=1 FOR SHARE").fetchone()
             if not row:raise RuntimeError("research_state_not_initialized")
-            data=decode_state(row[0])
-            data["_storage_revision"]=row[1].isoformat()
+            data=read_archive(conn,row[0])
+            data["_storage_revision"]=row[0].isoformat()
             return data
     try:
         d=json.loads(PATH.read_text())
@@ -360,10 +361,8 @@ def cycle(pairs=None):
             if not row:raise RuntimeError("research_state_not_initialized")
             loaded_revision=data.pop("_storage_revision",None)
             if row[0].isoformat()!=loaded_revision:
-                stored=conn.execute("SELECT payload FROM research_state_compact WHERE id=1").fetchone()
-                data=merge_state(data,decode_state(stored[0]))
-                del stored
-            conn.execute("UPDATE research_state_compact SET payload=%b,updated_at=NOW() WHERE id=1",(encode_state(data),))
+                data=merge_state(data,read_archive(conn,row[0]))
+            write_archive(conn,data)
             publish_pair_states(conn,data)
             checkpoint('archive_published')
     else:

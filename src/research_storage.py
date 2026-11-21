@@ -29,6 +29,48 @@ def decode_state(payload):
     if not isinstance(data,dict):raise ValueError('invalid_research_state')
     return data
 
+ARCHIVE_CHUNK_SIZE = 256 * 1024
+
+
+def prepare_archive_chunks(conn):
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS research_state_chunks (
+            position INTEGER PRIMARY KEY, revision TIMESTAMPTZ NOT NULL,
+            payload BYTEA NOT NULL
+        )
+    """)
+
+
+def read_archive(conn, revision):
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            SELECT payload FROM research_state_chunks
+            WHERE revision=%s ORDER BY position
+        """, (revision,))
+        chunks = [row[0] for row in cursor]
+    if chunks:
+        return decode_state(b"".join(chunks))
+    # The original snapshot remains readable until the first chunked commit.
+    row = conn.execute("SELECT payload FROM research_state_compact WHERE id=1").fetchone()
+    return decode_state(row[0])
+
+
+def write_archive(conn, data):
+    payload = encode_state(data)
+    revision = conn.execute("""
+        UPDATE research_state_compact SET updated_at=clock_timestamp()
+        WHERE id=1 RETURNING updated_at
+    """).fetchone()[0]
+    with conn.cursor() as cursor:
+        cursor.executemany("""
+            INSERT INTO research_state_chunks(position,revision,payload) VALUES (%s,%s,%b)
+            ON CONFLICT (position) DO UPDATE
+            SET revision=EXCLUDED.revision,payload=EXCLUDED.payload
+        """, ((position, revision, payload[offset:offset + ARCHIVE_CHUNK_SIZE])
+              for position, offset in enumerate(range(0, len(payload), ARCHIVE_CHUNK_SIZE))))
+    conn.execute("DELETE FROM research_state_chunks WHERE revision<>%s", (revision,))
+
+
 PAIR_MAPS=('approvals','learning','feedback','validation','measurement_summary','model_selections')
 def pair_states(data):
     groups={}
