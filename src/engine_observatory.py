@@ -1,6 +1,8 @@
 """A bounded view of the worker's actual computation and prospective evidence."""
 import datetime as dt
 import math
+from collections import Counter
+from multi_asset_governor import audit_records
 try:
     from forecast_adaptation import transferred_model
 except ImportError:
@@ -30,14 +32,23 @@ def summarize(data,pair,worker=None):
             "model_version":version,"inputs":{"source":"MEXC closed spot candles","recent_log_returns":returns if valid else [],"lookback":lookback,"available":valid},
             "calculation":{"formula":f"Reference × exp({scale:g} × mean of last {lookback} log returns)","recomputed_price":expected,"matches_recorded":matches},
             "review":reviews.get(r.get("id"),{"status":"unreviewed","reason":"no_saved_decision"})}
-    latest={frame:entry(next(r for r in reversed(records) if r.get("frame")==frame)) for frame in FRAMES if any(r.get("frame")==frame for r in records)}
-    settled=[r for r in records if r.get("outcome")]
-    counts={status:sum(reviews.get(r.get("id"),{}).get("status")==status for r in records) for status in ("accepted","rejected","pending")}
+    ids = Counter(record.get("id") for record in records)
+    valid = [record for record in records if ids[record.get("id")] == 1
+             and audit_records([record], now)["passed"]]
+    latest = {}
+    for record in reversed(valid):
+        frame = record["frame"]
+        if frame not in latest:
+            latest[frame] = entry(record)
+    settled = [record for record in valid if record.get("outcome")]
+    invalid_outcomes = sum(bool(record.get("outcome")) for record in records) - len(settled)
+    counts = {status: sum(reviews.get(record.get("id"), {}).get("status") == status
+                          for record in valid) for status in ("accepted", "rejected", "pending")}
     last_cycle=data.get("cycle_result") or {}
     diagnostic=data.get("model_selection_diagnostics") or {}
     return {"symbol":pair,"source":"worker_recorded_computation","generated_utc":now.isoformat(),"storage":"postgres" if worker and worker.get("storage")=="postgres" else "ephemeral_filesystem",
         "worker":worker or {},"archive_updated_at_utc":data.get("loop_updated_at_utc"),"review_updated_at_utc":(data.get("autonomous_review") or {}).get("checked_at_utc"),
-        "coverage":{"universe":(data.get("universe") or {}).get("count"),"archive_records":data.get("archive_records_total",len(data.get("records",[]))),"pair_records":len(records),"settled":len(settled),"decisions":counts},
+        "coverage":{"universe":(data.get("universe") or {}).get("count"),"archive_records":data.get("archive_records_total",len(data.get("records",[]))),"pair_records":len(records),"settled":len(settled),"invalid_outcomes":invalid_outcomes,"decisions":counts},
         "collection":{"source":"MEXC closed spot candles","processed_in_last_batch":pair in last_cycle.get("processed",[]),"last_batch_at_utc":last_cycle.get("at_utc"),"last_error":last_cycle.get("failed",{}).get(pair),"retry_queued":pair in data.get("retry_pairs",[])},
         "settlement_queue":data.get("settlement") or {},"latest":latest,"recent_outcomes":[entry(r) for r in settled[-16:]],
         "validation":{frame:(data.get("validation") or {}).get(pair+"|"+frame,{}) for frame in FRAMES},

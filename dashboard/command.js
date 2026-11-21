@@ -69,11 +69,11 @@ function renderOutput(){
 function renderEngine(){
  const e=engine;if(!e)return;
  set('recordCount',number(e.coverage.pair_records));set('settledCount',number(e.coverage.settled));set('recordTime',number(e.coverage.archive_records)+' records across '+number(e.coverage.universe)+' discovered pairs');
- const c=e.coverage.decisions;set('decisions',number(c.accepted)+' accepted · '+number(c.rejected)+' rejected · '+number(c.pending)+' pending');
+ const c=e.coverage.decisions;set('decisions',number(c.accepted)+' accepted · '+number(c.rejected)+' rejected · '+number(c.pending)+' pending'+(e.coverage.invalid_outcomes?' · '+number(e.coverage.invalid_outcomes)+' excluded by audit':''));
  const fresh=!engineFailed&&age(e.worker.last_success_utc)<600;set('workerState',fresh?(e.worker.running?'Processing':'Between cycles'):'Evidence delayed');set('workerTime',(e.storage==='postgres'?'PostgreSQL':'Temporary storage')+' · last success '+utc(e.worker.last_success_utc));
  set('sceneTime','Archive '+utc(e.archive_updated_at_utc));
  notify(engineFailed?'Worker refresh failed. Saved evidence remains visible with its original timestamp.':fresh?'Worker connected · '+pair+' · '+e.coverage.pair_records+' recorded forecasts. Select a stage or open a result to follow its evidence.':'Worker evidence is delayed. Inspect the last saved record and its timestamps.',''+(fresh?'ok':'error'));
- set('historySummary',e.coverage.settled+' measured outcomes · latest 16 shown');$('history').replaceChildren();
+ set('historySummary',e.coverage.settled+' verified outcomes · latest 16 shown');$('history').replaceChildren();
  for(const r of [...e.recent_outcomes].reverse()){
   const tr=document.createElement('tr');tr.append(element('td',pair+' / '+r.frame),element('td',utc(r.reference_at_utc)),element('td',price(r.predicted_price)),element('td',price(r.outcome?.actual_price)));
   const decision=element('td',r.review.status);decision.dataset.state=r.review.status;tr.append(decision);

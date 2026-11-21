@@ -21,6 +21,14 @@ class EngineObservatoryTests(unittest.TestCase):
   result=summarize({'records':[r],'model_selections':{'BTCUSDT|1h':{'version':'momentum_3'}}},'BTCUSDT')
   self.assertEqual(result['latest']['1h']['inputs']['lookback'],20)
   self.assertFalse(result['latest']['1h']['calculation']['matches_recorded'])
+ def test_early_outcome_is_excluded_from_verified_history(self):
+  result=summarize({'records':[self.record(outcome={'actual_price':100,
+      'measured_at_utc':'2026-11-19T12:30:00+00:00','squared_log_error':.0001,
+      'baseline_squared_log_error':0})]},'BTCUSDT')
+  self.assertEqual(result['coverage']['pair_records'],1)
+  self.assertEqual(result['coverage']['settled'],0)
+  self.assertEqual(result['coverage']['invalid_outcomes'],1)
+  self.assertEqual(result['recent_outcomes'],[])
  def test_empty_archive_has_no_synthetic_forecast(self):
   result=summarize({},'STAMPUSDT')
   self.assertEqual(result['latest'],{})
