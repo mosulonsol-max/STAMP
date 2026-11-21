@@ -357,7 +357,9 @@ def cycle(pairs=None):
             if not row:raise RuntimeError("research_state_not_initialized")
             loaded_revision=data.pop("_storage_revision",None)
             if row[0].isoformat()!=loaded_revision:
-                data=merge_state(data,read_archive(conn,row[0]))
+                # A newer cycle already committed. Retry from that revision instead
+                # of decoding a second full archive inside a busy worker.
+                raise RuntimeError("archive_revision_changed_retry")
             write_archive(conn,data)
             publish_pair_states(conn,data)
             checkpoint('archive_published')

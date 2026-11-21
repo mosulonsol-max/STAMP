@@ -74,11 +74,16 @@ function renderOutput(){
  set('quality',(v.observed_samples??0)+' verified samples · '+(v.status||'unverified').replaceAll('_',' ')+'. Positive skill means lower error than unchanged price. This is separate from the selected record’s review.');
  renderInspector();renderChart();
 }
+function savedAt(e){return e?.collection?.last_batch_at_utc||e?.archive_updated_at_utc}
+function archiveFresh(e){return age(savedAt(e))<600}
 function renderEngine(){
  const e=engine;if(!e)return;
  set('recordCount',number(e.coverage.pair_records));set('settledCount',number(e.coverage.settled));set('recordTime',number(e.coverage.archive_records)+' records across '+number(e.coverage.universe)+' discovered pairs');
  const c=e.coverage.decisions;set('decisions',number(c.accepted)+' accepted · '+number(c.rejected)+' rejected · '+number(c.pending)+' pending'+(e.coverage.invalid_outcomes?' · '+number(e.coverage.invalid_outcomes)+' excluded by audit':''));
- const fresh=!engineFailed&&age(e.worker.last_success_utc)<600;set('workerState',fresh?(e.worker.running?'Processing':'Between cycles'):'Evidence delayed');set('workerTime',(e.storage==='postgres'?'PostgreSQL':'Temporary storage')+' · last success '+utc(e.worker.last_success_utc));
+ const fresh=archiveFresh(e),starting=!e.worker.last_success_utc&&e.worker.running;
+ set('workerState',engineFailed?'Connection interrupted':!fresh?'Evidence delayed':
+  starting?'Processing after restart':e.worker.running?'Processing':'Between cycles');
+ set('workerTime',(e.storage==='postgres'?'PostgreSQL':'Temporary storage')+' · last saved '+utc(savedAt(e)));
  set('sceneTime','Archive '+utc(e.archive_updated_at_utc));
  notify(engineFailed?'Worker refresh failed. Saved evidence remains visible with its original timestamp.':fresh?'Worker connected · '+pair+' · '+e.coverage.pair_records+' recorded forecasts. Select a stage or open a result to follow its evidence.':'Worker evidence is delayed. Inspect the last saved record and its timestamps.',''+(fresh?'ok':'error'));
  set('historySummary',e.coverage.settled+' verified outcomes · latest 16 shown');$('history').replaceChildren();
@@ -418,7 +423,7 @@ function draw(now=performance.now()){
  for(let lon=0;lon<360;lon+=30)line(Array.from({length:37},(_,i)=>sphere(i*5-90,lon)),'#58bed04d');
  const stagePositions=compact?[[ -66,17,0],[3,37,0],[100,24,0],[143,-104,0],[-33,-131,0]]:
   [[-83,-3,0],[4,67,0],[91,30,0],[78,-79,0],[-13,-91,0]];
- const stagesAreFresh=engine&&!engineFailed&&age(engine.worker?.last_success_utc)<600;
+ const stagesAreFresh=engine&&archiveFresh(engine);
  const record=activeRecord();
  const states=[!!record?.inputs?.available,!!record?.calculation?.matches_recorded,!!record,!!record?.outcome||engine?.recent_outcomes?.some(item=>item.frame===frame),!!engine?.learning?.adaptation?.[frame]||!!engine?.learning?.selected_models?.[frame]];
  stages.forEach((item,i)=>{points[item.id]=camera(...stagePositions[i])});
@@ -523,6 +528,6 @@ function animate(now){
 requestAnimationFrame(animate);
 try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0-9]{1,22}USDT$/.test(saved)){if(!catalog.pairs.includes(saved))catalog.pairs.push(saved);renderCurrencyList();$('pairSelect').value=saved}}catch{}
 readFavorites();choosePair();loadWorld();loadCatalog();
-setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,15000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&age(engine.worker.last_success_utc)>600)renderEngine()},5000);
+setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,15000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld()}});
 })();
