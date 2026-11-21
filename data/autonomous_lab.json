@@ -1,20 +1,20 @@
 {
-  "generated_at_utc": "2026-11-21T09:42:48.124900+00:00",
+  "generated_at_utc": "2026-11-21T10:38:35.773539+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-21T09:42:48.124900+00:00",
+    "generated_at_utc": "2026-11-21T10:38:35.773539+00:00",
     "state": "healthy",
-    "previous_pipeline_passed": false,
-    "previous_pipeline_at_utc": "2026-11-21T07:38:37.830828+00:00",
+    "previous_pipeline_passed": true,
+    "previous_pipeline_at_utc": "2026-11-21T10:37:55.612552+00:00",
     "failed_checks": [],
     "checks": {
       "pipeline_steps": {
-        "passed": null,
-        "details": "previous cycle; current CI result pending"
+        "passed": true,
+        "details": "Every required stage must report success; a missing stage is a failure."
       },
       "pipeline_outcome": {
-        "passed": null,
-        "details": "previous cycle; current CI result pending"
+        "passed": true,
+        "details": ""
       },
       "exact_contract": {
         "passed": true,
@@ -69,34 +69,34 @@
         "currently_available": true
       },
       "ticker": {
-        "status": "used",
-        "historical_points": 7,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 8,
+        "currently_available": false
       },
       "orderbook": {
-        "status": "used",
-        "historical_points": 7,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 8,
+        "currently_available": false
       },
       "trades": {
-        "status": "used",
-        "historical_points": 7,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 8,
+        "currently_available": false
       },
       "dex": {
-        "status": "used",
-        "historical_points": 20,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 17,
+        "currently_available": false
       },
       "onchain": {
-        "status": "used",
-        "historical_points": 96,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 83,
+        "currently_available": false
       },
       "news": {
-        "status": "used",
-        "historical_points": 84,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 71,
+        "currently_available": false
       },
       "project": {
         "status": "missing",
@@ -104,9 +104,9 @@
         "currently_available": false
       },
       "macro": {
-        "status": "used",
-        "historical_points": 20,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 17,
+        "currently_available": false
       },
       "derivatives": {
         "status": "missing",
@@ -123,26 +123,26 @@
   },
   "experiments": [
     {
-      "id": "8a651d882c6f59b3",
+      "id": "72fc3719819adc78",
       "horizon": "1h",
-      "candidate": "market_absolute",
+      "candidate": "hist_absolute",
       "action": "continue_sandbox",
       "reason": "improvement_below_research_gate",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": 0.017146800594076805,
+      "skill_vs_zero": 0.0006527131941179709,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
     {
-      "id": "d9579f651ba22707",
+      "id": "d232bb57b9faecaa",
       "horizon": "4h",
-      "candidate": "no_change",
+      "candidate": "technical_absolute",
       "action": "revise_in_sandbox",
       "reason": "failed_no_change_baseline",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": 0.0,
+      "skill_vs_zero": -0.014977282718245277,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -153,20 +153,20 @@
       "action": "continue_sandbox",
       "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
-      "later_samples": 29.0,
-      "skill_vs_zero": -0.12465145626149665,
+      "later_samples": 30.0,
+      "skill_vs_zero": -0.053743133927808495,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
     {
-      "id": "4cbc4d07c8434d80",
+      "id": "7440be94f8179bf6",
       "horizon": "7d",
-      "candidate": "forest_absolute",
+      "candidate": "no_change",
       "action": "continue_sandbox",
       "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 4.0,
-      "skill_vs_zero": -0.4679835872060025,
+      "skill_vs_zero": 0.0,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     }
