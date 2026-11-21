@@ -1,33 +1,429 @@
 {
-  "timestamp_utc": "2026-11-21T10:28:50.801030+00:00",
+  "timestamp_utc": "2026-11-21T10:37:55.612552+00:00",
   "event_name": "push",
-  "run_id": "44894453200",
+  "run_id": "44894574726",
   "run_attempt": "1",
   "steps": {
-    "tests": "failure",
-    "monitor": "skipped",
-    "audit": "skipped",
-    "archive": "skipped",
-    "forecast_health": "skipped",
-    "research": "skipped",
-    "governance": "skipped",
-    "evidence": "skipped",
-    "diagnosis": "skipped",
+    "tests": "success",
+    "monitor": "success",
+    "audit": "success",
+    "archive": "success",
+    "forecast_health": "success",
+    "research": "success",
+    "governance": "success",
+    "evidence": "success",
+    "diagnosis": "success",
     "dashboard": "success",
-    "multi_asset_governance": "skipped"
+    "multi_asset_governance": "success"
   },
-  "pipeline_passed": false,
-  "production_smoke_passed": false,
-  "production_smoke_outcome": "skipped",
+  "pipeline_passed": true,
+  "production_smoke_passed": true,
+  "production_smoke_outcome": "success",
   "trace": [
     {
-      "stage": "dashboard",
-      "started_utc": "2026-11-21T10:28:50.414031+00:00",
-      "finished_utc": "2026-11-21T10:28:50.724266+00:00",
+      "stage": "monitor",
+      "started_utc": "2026-11-21T10:30:33.050043+00:00",
+      "finished_utc": "2026-11-21T10:30:35.316680+00:00",
+      "status": "success",
+      "outputs": [
+        {
+          "artifact": "data/latest.json",
+          "sha256": "c5d6a12f00c365a0b9ab95795d87dc18ffc132d7d8f6955a67a34332fd092231",
+          "bytes": 427116
+        }
+      ],
+      "handoffs": [],
+      "telemetry_sent": 0,
+      "telemetry_failed": 0
+    },
+    {
+      "stage": "archive",
+      "started_utc": "2026-11-21T10:30:35.431586+00:00",
+      "finished_utc": "2026-11-21T10:30:37.179618+00:00",
+      "status": "success",
+      "outputs": [
+        {
+          "artifact": "data/candle_quality.json",
+          "sha256": "eaa29f60fa22402a2a9ca54f77c535a2a1ebd6ca72588e007569e32bf6c3c2a8",
+          "bytes": 333
+        },
+        {
+          "artifact": "data/candles/15m.json",
+          "sha256": "f27545b05c1301101fc564c3c3911c81f44f968124329fa0b80c27a8b5f6c0ee",
+          "bytes": 305523
+        },
+        {
+          "artifact": "data/candles/1d.json",
+          "sha256": "9d54ee089d5dd603d599bc548c026b9a06831c23bd739fdd22f8287be1f39746",
+          "bytes": 5602
+        },
+        {
+          "artifact": "data/candles/1h.json",
+          "sha256": "852721ac071a9d9c23521a4510686f2ac2bb7f87497ff091905540b7f63f5a4e",
+          "bytes": 110685
+        },
+        {
+          "artifact": "data/candles/4h.json",
+          "sha256": "4843f66efae90f91c5be78b363acf2f439a723c8a7d597a3e34d2663f6faf1af",
+          "bytes": 33493
+        },
+        {
+          "artifact": "data/forecast_scorecard.json",
+          "sha256": "a8fc91c095cc5d61e91700408823aa2e3f18d918f3788d9b7fb6b32925c7651d",
+          "bytes": 27521
+        }
+      ],
+      "handoffs": [
+        {
+          "from": "monitor",
+          "to": "archive",
+          "artifact": "data/latest.json",
+          "observed_utc": "2026-11-21T10:30:35.750991+00:00",
+          "sha256": "c5d6a12f00c365a0b9ab95795d87dc18ffc132d7d8f6955a67a34332fd092231",
+          "bytes": 427116,
+          "telemetry_sent": true
+        }
+      ],
+      "telemetry_sent": 1,
+      "telemetry_failed": 0
+    },
+    {
+      "stage": "evidence",
+      "started_utc": "2026-11-21T10:30:37.294704+00:00",
+      "finished_utc": "2026-11-21T10:30:43.388517+00:00",
+      "status": "success",
+      "outputs": [
+        {
+          "artifact": "data/evidence_sources.json",
+          "sha256": "4a65806defc24348b8665504f87dd7b6de9b50abcee71fd7be49341a6d4c1fb0",
+          "bytes": 13623
+        },
+        {
+          "artifact": "data/latest.json",
+          "sha256": "2475181cb3062b3d63cafa771252611033885ed84b9981a70586f7013d15e791",
+          "bytes": 441416
+        }
+      ],
+      "handoffs": [
+        {
+          "from": "monitor",
+          "to": "evidence",
+          "artifact": "data/latest.json",
+          "observed_utc": "2026-11-21T10:30:37.677292+00:00",
+          "sha256": "c5d6a12f00c365a0b9ab95795d87dc18ffc132d7d8f6955a67a34332fd092231",
+          "bytes": 427116,
+          "telemetry_sent": true
+        },
+        {
+          "from": "archive",
+          "to": "evidence",
+          "artifact": "data/candles/1h.json",
+          "observed_utc": "2026-11-21T10:30:37.903140+00:00",
+          "sha256": "852721ac071a9d9c23521a4510686f2ac2bb7f87497ff091905540b7f63f5a4e",
+          "bytes": 110685,
+          "telemetry_sent": true
+        }
+      ],
+      "telemetry_sent": 2,
+      "telemetry_failed": 0
+    },
+    {
+      "stage": "research",
+      "started_utc": "2026-11-21T10:30:43.503208+00:00",
+      "finished_utc": "2026-11-21T10:36:34.149605+00:00",
+      "status": "success",
+      "outputs": [
+        {
+          "artifact": "data/latest.json",
+          "sha256": "2b939de9b8056538b5f7ae97ecec6628499a3c6f10a584057d6d8e92bc0189ef",
+          "bytes": 2400136
+        },
+        {
+          "artifact": "data/learning_controller.json",
+          "sha256": "7883106de3a2cd84f3fb8bf660a592aabc0d3585248b64b065d6dd1db38709cc",
+          "bytes": 904710
+        },
+        {
+          "artifact": "data/model_registry.json",
+          "sha256": "47d6b6b0a91476de0d5a5b57f338768c49c047116f68d1625e4b8f52340ffbc9",
+          "bytes": 7168
+        }
+      ],
+      "handoffs": [
+        {
+          "from": "archive",
+          "to": "research",
+          "artifact": "data/candles/1h.json",
+          "observed_utc": "2026-11-21T10:30:43.926787+00:00",
+          "sha256": "852721ac071a9d9c23521a4510686f2ac2bb7f87497ff091905540b7f63f5a4e",
+          "bytes": 110685,
+          "telemetry_sent": true
+        },
+        {
+          "from": "evidence",
+          "to": "research",
+          "artifact": "data/latest.json",
+          "observed_utc": "2026-11-21T10:30:44.139235+00:00",
+          "sha256": "2475181cb3062b3d63cafa771252611033885ed84b9981a70586f7013d15e791",
+          "bytes": 441416,
+          "telemetry_sent": true
+        }
+      ],
+      "telemetry_sent": 2,
+      "telemetry_failed": 0
+    },
+    {
+      "stage": "audit",
+      "started_utc": "2026-11-21T10:36:34.269981+00:00",
+      "finished_utc": "2026-11-21T10:36:35.753559+00:00",
+      "status": "success",
+      "outputs": [
+        {
+          "artifact": "data/forecast_journal.jsonl",
+          "sha256": "b6620f488654fd06caa5b25fd4b04d4413889ed810e9200a0059f3e892655ec7",
+          "bytes": 1724635
+        }
+      ],
+      "handoffs": [
+        {
+          "from": "research",
+          "to": "audit",
+          "artifact": "data/latest.json",
+          "observed_utc": "2026-11-21T10:36:34.612125+00:00",
+          "sha256": "2b939de9b8056538b5f7ae97ecec6628499a3c6f10a584057d6d8e92bc0189ef",
+          "bytes": 2400136,
+          "telemetry_sent": true
+        },
+        {
+          "from": "archive",
+          "to": "audit",
+          "artifact": "data/candles/15m.json",
+          "observed_utc": "2026-11-21T10:36:35.424222+00:00",
+          "sha256": "f27545b05c1301101fc564c3c3911c81f44f968124329fa0b80c27a8b5f6c0ee",
+          "bytes": 305523,
+          "telemetry_sent": true
+        }
+      ],
+      "telemetry_sent": 2,
+      "telemetry_failed": 0
+    },
+    {
+      "stage": "governance",
+      "started_utc": "2026-11-21T10:36:35.942994+00:00",
+      "finished_utc": "2026-11-21T10:36:36.978866+00:00",
+      "status": "success",
+      "outputs": [
+        {
+          "artifact": "data/latest.json",
+          "sha256": "921cccfbc73210814b4f73c3f6a35519a83df9d5a535d99fcc8267adf6f43b38",
+          "bytes": 2400132
+        },
+        {
+          "artifact": "data/model_registry.json",
+          "sha256": "41e9f1b22be101e6f657a3d07594c4bb655405308b8cd17443d72e2d250ff976",
+          "bytes": 7164
+        }
+      ],
+      "handoffs": [
+        {
+          "from": "research",
+          "to": "governance",
+          "artifact": "data/latest.json",
+          "observed_utc": "2026-11-21T10:36:36.279113+00:00",
+          "sha256": "2b939de9b8056538b5f7ae97ecec6628499a3c6f10a584057d6d8e92bc0189ef",
+          "bytes": 2400136,
+          "telemetry_sent": true
+        },
+        {
+          "from": "audit",
+          "to": "governance",
+          "artifact": "data/forecast_journal.jsonl",
+          "observed_utc": "2026-11-21T10:36:36.501930+00:00",
+          "sha256": "b6620f488654fd06caa5b25fd4b04d4413889ed810e9200a0059f3e892655ec7",
+          "bytes": 1724635,
+          "telemetry_sent": true
+        },
+        {
+          "from": "research",
+          "to": "governance",
+          "artifact": "data/model_registry.json",
+          "observed_utc": "2026-11-21T10:36:36.706333+00:00",
+          "sha256": "47d6b6b0a91476de0d5a5b57f338768c49c047116f68d1625e4b8f52340ffbc9",
+          "bytes": 7168,
+          "telemetry_sent": true
+        }
+      ],
+      "telemetry_sent": 3,
+      "telemetry_failed": 0
+    },
+    {
+      "stage": "diagnosis",
+      "started_utc": "2026-11-21T10:36:37.095677+00:00",
+      "finished_utc": "2026-11-21T10:37:09.306034+00:00",
+      "status": "success",
+      "outputs": [
+        {
+          "artifact": "data/model_diagnosis.json",
+          "sha256": "33bf3d6d28a19f36915315fe8528de434a42c60f4e83a14fb210a8ab81817897",
+          "bytes": 77797
+        }
+      ],
+      "handoffs": [
+        {
+          "from": "archive",
+          "to": "diagnosis",
+          "artifact": "data/candles/1h.json",
+          "observed_utc": "2026-11-21T10:36:37.524431+00:00",
+          "sha256": "852721ac071a9d9c23521a4510686f2ac2bb7f87497ff091905540b7f63f5a4e",
+          "bytes": 110685,
+          "telemetry_sent": true
+        },
+        {
+          "from": "research",
+          "to": "diagnosis",
+          "artifact": "data/learning_controller.json",
+          "observed_utc": "2026-11-21T10:36:37.721856+00:00",
+          "sha256": "7883106de3a2cd84f3fb8bf660a592aabc0d3585248b64b065d6dd1db38709cc",
+          "bytes": 904710,
+          "telemetry_sent": true
+        },
+        {
+          "from": "audit",
+          "to": "diagnosis",
+          "artifact": "data/forecast_journal.jsonl",
+          "observed_utc": "2026-11-21T10:36:38.255380+00:00",
+          "sha256": "b6620f488654fd06caa5b25fd4b04d4413889ed810e9200a0059f3e892655ec7",
+          "bytes": 1724635,
+          "telemetry_sent": true
+        },
+        {
+          "from": "governance",
+          "to": "diagnosis",
+          "artifact": "data/model_registry.json",
+          "observed_utc": "2026-11-21T10:37:07.843480+00:00",
+          "sha256": "41e9f1b22be101e6f657a3d07594c4bb655405308b8cd17443d72e2d250ff976",
+          "bytes": 7164,
+          "telemetry_sent": true
+        }
+      ],
+      "telemetry_sent": 4,
+      "telemetry_failed": 0
+    },
+    {
+      "stage": "multi_asset_governance",
+      "started_utc": "2026-11-21T10:37:09.427540+00:00",
+      "finished_utc": "2026-11-21T10:37:35.961024+00:00",
+      "status": "success",
+      "outputs": [
+        {
+          "artifact": "data/multi_asset_forecasts.json",
+          "sha256": "4ceeb43aaf95d95fd06c29d4824d256fa0fcc3a13df6326fbe6b97d1656b7043",
+          "bytes": 26028491
+        }
+      ],
+      "handoffs": [],
+      "telemetry_sent": 0,
+      "telemetry_failed": 0
+    },
+    {
+      "stage": "forecast_health",
+      "started_utc": "2026-11-21T10:37:36.768468+00:00",
+      "finished_utc": "2026-11-21T10:37:37.557343+00:00",
+      "status": "success",
+      "outputs": [
+        {
+          "artifact": "data/forecast_activity.json",
+          "sha256": "e7bd2abe32bc61f9ed59a31cdd95de5c0ba93bb06373ae37be862ad7f829ed8c",
+          "bytes": 487
+        }
+      ],
+      "handoffs": [
+        {
+          "from": "audit",
+          "to": "forecast_health",
+          "artifact": "data/forecast_journal.jsonl",
+          "observed_utc": "2026-11-21T10:37:37.119045+00:00",
+          "sha256": "b6620f488654fd06caa5b25fd4b04d4413889ed810e9200a0059f3e892655ec7",
+          "bytes": 1724635,
+          "telemetry_sent": true
+        },
+        {
+          "from": "governance",
+          "to": "forecast_health",
+          "artifact": "data/latest.json",
+          "observed_utc": "2026-11-21T10:37:37.335165+00:00",
+          "sha256": "921cccfbc73210814b4f73c3f6a35519a83df9d5a535d99fcc8267adf6f43b38",
+          "bytes": 2400132,
+          "telemetry_sent": true
+        }
+      ],
+      "telemetry_sent": 2,
+      "telemetry_failed": 0
+    },
+    {
+      "stage": "production_smoke",
+      "started_utc": "2026-11-21T10:37:37.674033+00:00",
+      "finished_utc": "2026-11-21T10:37:53.472373+00:00",
       "status": "success",
       "outputs": [],
       "handoffs": [],
       "telemetry_sent": 0,
+      "telemetry_failed": 0
+    },
+    {
+      "stage": "dashboard",
+      "started_utc": "2026-11-21T10:37:53.589575+00:00",
+      "finished_utc": "2026-11-21T10:37:55.532775+00:00",
+      "status": "success",
+      "outputs": [],
+      "handoffs": [
+        {
+          "from": "governance",
+          "to": "dashboard",
+          "artifact": "data/latest.json",
+          "observed_utc": "2026-11-21T10:37:53.933864+00:00",
+          "sha256": "921cccfbc73210814b4f73c3f6a35519a83df9d5a535d99fcc8267adf6f43b38",
+          "bytes": 2400132,
+          "telemetry_sent": true
+        },
+        {
+          "from": "governance",
+          "to": "dashboard",
+          "artifact": "data/model_registry.json",
+          "observed_utc": "2026-11-21T10:37:54.134376+00:00",
+          "sha256": "41e9f1b22be101e6f657a3d07594c4bb655405308b8cd17443d72e2d250ff976",
+          "bytes": 7164,
+          "telemetry_sent": true
+        },
+        {
+          "from": "research",
+          "to": "dashboard",
+          "artifact": "data/learning_controller.json",
+          "observed_utc": "2026-11-21T10:37:54.642123+00:00",
+          "sha256": "7883106de3a2cd84f3fb8bf660a592aabc0d3585248b64b065d6dd1db38709cc",
+          "bytes": 904710,
+          "telemetry_sent": true
+        },
+        {
+          "from": "forecast_health",
+          "to": "dashboard",
+          "artifact": "data/forecast_activity.json",
+          "observed_utc": "2026-11-21T10:37:54.848673+00:00",
+          "sha256": "e7bd2abe32bc61f9ed59a31cdd95de5c0ba93bb06373ae37be862ad7f829ed8c",
+          "bytes": 487,
+          "telemetry_sent": true
+        },
+        {
+          "from": "archive",
+          "to": "dashboard",
+          "artifact": "data/candles/1h.json",
+          "observed_utc": "2026-11-21T10:37:55.042888+00:00",
+          "sha256": "852721ac071a9d9c23521a4510686f2ac2bb7f87497ff091905540b7f63f5a4e",
+          "bytes": 110685,
+          "telemetry_sent": true
+        }
+      ],
+      "telemetry_sent": 5,
       "telemetry_failed": 0
     }
   ]
