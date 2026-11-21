@@ -144,10 +144,47 @@ async function loadCatalog(){if(pending.has('universe'))return;set('catalogStatu
  try{const d=await request('/api/assets/universe','universe',25000);if(!Model.currencyList(d).length)throw Error('Empty exchange catalog');d.pairs=[...new Set([...d.pairs,...catalog.pairs.filter(p=>['BTCUSDT','ETHUSDT','SOLUSDT','STAMPUSDT','ZECUSDT',pair].includes(p))])];catalog=d;renderCurrencyList()}
  catch(e){set('catalogStatus','Exchange list unavailable · '+e.message+'. Starter markets remain selectable.');$('retryCatalog').hidden=false}}
 let worldExchange, worldEpoch=0, worldSessions=[];
+let worldCalendarAt=0, rankingRefreshAfter=0;
+const FAVORITES_KEY='stamp_favorite_pairs';
+let favorites=[];
+function readFavorites(){
+ try{
+  const saved=JSON.parse(localStorage.getItem(FAVORITES_KEY)||'[]');
+  favorites=Model.currencyList({pairs:Array.isArray(saved)?saved:[]});
+ }catch{favorites=[]}
+}
+function renderFavorites(){
+ const menu=$('favoriteSelect'),button=$('assetFavorite'),saved=favorites.includes(pair);
+ const placeholder=element('option',favorites.length?'Choose a favorite':'No saved favorites');
+ placeholder.value='';
+ menu.replaceChildren(placeholder,...favorites.map(symbol=>{
+  const option=element('option',symbol.replace(/USDT$/,' / USDT'));option.value=symbol;return option;
+ }));
+ menu.value=saved?pair:'';
+ menu.disabled=!favorites.length;
+ button.textContent=saved?'★ Saved':'☆ Save';
+ button.setAttribute('aria-pressed',String(saved));
+ button.setAttribute('aria-label',(saved?'Remove ':'Save ')+pair+(saved?' from favorites':' to favorites'));
+}
+$('favoriteSelect').addEventListener('change',event=>{
+ const symbol=event.target.value;
+ if(!symbol)return;
+ if(!catalog.pairs.includes(symbol))catalog.pairs.push(symbol);
+ $('pair').value='';renderCurrencyList();$('pairSelect').value=symbol;
+ if(symbol!==pair)choosePair();
+});
+$('assetFavorite').addEventListener('click',()=>{
+ const next=favorites.includes(pair)?favorites.filter(symbol=>symbol!==pair):[...favorites,pair];
+ try{localStorage.setItem(FAVORITES_KEY,JSON.stringify(next));favorites=next;renderFavorites()}
+ catch{notify('Favorites could not be saved on this device.','error')}
+});
+window.addEventListener('storage',event=>{
+ if(event.key===FAVORITES_KEY||event.key===null){readFavorites();renderFavorites()}
+});
 const seenSessionWindows=new Map();
 function selectWorld(code){
  if(worldExchange===code||!worldSessions.some(session=>session.exchange===code))return;
- worldExchange=code;worldEpoch++;
+ worldExchange=code;worldEpoch++;rankingRefreshAfter=0;
  pending.get('world-ranking')?.abort();pending.delete('world-ranking');
  $('flow').replaceChildren();set('flowTime','Loading session rankings…');
  renderSessionButtons(worldSessions);loadSessionRanking();draw();
@@ -171,11 +208,17 @@ function renderSessionButtons(sessions){
  }
 }
 async function loadSessionRanking(){
- if(!worldExchange||pending.has('world-ranking')||document.hidden)return;
+ if(!worldExchange||pending.has('world-ranking')||document.hidden||Date.now()<rankingRefreshAfter)return;
  const version=worldEpoch;
  try{
   const result=await request('/api/world-rankings?exchange='+encodeURIComponent(worldExchange),'world-ranking',24000);
   if(version!==worldEpoch)return;
+  if(result.status==='ok'){
+   const nextChange=Date.parse(result.next_change_utc);
+   const nextMinute=Math.floor(Date.now()/60000)*60000+60000;
+   rankingRefreshAfter=result.session_status==='open'?nextMinute:nextChange;
+   if(!Number.isFinite(rankingRefreshAfter))rankingRefreshAfter=Date.now()+60000;
+  }
   const previousWindow=seenSessionWindows.get(result.exchange);
   if(result.status==='ok'&&result.window_end_utc){
    seenSessionWindows.set(result.exchange,result.window_end_utc);
@@ -205,10 +248,12 @@ async function loadSessionRanking(){
 }
 async function loadWorld(){
  if(pending.has('world')||document.hidden)return;
+ const boundary=worldSessions.some(session=>Date.parse(session.next_change_utc)>worldCalendarAt&&Date.parse(session.next_change_utc)<=Date.now());
+ if(worldSessions.length&&!boundary&&Date.now()-worldCalendarAt<60000){await loadSessionRanking();return}
  try{
   const data=await request('/api/world-rankings','world',8000);
   if(!worldExchange)worldExchange=(data.sessions.find(session=>session.status==='open')||data.sessions[0])?.exchange;
-  worldSessions=data.sessions;sessionStates=new Map(worldSessions.map(session=>[session.exchange,session]));
+  worldCalendarAt=Date.now();worldSessions=data.sessions;sessionStates=new Map(worldSessions.map(session=>[session.exchange,session]));
   renderSessionButtons(worldSessions);draw();
  }catch(error){
   if(!worldExchange)set('flowTime','Session calendars unavailable.');
@@ -216,8 +261,8 @@ async function loadWorld(){
  await loadSessionRanking();
 }
 async function choosePair(){
- sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');const value=$('pairSelect').value;if(!/^[A-Z0-9]{1,22}USDT$/.test(value)){notify('Select a currency from the list.','error');return}
- epoch++;for(const key of ['engine','market','quote']){pending.get(key)?.abort();pending.delete(key)}pair=value;engine=null;market=null;selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
+ const value=$('pairSelect').value;if(!/^[A-Z0-9]{1,22}USDT$/.test(value)){notify('Select a currency from the list.','error');return}
+ epoch++;for(const key of ['engine','market','quote']){pending.get(key)?.abort();pending.delete(key)}pair=value;renderFavorites();engine=null;market=null;selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
  for(const o of $('venue').options)o.disabled=false;if(!venuePinned)$('venue').value='';
  set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');renderOutput();loadEngine();loadMarket();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
 $('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{venuePinned=!!$('venue').value;choosePair()});
@@ -417,7 +462,7 @@ function animate(now){
 }
 requestAnimationFrame(animate);
 try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0-9]{1,22}USDT$/.test(saved)){if(!catalog.pairs.includes(saved))catalog.pairs.push(saved);renderCurrencyList();$('pairSelect').value=saved}}catch{}
-choosePair();loadWorld();loadCatalog();
-setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,15000);setInterval(()=>{if(engine&&(engineFailed||age(engine.worker.last_success_utc)>600))renderEngine()},5000);
+readFavorites();choosePair();loadWorld();loadCatalog();
+setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,15000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&age(engine.worker.last_success_utc)>600)renderEngine()},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld()}});
 })();
