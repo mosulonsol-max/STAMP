@@ -48,6 +48,13 @@ function renderInspector(){
  }
  if(!valid)set('stageExtra',$('stageExtra').textContent+' · Worker evidence is delayed or unavailable. Last saved state: '+utc(e.archive_updated_at_utc));draw();
 }
+function targetRate(record){
+ if(!record||record.venue!=='MEXC'||record.outcome)return 'Target hit rate: unavailable for this record.';
+ const rate=engine?.target_rates?.[record.frame]?.[record.model_version];
+ if(rate?.rate==null)return 'Target hit rate: insufficient evidence ('+(rate?.samples||0)+'/30 verified results).';
+ return 'Historical target hit rate: '+(rate.rate*100).toFixed(1)+'% ('+rate.hits+'/'+rate.samples+
+  ' within ±1% of target at expiry).';
+}
 function renderOutput(){
  const r=activeRecord(),v=r?.venue==='MEXC'?(engine?.validation?.[r?.frame||frame]||{}):{};
  renderForecastCards();
@@ -59,6 +66,7 @@ function renderOutput(){
  for(const [id,value] of [['reference',r?.reference_price],['prediction',r?.predicted_price],['actual',r?.outcome?.actual_price]])set(id,price(value));
  set('issued','Issued '+utc(r?.reference_at_utc));set('due','Target '+utc(r?.due_at_utc));set('measured',r?.outcome?'Measured '+utc(r.outcome.measured_at_utc):r&&age(r.due_at_utc)<1?'Target not yet reached':'Awaiting matching target candle');
  const reasons={computed_with_pair_model:"Computed from this pair’s closed candles using its selected model. This projection is awaiting measurement.",computed_with_peer_model:"Computed from this venue’s closed candles using a model supported by other pairs. Local performance is still unverified.",computed_from_current_closed_candles:'Computed now from '+(r?.venue||'selected venue')+' closed candles. This projection has not yet been measured. Historical worker validation applies only to its saved MEXC models.',outperformed_no_change_baseline:'The forecast had lower squared price error than the unchanged-price baseline.',did_not_outperform_no_change_baseline:'The forecast did not beat the unchanged-price baseline.',integrity_or_chronology_failure:'The record failed integrity or chronology checks.',awaiting_verified_target_candle:'The worker is waiting for a verified target candle.'};
+ set('targetRate',targetRate(r));
  set('outputReason',reasons[r?.review.reason]||'No saved automatic review for this record.');set('model',r?.model_version||'Unavailable');
  set('formula',r?.inputs.available?(r.calculation.formula||'Reference × exp(mean of the last '+r.inputs.lookback+' saved log returns)') :'Original calculation inputs are unavailable.');
  set('recompute',r?.calculation.matches_recorded===true?(r.recorded===false?'Recomputed from current source candles · matches projection':'Recomputed from saved inputs · matches recorded prediction'):r?.calculation.matches_recorded===false?'Calculation mismatch · investigate':'Cannot independently reproduce this historical record');
@@ -146,7 +154,13 @@ function applyQuote(value,venue,fetched,provider){
 function paintQuote(){if(!lastQuote)return;const stale=Date.now()-lastQuote.fetchedMs>20000;const timed=Number.isFinite(lastQuote.providerMs);const oldProvider=timed&&Date.now()-lastQuote.providerMs>60000;
  $('quote').dataset.state=stale||oldProvider?'stale':'current';set('quoteTime',lastQuote.venue+' Spot · '+(stale||oldProvider?'DELAYED · ':'')+(timed?'exchange '+utc(new Date(lastQuote.providerMs).toISOString()):'exchange time unavailable')+' · fetched '+utc(new Date(lastQuote.fetchedMs).toISOString()));$('quoteTime').dataset.state=stale||oldProvider?'error':'ok';}
 async function loadMarket(){if(pending.has('market')||document.hidden)return;const version=epoch,venue=$('venue').value;
- try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair)+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000);if(version!==epoch)return;if(d.symbol!==pair||venue&&d.venue!==venue)throw Error('Mismatched market source');market=d;$('venue').value=d.venue;
+ try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair)+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000);if(version!==epoch)return;if(d.symbol!==pair||venue&&d.venue!==venue)throw Error('Mismatched market source');const previousMarket=market;market=d;$('venue').value=d.venue;
+ for(const horizon of Object.keys(MS)){
+  const current=Model.active(engine,d,horizon);
+  const prior=previousMarket?.research_forecasts?.[horizon];
+  if(current?.recorded===false&&Date.parse(current.reference_at_utc)>Date.parse(prior?.reference_at_utc||'1970-01-01'))
+   signal(['collect','compute','forecast',horizon],colors.amber,'Projection calculated · '+horizon,current.reference_at_utc);
+ }
  const close=d.ticker?.closeTime;applyQuote(d.ticker?.lastPrice,d.venue,d.retrieved_at_utc,close?new Date(Number(close)).toISOString():null);renderOutput();
  }catch(e){if(version===epoch){set('quoteTime','Selected venue unavailable · '+e.message);$('quoteTime').dataset.state='error';set('chartStatus','Current source unavailable. No replacement venue was selected.');if(!market){set('quote','—');renderOutput()}}}
 }
@@ -161,6 +175,7 @@ function renderForecastCards(){
   card.append(element('strong',r?price(r.predicted_price):'No current target'));
   if(r){const delta=100*(r.predicted_price/r.reference_price-1);card.append(element('span',(delta>=0?'+':'')+delta.toFixed(3)+'% from '+price(r.reference_price)),element('small','Target '+utc(r.due_at_utc)),element('small',r.model_origin==='peer'?'Shared model · '+(r.recorded===false?'current projection':'saved forecast'):r.recorded===false?'Current computed projection':'Saved worker forecast'))}
   else card.append(element('small',market?'Insufficient fresh closed candles for this horizon.':'Loading source candles…'));
+  if(r)card.append(element('small',targetRate(r)));
   card.addEventListener('click',()=>{selected=null;frame=horizon;$('frame').value=frame;chartView='';renderOutput()});container.append(card);
  }
 }
@@ -324,32 +339,32 @@ function signal(path,color,label,at){
  draw();
 }
 function observeArchive(previous,next){
- if(!previous||previous.symbol!==next.symbol)return;
- const issued=Object.entries(next.latest||{}).filter(([h,r])=>r?.id&&r.id!==previous.latest?.[h]?.id);
- for(const [h,r] of issued){
-  const path=r.calculation?.matches_recorded?['collect','compute','forecast',h]:['forecast',h];
-  signal(path,colors.amber,'Saved '+h+' forecast',r.reference_at_utc);
+ if(previous&&previous.symbol!==next.symbol)return;
+ const recent=at=>Date.now()-Date.parse(at)<=120000;
+ for(const [h,record] of Object.entries(next.latest||{})){
+  if(!record?.id||record.id===previous?.latest?.[h]?.id||
+   (!previous&&!recent(record.reference_at_utc)))continue;
+  const path=record.calculation?.matches_recorded?['collect','compute','forecast',h]:['forecast',h];
+  signal(path,colors.amber,'Saved '+h+' forecast',record.reference_at_utc);
  }
- const previousIds=new Set((previous.recent_outcomes||[]).map(record=>record.id));
- const measured=(next.recent_outcomes||[]).find(record=>!previousIds.has(record.id)&&
-  Date.parse(record.outcome?.measured_at_utc)>Date.parse(previous.generated_utc));
- if(measured)signal([measured.frame,'verify'],colors.green,'Measured '+measured.frame+' result',measured.outcome.measured_at_utc);
- const evaluated=next.learning?.adaptation?.[frame],prior=previous.learning?.adaptation?.[frame];
- if(evaluated&&prior&&(evaluated.samples!==prior.samples||evaluated.status!==prior.status||
-  evaluated.forward_samples!==prior.forward_samples))
-  signal(['verify','learn'],colors.violet,'Evaluation updated',next.review_updated_at_utc);
- const model=next.learning?.selected_models?.[frame],old=previous.learning?.selected_models?.[frame];
- if(model?.selected_at_utc&&model.selected_at_utc!==old?.selected_at_utc)
-  signal(['learn','compute'],colors.violet,'Model selection recorded',model.selected_at_utc);
+ const previousIds=new Set((previous?.scene_outcomes||[]).map(record=>record.id));
+ const outcomes=(next.scene_outcomes||[]).filter(record=>!previousIds.has(record.id)&&
+  (previous||recent(record.measured_at_utc)));
+ for(const record of outcomes.slice(-4))
+  signal([record.frame,'verify'],colors.green,'Measured '+record.frame+' result',record.measured_at_utc);
+ if(previous){
+  for(const [h,evaluated] of Object.entries(next.learning?.adaptation||{})){
+   const prior=previous.learning?.adaptation?.[h];
+   if(evaluated.samples!==prior?.samples||evaluated.status!==prior?.status||
+    evaluated.forward_samples!==prior?.forward_samples||evaluated.last_tested_reference!==prior?.last_tested_reference)
+    signal(['verify','learn'],colors.violet,'Evaluation updated · '+h,next.review_updated_at_utc);
+  }
+  for(const [h,model] of Object.entries(next.learning?.selected_models||{})){
+   if(model?.selected_at_utc&&model.selected_at_utc!==previous.learning?.selected_models?.[h]?.selected_at_utc)
+    signal(['learn','compute'],colors.violet,'Model selection recorded · '+h,model.selected_at_utc);
+  }
+ }
 }
-$('replayEvidence').addEventListener('click',()=>{
- const record=activeRecord();
- if(!record)return;
- const path=record.calculation?.matches_recorded?['collect','compute','forecast',frame]:['forecast',frame];
- signal(path,colors.amber,record.recorded?'Replay · saved forecast':'Replay · current projection',record.reference_at_utc);
- const outcome=record.outcome;
- if(outcome)signal([frame,'verify'],colors.green,'Replay · verified outcome',outcome.measured_at_utc);
-});
 function draw(now=performance.now()){
  if(!ctx)return;
  const {width:w,height:h}=canvas.getBoundingClientRect();
@@ -405,7 +420,6 @@ function draw(now=performance.now()){
   [[-83,-3,0],[4,67,0],[91,30,0],[78,-79,0],[-13,-91,0]];
  const stagesAreFresh=engine&&!engineFailed&&age(engine.worker?.last_success_utc)<600;
  const record=activeRecord();
- $('replayEvidence').disabled=!record;
  const states=[!!record?.inputs?.available,!!record?.calculation?.matches_recorded,!!record,!!record?.outcome||engine?.recent_outcomes?.some(item=>item.frame===frame),!!engine?.learning?.adaptation?.[frame]||!!engine?.learning?.selected_models?.[frame]];
  stages.forEach((item,i)=>{points[item.id]=camera(...stagePositions[i])});
  const freshQuote=lastQuote&&Date.now()-lastQuote.fetchedMs<20000&&

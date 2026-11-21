@@ -41,6 +41,26 @@ def summarize(data,pair,worker=None):
         if frame not in latest:
             latest[frame] = entry(record)
     settled = [record for record in valid if record.get("outcome")]
+    # A target is achieved when the audited close is within 1% of its price.
+    # Compare only the same pair, frame and model, with no pooling across venues.
+    groups = {}
+    for record in settled:
+        model = record.get("model_version") or record.get("method")
+        if model:
+            groups.setdefault(record["frame"], {}).setdefault(model, []).append(record)
+    target_rates = {}
+    for frame, models in groups.items():
+        target_rates[frame] = {}
+        for model, outcomes in models.items():
+            sample = outcomes[-100:]
+            hits = sum(abs(float(record["outcome"]["actual_price"]) /
+                           float(record["predicted_price"]) - 1) <= .01 for record in sample)
+            target_rates[frame][model] = {"hits": hits, "samples": len(sample),
+                                         "rate": hits / len(sample) if len(sample) >= 30 else None}
+    by_verified_at = sorted(settled, key=lambda record: record["outcome"]["measured_at_utc"])[-16:]
+    scene_outcomes = [{"id": record["id"], "frame": record["frame"],
+                       "measured_at_utc": record["outcome"]["measured_at_utc"]}
+                      for record in by_verified_at]
     invalid_outcomes = sum(bool(record.get("outcome")) for record in records) - len(settled)
     counts = {status: sum(reviews.get(record.get("id"), {}).get("status") == status
                           for record in valid) for status in ("accepted", "rejected", "pending")}
@@ -50,7 +70,7 @@ def summarize(data,pair,worker=None):
         "worker":worker or {},"archive_updated_at_utc":data.get("loop_updated_at_utc"),"review_updated_at_utc":(data.get("autonomous_review") or {}).get("checked_at_utc"),
         "coverage":{"universe":(data.get("universe") or {}).get("count"),"archive_records":data.get("archive_records_total",len(data.get("records",[]))),"pair_records":len(records),"settled":len(settled),"invalid_outcomes":invalid_outcomes,"decisions":counts},
         "collection":{"source":"MEXC closed spot candles","processed_in_last_batch":pair in last_cycle.get("processed",[]),"last_batch_at_utc":last_cycle.get("at_utc"),"last_error":last_cycle.get("failed",{}).get(pair),"retry_queued":pair in data.get("retry_pairs",[])},
-        "settlement_queue":data.get("settlement") or {},"latest":latest,"recent_outcomes":[entry(r) for r in settled[-16:]],
+        "target_rates":target_rates,"scene_outcomes":scene_outcomes,"settlement_queue":data.get("settlement") or {},"latest":latest,"recent_outcomes":[entry(r) for r in settled[-16:]],
         "validation":{frame:(data.get("validation") or {}).get(pair+"|"+frame,{}) for frame in FRAMES},
         "learning":{"peer_models":{frame:model for frame in FRAMES if (model:=transferred_model(data,pair,frame))},"selected_models":{frame:value for frame in FRAMES if (value:=(data.get("model_selections") or {}).get(pair+"|"+frame))},"adaptation":{frame:value for frame in FRAMES if (value:=(data.get("forecast_adaptation") or {}).get(pair+"|"+frame))},"next_action":diagnostic.get("next_action"),"missing_historical_features":diagnostic.get("historical_features_unrecoverable"),"policy":"Candidates must improve error by 5% on a chronological holdout and 20 later outcomes. Degraded adaptive models revert to unchanged price."},
         "input_contract":{"used":["Closed candle prices","Recorded recent log returns","Verified target candle outcomes for evaluation"],"observed_only":["Cross-venue order books","Cross-venue candle momentum","Global exchange sessions","Public executed buy/sell samples"],"not_implemented":["News-driven forecasts","On-chain holder features in this model","Automatic live trade execution"]},

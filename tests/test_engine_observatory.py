@@ -29,6 +29,23 @@ class EngineObservatoryTests(unittest.TestCase):
   self.assertEqual(result['coverage']['settled'],0)
   self.assertEqual(result['coverage']['invalid_outcomes'],1)
   self.assertEqual(result['recent_outcomes'],[])
+ def test_target_rate_uses_only_verified_same_model_outcomes(self):
+  import datetime as dt
+  start=dt.datetime(2026,11,1,tzinfo=dt.timezone.utc)
+  rows=[]
+  for i in range(30):
+   at=start+dt.timedelta(hours=i)
+   due=at+dt.timedelta(hours=1)
+   actual=100 if i<21 else 102
+   error=math.log(actual/100)**2
+   rows.append(self.record(id=str(i),reference_at_utc=at.isoformat(),due_at_utc=due.isoformat(),
+       predicted_price=100,outcome={'actual_price':actual,'measured_at_utc':due.isoformat(),
+         'squared_log_error':error,'baseline_squared_log_error':error}))
+  model='causal_6_return_momentum'
+  self.assertIsNone(summarize({'records':rows[:-1]},'BTCUSDT')['target_rates']['1h'][model]['rate'])
+  result=summarize({'records':rows},'BTCUSDT')
+  self.assertEqual(result['target_rates']['1h'][model],{'hits':21,'samples':30,'rate':.7})
+  self.assertEqual(result['scene_outcomes'][-1]['id'],'29')
  def test_empty_archive_has_no_synthetic_forecast(self):
   result=summarize({},'STAMPUSDT')
   self.assertEqual(result['latest'],{})
