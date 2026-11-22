@@ -57,7 +57,8 @@ def session_status(now):
                 next_change = cal.next_open(minute)
             result.append({"name": label, "exchange": code, "timezone": zone,
                            "status": "open" if is_open else "break" if is_break else "closed",
-                           "next_change_utc": iso(next_change)})
+                           "next_change_utc": iso(next_change),
+                           "close_utc": iso(close) if is_open and not is_break else None})
         except (ValueError, KeyError, IndexError, OverflowError):
             result.append({"name": label, "exchange": code, "timezone": zone,
                            "status": "unknown", "next_change_utc": None})

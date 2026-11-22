@@ -254,9 +254,44 @@ function renderSessionButtons(sessions){
    button.addEventListener('click',()=>selectWorld(session.exchange));
    group.append(button);buttons.set(session.exchange,button);
   }
-  button.textContent=session.name+' · '+session.status.toUpperCase();
+  button.replaceChildren(element('strong',session.name),element('span',session.status.toUpperCase()));
+  const timer=element('span','');
+  timer.className='session-countdown';
+  button.append(timer);
   button.dataset.state=session.status;
   button.setAttribute('aria-pressed',String(session.exchange===worldExchange));
+ }
+ updateSessionCountdowns();
+}
+let retryWorldAfter=0;
+function updateSessionCountdowns(){
+ if(document.hidden)return;
+ const now=Date.now();
+ const buttons=$('sessions').querySelectorAll('button');
+ let boundaryReached=false;
+ for(const [index,session] of worldSessions.entries()){
+  const timer=buttons[index]?.querySelector('.session-countdown');
+  if(!timer)continue;
+  const boundary=Date.parse(session.next_change_utc);
+  if(!Number.isFinite(boundary)){timer.textContent='Schedule unavailable';continue}
+  if(now>=boundary){
+   timer.textContent='Checking session…';
+   boundaryReached=true;
+   continue;
+  }
+  const closing=Date.parse(session.close_utc);
+  const deadline=session.status==='open'&&Number.isFinite(closing)?closing:boundary;
+  const seconds=Math.max(0,Math.ceil((deadline-now)/1000));
+  const clock=[Math.floor(seconds/3600)%24,Math.floor(seconds/60)%60,seconds%60]
+   .map(unit=>String(unit).padStart(2,'0')).join(':');
+  const days=Math.floor(seconds/86400);
+  const label={open:'Closes in',break:'Resumes in',closed:'Opens in'}[session.status];
+  timer.textContent=label+' '+(days?days+'d ':'')+clock;
+ }
+ if(boundaryReached&&now>=retryWorldAfter){
+  retryWorldAfter=now+5000;
+  rankingRefreshAfter=0;
+  loadWorld();
  }
 }
 async function loadSessionRanking(){
@@ -300,7 +335,7 @@ async function loadSessionRanking(){
 }
 async function loadWorld(){
  if(pending.has('world')||document.hidden)return;
- const boundary=worldSessions.some(session=>Date.parse(session.next_change_utc)>worldCalendarAt&&Date.parse(session.next_change_utc)<=Date.now());
+ const boundary=worldSessions.some(session=>Date.parse(session.next_change_utc)<=Date.now());
  if(worldSessions.length&&!boundary&&Date.now()-worldCalendarAt<60000){await loadSessionRanking();return}
  try{
   const data=await request('/api/world-rankings','world',8000);
@@ -600,6 +635,6 @@ function animate(now){
 requestAnimationFrame(animate);
 try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0-9]{1,22}USDT$/.test(saved)){if(!catalog.pairs.includes(saved))catalog.pairs.push(saved);renderCurrencyList();$('pairSelect').value=saved}}catch{}
 readFavorites();choosePair();loadWorld();loadCatalog();
-setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,15000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
+setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,15000);setInterval(updateSessionCountdowns,1000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld();loadTape()}});
 })();

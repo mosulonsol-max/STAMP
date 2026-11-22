@@ -352,14 +352,14 @@ def session_valid(cookie_header):
   expected=hmac.new(session_key(),body.encode(),hashlib.sha256).hexdigest()
   return bool(os.getenv("DASHBOARD_USER") and os.getenv("DASHBOARD_PASSWORD")) and hmac.compare_digest(sig,expected)
  except (ValueError,TypeError):return False
-def login_html(error=False):
+def login_html(error=False, trades=False):
  message='<p class="warning" role="alert">تحقّق من اسم المستخدم وكلمة المرور.</p>' if error else ''
  return ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
  '<meta name="robots" content="noindex,nofollow"><title>STAMP | تسجيل الدخول</title>'
  '<link rel="stylesheet" href="/assets/style.css?v=venue-scene-4"></head><body class="login-page">'
  '<main class="panel login-card"><div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></div>'
  '<h1>الدخول إلى لوحة السوق</h1>'+message+
- '<form method="post" action="/login"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
+ '<form method="post" action="'+('/login?view=trades' if trades else '/login')+'"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
  '<p><label for="password">كلمة المرور</label><input id="password" type="password" name="password" autocomplete="current-password" required></p>'
  '<button type="submit">تسجيل الدخول</button></form></main></body></html>').encode("utf-8")
 
@@ -395,7 +395,7 @@ class Handler(BaseHTTPRequestHandler):
    try:return self.send(200,(ROOT/"dashboard"/"private.css").read_bytes(),"text/css; charset=utf-8")
    except OSError:return self.send(503,b"Asset unavailable")
   if not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
-   if path in ("/","/index.html","/nexus","/market-flow","/login"):return self.send(200,login_html(),"text/html; charset=utf-8")
+   if path in ("/","/index.html","/nexus","/market-flow","/login"):return self.send(200,login_html(trades=parse_qs(urlsplit(self.path).query).get("view")==["trades"]),"text/html; charset=utf-8")
    if path.startswith("/api/"):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
@@ -676,8 +676,9 @@ class Handler(BaseHTTPRequestHandler):
    password=fields.get("password",[""])[0]
    good=authorized("Basic "+base64.b64encode((username+":"+password).encode()).decode())
   except (ValueError,UnicodeError,TypeError):good=False
-  if not good:return self.send(401,login_html(True),"text/html; charset=utf-8")
-  return self.send(303,b"",extra={"Location":"/","Set-Cookie":"stamp_session="+make_session()+"; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax"})
+  trades=parse_qs(urlsplit(self.path).query).get("view")==["trades"]
+  if not good:return self.send(401,login_html(True,trades),"text/html; charset=utf-8")
+  return self.send(303,b"",extra={"Location":"/nexus#tradeTape" if trades else "/","Set-Cookie":"stamp_session="+make_session()+"; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax"})
 def main():
  if not os.getenv("DASHBOARD_USER") or not os.getenv("DASHBOARD_PASSWORD"):raise SystemExit("Refusing to start without dashboard authentication")
  port=int(os.getenv("PORT","10000"))
