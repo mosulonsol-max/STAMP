@@ -9,10 +9,11 @@ def encode_state(data):
             json.dump(data,text,separators=(',',':'),ensure_ascii=False,allow_nan=False)
     return output.getvalue()
 
-def decode_state(payload):
+def decode_state(payload, *, skip_review=False):
     # Share repeated JSON field names inside this decode. The table is local
     # and capped so growing archive identifiers cannot accumulate across cycles.
     field_names = {}
+    values = {}
 
     class ArchiveMap(dict):
         __slots__ = ()
@@ -20,12 +21,26 @@ def decode_state(payload):
         def __setitem__(self, key, value):
             if "|" not in key and len(key) <= 48 and len(field_names) < 512:
                 key = field_names.setdefault(key, key)
+            if key in ("pair", "frame", "model_version", "method", "validation_at_issue",
+                       "model_origin", "reference_at_utc", "due_at_utc", "target_at_utc",
+                       "measured_at_utc", "reason", "status") and isinstance(value, str):
+                if len(values) < 32768:
+                    value = values.setdefault(value, value)
             super().__setitem__(key, value)
 
     with gzip.GzipFile(fileobj=io.BytesIO(payload),mode='rb') as zipped:
         # Parse incrementally: json.load first materializes the entire decompressed
         # UTF-8 string alongside the archive objects, exceeding small workers.
-        data=next(ijson.items(zipped,'',use_float=True,map_type=ArchiveMap))
+        if skip_review:
+            # The governor recreates every review from the original forecasts.
+            # Skip this derived map before allocating its Python objects.
+            events = (item for item in ijson.parse(zipped, use_float=True)
+                      if item[0] != 'autonomous_review'
+                      and not item[0].startswith('autonomous_review.')
+                      and item != ('', 'map_key', 'autonomous_review'))
+            data = next(ijson.items(events, '', map_type=ArchiveMap))
+        else:
+            data = next(ijson.items(zipped,'',use_float=True,map_type=ArchiveMap))
     if not isinstance(data,dict):raise ValueError('invalid_research_state')
     return data
 
@@ -49,10 +64,10 @@ def read_archive(conn, revision):
         """, (revision,))
         chunks = [row[0] for row in cursor]
     if chunks:
-        return decode_state(b"".join(chunks))
+        return decode_state(b"".join(chunks), skip_review=True)
     # The original snapshot remains readable until the first chunked commit.
     row = conn.execute("SELECT payload FROM research_state_compact WHERE id=1").fetchone()
-    return decode_state(row[0])
+    return decode_state(row[0], skip_review=True)
 
 
 def write_archive(conn, data):

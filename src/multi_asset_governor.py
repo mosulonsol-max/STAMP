@@ -245,6 +245,7 @@ def autonomous_review(data):
     records=data.get("records") or []
     # Audit all records individually; the public audit response samples only 30 problems.
     reviews={}
+    decision_types={}
     for rec in records:
         rid=rec.get("id")
         if not rid:continue
@@ -259,7 +260,10 @@ def autonomous_review(data):
             baseline=float(outcome["baseline_squared_log_error"])
             status="accepted" if err<baseline else "rejected"
             reason="outperformed_no_change_baseline" if status=="accepted" else "did_not_outperform_no_change_baseline"
-        reviews[rid]={"status":status,"reason":reason}
+        key=(status,reason)
+        if key not in decision_types:
+            decision_types[key]={"status":status,"reason":reason}
+        reviews[rid]=decision_types[key]
     counts={k:sum(v["status"]==k for v in reviews.values()) for k in ("accepted","rejected","pending")}
     data["autonomous_review"]={"counts":counts,"decisions":reviews,"checked_at_utc":dt.datetime.now(dt.timezone.utc).isoformat(),"policy":"per_forecast_integrity_then_error_vs_no_change; model approval separately requires prospective holdout"}
     return data
@@ -299,7 +303,6 @@ def cycle(pairs=None):
                           "next_cursor":data["cursor"],"complete_this_cycle":batch==len(requested)}
     data=reconcile(data)
     checkpoint('outcomes_reconciled')
-    data=autonomous_review(data)
     data=retrain_candidates(data)
     checkpoint('models_evaluated')
     issued={r["id"] for r in data["records"]}
