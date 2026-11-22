@@ -539,6 +539,19 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(200,json.dumps(worker_status(),allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"worker_status_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/trade-tape":
+   try:
+    from src.trade_tape import snapshot as trade_tape_snapshot
+   except ImportError:
+    from trade_tape import snapshot as trade_tape_snapshot
+   try:
+    query=parse_qs(urlsplit(self.path).query)
+    result=trade_tape_snapshot(*(query.get(key,[""])[0] for key in ("symbol","network","contract")))
+    return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except ValueError as exc:
+    return self.send(400,json.dumps({"error":str(exc)}).encode(),"application/json; charset=utf-8")
+   except Exception:
+    return self.send(503,b'{"error":"trade_tape_unavailable"}',"application/json; charset=utf-8")
   if path=="/api/market-events":
    query=parse_qs(urlsplit(self.path).query)
    try:

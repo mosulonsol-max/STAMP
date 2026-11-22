@@ -126,7 +126,7 @@ def venue_trade_rows(venue,pair):
     except ImportError:from multi_asset import public_json
     base=pair[:-4]
     routes={
-      "Binance":("https://api.binance.com/api/v3/trades?"+urlencode({"symbol":pair,"limit":250}),lambda x:x),
+      "Binance":("https://data-api.binance.vision/api/v3/trades?"+urlencode({"symbol":pair,"limit":250}),lambda x:x),
       "OKX":("https://www.okx.com/api/v5/market/trades?"+urlencode({"instId":base+"-USDT","limit":100}),lambda x:x["data"] if x.get("code")=="0" else None),
       "Bybit":("https://api.bybit.com/v5/market/recent-trade?"+urlencode({"category":"spot","symbol":pair,"limit":250}),lambda x:x["result"]["list"] if x.get("retCode")==0 else None),
       "KuCoin":("https://api.kucoin.com/api/v1/market/histories?"+urlencode({"symbol":base+"-USDT"}),lambda x:x["data"] if str(x.get("code"))=="200000" else None),

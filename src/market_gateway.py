@@ -15,14 +15,22 @@ def _quote(pair,venue,bucket):return assets.quote_snapshot(pair,venue)
 def _universe(bucket):
     d=assets.universe(timeout=6)
     return dict(d,venues={p:['MEXC'] for p in d['pairs']},sources={'MEXC':{'status':'ok','count':d['count'],'transport':'worker_gateway'}})
+@lru_cache(maxsize=4)
+def _mexc_trades(pair,bucket):
+    try:from src.market_events import trade_sample, venue_trade_rows, utc
+    except ImportError:from market_events import trade_sample, venue_trade_rows, utc
+    rows=venue_trade_rows("MEXC",pair)
+    return {"symbol":pair,"venue":"MEXC","sample":trade_sample(rows,pair,utc(),"MEXC")}
+
 def serve(kind,pair='',venue=''):
     if kind=='universe':return _universe(int(time.time()//300))
     pair=assets.symbol(pair)
     if kind=='snapshot':return _snapshot(pair,venue,int(time.time()//15))
+    if kind=='trades' and venue=='MEXC':return _mexc_trades(pair,int(time.time()//15))
     if kind=='quote':return _quote(pair,venue,int(time.time()//3))
     raise ValueError('unknown_market_operation')
 def fetch_gateway(kind,pair='',venue=''):
-    if kind not in ('snapshot','quote','universe'):raise ValueError('unknown_market_operation')
+    if kind not in ('snapshot','quote','universe','trades'):raise ValueError('unknown_market_operation')
     if kind!='universe':pair=assets.symbol(pair)
     if venue and venue not in assets.VENUES:raise ValueError('unsupported_venue')
     url='https://stamp-autonomous-worker.onrender.com/market/'+kind+'?'+urlencode({'symbol':pair,'venue':venue})

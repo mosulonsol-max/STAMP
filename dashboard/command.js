@@ -312,9 +312,83 @@ async function loadWorld(){
  }
  await loadSessionRanking();
 }
+const tapeRows=new Map();
+const tapeClock=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',dateStyle:'short',timeStyle:'medium'});
+let tapeRevision=0,tapeLimit=100,tapeIdentity=null;
+function tapeKey(row){return row.type+' · '+row.source}
+function resetTape(){
+ tapeRevision++;tapeLimit=100;tapeRows.clear();
+ pending.get('trade-tape')?.abort();pending.delete('trade-tape');
+ $('tapeRows').replaceChildren();$('tapeCoverage').textContent='';
+ $('tapeVenue').replaceChildren(new Option('All sources',''));
+ $('tapeMore').hidden=true;
+}
+function drawTape(){
+ const frameMs=Number($('tapeFrame').value),side=$('tapeSide').value,venue=$('tapeVenue').value;
+ const filtered=[...tapeRows.values()].filter(row=>(!side||row.side===side)&&(!venue||venue===tapeKey(row)));
+ let items=filtered.map(row=>({...row,count:1}));
+ if(frameMs){
+  const grouped=new Map();
+  for(const row of filtered){
+   const time=Math.floor((row.time_ms+10800000)/frameMs)*frameMs-10800000;
+   const key=[time,tapeKey(row),row.side,row.quote].join('|');
+   const item=grouped.get(key)||{...row,time_ms:time,quantity:0,notional:0,count:0};
+   item.quantity+=row.quantity;item.notional+=row.notional;item.count++;grouped.set(key,item);
+  }
+  items=[...grouped.values()].map(row=>({...row,price:row.notional/row.quantity}));
+ }
+ items.sort((a,b)=>b.time_ms-a.time_ms);
+ const format=value=>Number(value).toLocaleString('en-US',{maximumSignificantDigits:9});
+ $('tapeRows').replaceChildren(...items.slice(0,tapeLimit).map(row=>{
+  const tr=element('tr','');
+  const platform=tapeKey(row);
+  const venueCell=element('td',platform);
+  if(!frameMs&&row.pool)venueCell.title='Pool '+row.pool+(row.tx?' · Tx '+row.tx:'');
+  tr.append(element('td',tapeClock.format(row.time_ms)),venueCell,element('td',row.side.toUpperCase()),
+   element('td',format(row.quantity)),element('td',format(row.price)+' '+row.quote),
+   element('td',format(row.notional)+' '+row.quote),element('td',String(row.count)));
+  return tr;
+ }));
+ $('tapeMore').hidden=items.length<=tapeLimit;
+}
+async function loadTape(){
+ if(!$('tradeTape').open||document.hidden||pending.has('trade-tape'))return;
+ const revision=tapeRevision,query=new URLSearchParams({symbol:pair});
+ if(tapeIdentity){query.set('network',tapeIdentity.network);query.set('contract',tapeIdentity.contract)}
+ if(!tapeRows.size)set('tapeStatus','Loading '+pair+' executions…');
+ try{
+  const result=await request('/api/trade-tape?'+query,'trade-tape',24000);
+  if(revision!==tapeRevision||result.symbol!==pair)return;
+  for(const row of result.trades)tapeRows.set(row.id,row);
+  if(tapeRows.size>5000){
+   const oldest=[...tapeRows.values()].sort((a,b)=>a.time_ms-b.time_ms);
+   for(const row of oldest.slice(0,tapeRows.size-5000))tapeRows.delete(row.id);
+  }
+  const venue=$('tapeVenue'),selection=venue.value;
+  const names=[...new Set([...tapeRows.values()].map(tapeKey))].sort();
+  venue.replaceChildren(new Option('All sources',''),...names.map(name=>new Option(name,name)));
+  if(names.includes(selection))venue.value=selection;
+  set('tapeStatus',pair+' · '+tapeRows.size+' captured trades · checked '+tapeClock.format(Date.parse(result.observed_utc))+
+   (result.contract?' · '+result.network+': '+result.contract:' · Add a verified contract for DEX trades'));
+  set('tapeCoverage',result.sources.map(source=>source.venue+' '+source.status+' ('+source.count+')').join(' · ')+
+   (result.contract?' · Up to '+result.dex_pool_limit+' of '+result.dex_pools_discovered+' discovered pools queried':''));
+  drawTape();
+ }catch(error){
+  if(revision===tapeRevision)set('tapeStatus','Trade feed unavailable. '+(tapeRows.size?'Showing last captured trades.':'Check source or contract.'));
+ }
+}
+$('openTradeTape').addEventListener('click',()=>{$('tradeTape').open=true});
+$('tradeTape').addEventListener('toggle',()=>{if($('tradeTape').open)loadTape();else pending.get('trade-tape')?.abort()});
+$('tapeContractForm').addEventListener('submit',event=>{
+ event.preventDefault();const contract=$('tapeContract').value.trim();
+ tapeIdentity=contract?{network:$('tapeNetwork').value,contract}:null;resetTape();loadTape();
+});
+for(const id of ['tapeFrame','tapeSide','tapeVenue'])$(id).addEventListener('change',()=>{tapeLimit=100;drawTape()});
+$('tapeMore').addEventListener('click',()=>{tapeLimit+=100;drawTape()});
+setInterval(loadTape,30000);
 async function choosePair(){
  const value=$('pairSelect').value;if(!/^[A-Z0-9]{1,22}USDT$/.test(value)){notify('Select a currency from the list.','error');return}
- epoch++;for(const key of ['engine','market','quote']){pending.get(key)?.abort();pending.delete(key)}pair=value;renderFavorites();engine=null;market=null;selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
+ epoch++;for(const key of ['engine','market','quote']){pending.get(key)?.abort();pending.delete(key)}if(pair!==value){tapeIdentity=null;$('tapeContract').value='';resetTape()}pair=value;renderFavorites();loadTape();engine=null;market=null;selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
  for(const o of $('venue').options)o.disabled=false;if(!venuePinned)$('venue').value='';
  set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);forecastArrowPoints=[];predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');renderOutput();loadEngine();loadMarket();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
 $('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{venuePinned=!!$('venue').value;choosePair()});
