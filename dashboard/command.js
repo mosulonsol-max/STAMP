@@ -352,7 +352,7 @@ function drawTape(){
  $('tapeMore').hidden=items.length<=tapeLimit;
 }
 async function loadTape(){
- if(!$('tradeTape').open||document.hidden||pending.has('trade-tape'))return;
+ if(document.hidden||pending.has('trade-tape'))return;
  const revision=tapeRevision,query=new URLSearchParams({symbol:pair});
  if(tapeIdentity){query.set('network',tapeIdentity.network);query.set('contract',tapeIdentity.contract)}
  if(!tapeRows.size)set('tapeStatus','Loading '+pair+' executions…');
@@ -377,8 +377,6 @@ async function loadTape(){
   if(revision===tapeRevision)set('tapeStatus','Trade feed unavailable. '+(tapeRows.size?'Showing last captured trades.':'Check source or contract.'));
  }
 }
-$('openTradeTape').addEventListener('click',()=>{$('tradeTape').open=true});
-$('tradeTape').addEventListener('toggle',()=>{if($('tradeTape').open)loadTape();else pending.get('trade-tape')?.abort()});
 $('tapeContractForm').addEventListener('submit',event=>{
  event.preventDefault();const contract=$('tapeContract').value.trim();
  tapeIdentity=contract?{network:$('tapeNetwork').value,contract}:null;resetTape();loadTape();
@@ -603,5 +601,5 @@ requestAnimationFrame(animate);
 try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0-9]{1,22}USDT$/.test(saved)){if(!catalog.pairs.includes(saved))catalog.pairs.push(saved);renderCurrencyList();$('pairSelect').value=saved}}catch{}
 readFavorites();choosePair();loadWorld();loadCatalog();
 setInterval(loadEngine,15000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,15000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld();loadTape()}});
 })();
