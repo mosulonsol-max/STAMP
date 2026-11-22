@@ -10,6 +10,7 @@ from threadpoolctl import threadpool_limits
 from prediction_engine import clean,features,HORIZONS,HOUR
 from research_engine import wilson_interval
 from model_inputs import NAMES,GROUPS,SCHEMA,Inputs
+from autonomous_selector import choose_candidate
 VERSION='context_walk_forward_v3'
 HIST={'loss':'absolute_error','max_iter':40,'max_leaf_nodes':7,'l2_regularization':10,'random_state':42}
 FOREST={'criterion':'absolute_error','n_estimators':16,'max_depth':4,'min_samples_leaf':12,'random_state':42,'n_jobs':1}
@@ -89,7 +90,7 @@ def evaluate(cs,horizon,now,inputs,include_diagnostics=False):
    except Exception as exc:pred[name].append(None);report.setdefault('errors',{})[name]=type(exc).__name__
  valid={k:v for k,v in pred.items() if all(vv is not None for vv in v)}
  selection={k:score(actual[:selection_count],v[:selection_count]) for k,v in valid.items()}
- chosen=min(selection,key=lambda k:selection[k]['mae']);report['selection']={'samples':selection_count,'candidates':selection,'selected_model':chosen,'selection_last_target_ms':rows[selected[selection_count-1]]['target_ms'],'evaluation_first_feature_ms':rows[selected[selection_count]]['feature_ms'],'policy':'Candidate chosen before later scores are computed; no choice from later holdout'}
+ chosen,automatic_selection=choose_candidate(actual[:selection_count],{k:v[:selection_count] for k,v in valid.items()});report['automatic_selection']=automatic_selection;report['selection']={'samples':selection_count,'candidates':selection,'selected_model':chosen,'selection_last_target_ms':rows[selected[selection_count-1]]['target_ms'],'evaluation_first_feature_ms':rows[selected[selection_count]]['feature_ms'],'policy':'Candidate chosen before later scores are computed; no choice from later holdout'}
  report['selected_feature_groups']=[] if chosen=='no_change' else ['regime'] if chosen=='technical_absolute' else ['regime','market'] if chosen=='market_absolute' else list(GROUPS)
  report['challengers']={k:score(actual[selection_count:],v[selection_count:]) for k,v in valid.items()}
  selected_score=report['challengers'][chosen];n=len(actual)-selection_count
