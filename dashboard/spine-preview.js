@@ -78,7 +78,7 @@
   }
   trace(stops.map(t=>ribbon(t,0)),'#79c8d145',1);
   trace([nodes.compute,nodes.forecast],matched?'#ffc990':'#7f8b96',1.5,matched?[]:[3,4]);
-  const hits=[];
+  const hits=paths.map(item=>({x:item.at.x,y:item.at.y-7,kind:'source',id:item.name.toLowerCase(),radius:22}));
   for(const [id,p] of Object.entries(nodes).slice(1,6)){
    const color=id===stage?'#ffd199':id==='forecast'&&matched?'#ffca88':'#95c6ca';
    point(p,'#122330',8);point(p,color,id===stage?5:3.5);
