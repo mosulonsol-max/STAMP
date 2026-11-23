@@ -84,3 +84,30 @@ main { padding-top: 27px; }
 .news-story .news-tags { color: var(--cyan); font-size: 12px; line-height: 1.5; margin: 7px 0 0; }
 .news-limit { margin: 14px 24px 20px; }
 @media(max-width:720px) { .news-stories { grid-template-columns: 1fr; padding: 0 16px; } .news-model-status,.news-limit { margin-left: 16px; margin-right: 16px; } }
+
+.mood-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.mood-card { padding: 14px 18px; }
+.mood-card h2 { font-size: 1rem; margin: 0 0 7px; }
+.mood-card small, .tape-net-item small { color: var(--muted); display: block; }
+.mood-card a, .news-source { color: var(--cyan); }
+.mood-value { display: flex; align-items: baseline; gap: 8px 14px; flex-wrap: wrap; }
+.mood-value strong { font-size: 1.55rem; font-variant-numeric: tabular-nums; }
+.mood-card meter { width: min(100%, 280px); height: 10px; margin: 3px 0 6px; }
+[data-tone="positive"] { color: #8ce8ad; }
+[data-tone="negative"] { color: #ff9aa7; }
+.tape-net { margin: 12px 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: #0b1721; }
+.tape-net h3 { margin: 0 0 8px; font-size: 1rem; }
+.tape-net-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 8px 18px; }
+.tape-net-item { padding: 4px 0; }
+.tape-breakdown { display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 4px 0; font-size: .85rem; }
+.tape-net .footnote { margin: 7px 0 0; }
+.trade-tape td.tape-side { font-weight: 750; }
+.news-disclosure > summary { margin: 0 24px 12px; color: var(--cyan); font-weight: 650; }
+.news-disclosure summary { cursor: pointer; }
+.news-story > summary { font-size: .9rem; line-height: 1.55; overflow-wrap: anywhere; }
+.news-story .polarity { display: inline-block; margin: 2px 0 2px 8px; padding: 0 8px; font-size: .75rem; border: 1px solid currentColor; border-radius: 99px; white-space: nowrap; }
+.news-source { display: inline-block; margin-top: 7px; font-size: .8rem; }
+@media(max-width: 600px) {
+ .mood-grid { grid-template-columns: minmax(0, 1fr); }
+ .news-disclosure > summary { margin-inline: 16px; }
+}

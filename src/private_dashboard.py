@@ -51,6 +51,21 @@ def load(path,token):
   return ([] if path.endswith(".jsonl") or path.startswith("candles/") else {}),"HTTP_"+str(exc.code)
  except (OSError,URLError,ValueError,UnicodeError) as exc:
   return ([] if path.endswith(".jsonl") or path.startswith("candles/") else {}),type(exc).__name__
+@lru_cache(maxsize=2)
+def market_fear_greed(_refresh_bucket):
+ """Retrieve the provider's daily Bitcoin sentiment benchmark."""
+ req=Request("https://api.alternative.me/fng/?limit=1",headers={"Accept":"application/json","User-Agent":"STAMP-Nexus"})
+ with urlopen(req,timeout=6) as response:
+  result=json.loads(response.read(8192))
+ row=result["data"][0]
+ value=int(row["value"])
+ classification=row["value_classification"]
+ stamp=dt.datetime.fromtimestamp(int(row["timestamp"]),dt.timezone.utc)
+ now=dt.datetime.now(dt.timezone.utc)
+ if not 0<=value<=100 or classification not in ("Extreme Fear","Fear","Neutral","Greed","Extreme Greed") or not 0<stamp.timestamp()<=now.timestamp()+300:
+  raise ValueError("invalid_fear_greed_reading")
+ return {"value":value,"classification":classification,"observed_at_utc":stamp.isoformat(),"source":"Alternative.me"}
+
 def fetch_mexc_quote(symbol="STAMPUSDT"):
  """Independently timestamped public MEXC ticker; never a substitute for archived analytics."""
  url="https://api.mexc.com/api/v3/ticker/24hr?symbol="+quote(symbol,safe="")
@@ -488,6 +503,12 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(200,json.dumps(world_snapshot(),allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"world_sessions_unavailable","detail":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/market/fear-greed":
+   try:
+    result=market_fear_greed(int(time.time()//900))
+    return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except (OSError,ValueError,TypeError,KeyError,IndexError,OverflowError):
+    return self.send(503,b'{"error":"market_fear_greed_unavailable"}',"application/json; charset=utf-8")
   if path=="/api/research/news":
    try:
     pair=parse_qs(urlsplit(self.path).query).get("symbol",[""])[0].upper()

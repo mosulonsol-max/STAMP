@@ -159,7 +159,7 @@ function applyQuote(value,venue,fetched,provider){
 function paintQuote(){if(!lastQuote)return;const stale=Date.now()-lastQuote.fetchedMs>20000;const timed=Number.isFinite(lastQuote.providerMs);const oldProvider=timed&&Date.now()-lastQuote.providerMs>60000;
  $('quote').dataset.state=stale||oldProvider?'stale':'current';set('quoteTime',lastQuote.venue+' Spot · '+(stale||oldProvider?'DELAYED · ':'')+(timed?'exchange '+utc(new Date(lastQuote.providerMs).toISOString()):'exchange time unavailable')+' · fetched '+utc(new Date(lastQuote.fetchedMs).toISOString()));$('quoteTime').dataset.state=stale||oldProvider?'error':'ok';}
 async function loadMarket(){if(pending.has('market')||document.hidden)return;const version=epoch,venue=$('venue').value;
- try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair)+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000);if(version!==epoch)return;if(d.symbol!==pair||venue&&d.venue!==venue)throw Error('Mismatched market source');const previousMarket=market;market=d;$('venue').value=d.venue;
+ try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair)+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000);if(version!==epoch)return;if(d.symbol!==pair||venue&&d.venue!==venue)throw Error('Mismatched market source');const previousMarket=market;market=d;$('venue').value=d.venue;drawPairMood();
  for(const horizon of Object.keys(MS)){
   const current=Model.active(engine,d,horizon);
   const prior=previousMarket?.research_forecasts?.[horizon];
@@ -347,6 +347,42 @@ async function loadWorld(){
  }
  await loadSessionRanking();
 }
+function drawMood(id,value,label,tone){
+ const meter=$(id+'Meter');
+ set(id+'Score',value==null?'—':value+' / 100');
+ set(id+'Label',label);
+ $(id).dataset.tone=tone||'neutral';
+ meter.hidden=value==null;
+ if(value!=null)meter.value=value;
+}
+const moodTone=label=>label.includes('Fear')?'negative':label.includes('Greed')?'positive':'neutral';
+async function loadMarketMood(){
+ if(document.hidden||pending.has('market-mood'))return;
+ try{
+  const data=await request('/api/market/fear-greed','market-mood',8000);
+  const stamp=Date.parse(data.observed_at_utc);
+  if(!Number.isInteger(data.value)||data.value<0||data.value>100||!Number.isFinite(stamp))throw Error('Invalid index');
+  const stale=Date.now()-stamp>36*3600000;
+  drawMood('marketMood',data.value,data.classification+(stale?' · delayed':''),stale?'neutral':moodTone(data.classification));
+  set('marketMoodTime',worldTime(data.observed_at_utc)+' Baghdad');
+ }catch{
+  if($('marketMoodMeter').hidden)drawMood('marketMood',null,'Daily index unavailable');
+  else set('marketMoodLabel','Last reading · refresh unavailable');
+ }
+}
+function drawPairMood(){
+ const mood=Model.pairMood(market?.candles?.['1d']);
+ set('pairMoodTitle',pair.replace(/USDT$/,' / USDT')+' Fear & Greed');
+ if(!mood){
+  drawMood('pairMood',null,market?'Insufficient recent daily candles':'Waiting for daily candles…');
+  set('pairMoodTime','Technical estimate · 14-day RSI and 7-day momentum');
+  return;
+ }
+ const value=mood.value;
+ const label=value<25?'Extreme Fear':value<45?'Fear':value<=55?'Neutral':value<=75?'Greed':'Extreme Greed';
+ drawMood('pairMood',value,label,moodTone(label));
+ set('pairMoodTime','Technical estimate · '+market.venue+' · daily close '+worldTime(mood.closedAt)+' Baghdad');
+}
 let newsSnapshot=null;
 const newsTime=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',dateStyle:'medium',timeStyle:'short'});
 function drawNews(){
@@ -357,16 +393,27 @@ function drawNews(){
  const pct=value=>value==null?'—':(value>=0?'+':'')+(value*100).toFixed(1)+'%';
  set('newsStatus',(data.status||'unavailable').toUpperCase()+' · '+(data.checked_at_utc?newsTime.format(Date.parse(data.checked_at_utc))+' Baghdad':'timestamp unavailable')+' · '+(data.sources||[]).map(source=>source.name.replace('GDELT · ','')+' '+source.status).join(' / ')+' · '+(signal.corroborated_stories||0)+' matched reports');
  set('newsModelStatus',(signal.status==='news_source_stale'?'News source stale · no current news signal used · ':'Pair headline signal '+pct(signal.signal)+' · '+number(signal.corroborated_stories)+' independently reported stories · ')+(model.used_in_directional_forecast?'Directional news adjustment active for '+frame+' · '+model.walk_forward_samples+' walk-forward outcomes · holdout error change '+pct(improvement)+' · '+number(model.independent_pairs)+' pairs · '+number(model.independent_days)+' days':'News effect collecting prospective evidence for '+frame+' · '+number(model.training_samples)+' paired outcomes · '+number(model.walk_forward_samples)+' walk-forward outcomes · error change '+pct(improvement)));
- const list=$('newsStories');list.replaceChildren();
- for(const story of data.stories||[]){
-  const article=document.createElement('article');article.className='news-story';
-  const heading=document.createElement('h3'),link=document.createElement('a');
-  link.href=story.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=story.title;heading.append(link);
+ const list=$('newsStories'),stories=data.stories||[];
+ const expanded=new Set([...list.querySelectorAll('details[open]')].map(story=>story.dataset.story));
+ set('newsToggleLabel','Tracked headlines · '+stories.length);
+ list.replaceChildren();
+ for(const story of stories){
+  const article=element('details','','news-story');
+  article.dataset.story=story.id;
+  article.open=expanded.has(story.id);
+  const score=Number(story.sentiment);
+  const tone=score>0?'positive':score<0?'negative':'neutral';
+  const impact=element('span',score>0?'↑ Positive':score<0?'↓ Negative':'— Neutral','polarity');
+  impact.dataset.tone=tone;
+  const heading=element('summary','');
+  heading.append(element('span',story.title),impact);
+  const link=element('a','Read source','news-source');
+  if(/^https?:\/\//i.test(story.url)){link.href=story.url;link.target='_blank';link.rel='noopener noreferrer'}
   const timeLabel=story.timestamp_type==='published_at_source'?'Published':'Seen by GDELT';
   const metadata=element('p',(story.domains||[]).join(' · ')+' · '+timeLabel+': '+(story.seen_at_utc?newsTime.format(Date.parse(story.seen_at_utc))+' Baghdad':'time unavailable'),'footnote');
   const verification=story.corroborated?'CORROBORATED · '+story.reports+' outlets':'SINGLE SOURCE · not corroborated';
   const tags=element('p',verification+' · '+(story.categories||[]).join(' · ')+' · headline polarity '+(Number(story.sentiment)>=0?'+':'')+Number(story.sentiment||0).toFixed(2),'news-tags');
-  article.append(heading,metadata,tags);list.append(article);
+  article.append(heading,metadata,tags);if(link.hasAttribute('href'))article.append(link);list.append(article);
  }
  if(!list.children.length)list.append(element('p',data.status==='unavailable'?'The news source has not returned headlines. Check the source status and timestamp.':'No recent economic, political or digital-asset headlines are available.','footnote'));
 }
@@ -384,12 +431,46 @@ function resetTape(){
  tapeRevision++;tapeLimit=100;tapeRows.clear();
  pending.get('trade-tape')?.abort();pending.delete('trade-tape');
  $('tapeRows').replaceChildren();$('tapeCoverage').textContent='';
+ $('tapeNetRows').replaceChildren(element('p','Waiting for captured trades…','footnote'));
  $('tapeVenue').replaceChildren(new Option('All sources',''));
  $('tapeMore').hidden=true;
 }
+const tapeValue=value=>Number(value).toLocaleString('en-US',{maximumSignificantDigits:9});
+function drawTapeNet(rows){
+ const totals=new Map();
+ for(const row of rows){
+  const {quote,side,notional}=row;
+  if(!quote||(side!=='buy'&&side!=='sell')||!Number.isFinite(notional)||notional<=0)continue;
+  if(!totals.has(quote))totals.set(quote,{buy:0,sell:0,start:Infinity,end:0});
+  const bucket=totals.get(quote);
+  bucket[side]+=notional;
+  bucket.start=Math.min(bucket.start,row.time_ms);
+  bucket.end=Math.max(bucket.end,row.time_ms);
+ }
+ const summary=$('tapeNetRows');
+ summary.replaceChildren();
+ for(const [quote,{buy,sell,start,end}] of [...totals].sort(([a],[b])=>a.localeCompare(b))){
+  const net=buy-sell,balanced=Math.abs(net)<=Math.max(buy,sell)*1e-12;
+  const line=element('article','','tape-net-item');
+  const value=element('strong',balanced?'Balanced · 0 '+quote:
+   (net>0?'Net buy · +':'Net sell · −')+tapeValue(Math.abs(net))+' '+quote);
+  value.dataset.tone=balanced?'neutral':net>0?'positive':'negative';
+  const buys=element('span','Buy '+tapeValue(buy)+' '+quote);
+  const sells=element('span','Sell '+tapeValue(sell)+' '+quote);
+  buys.dataset.tone='positive';
+  sells.dataset.tone='negative';
+  const breakdown=element('div','','tape-breakdown');
+  breakdown.append(buys,sells);
+  line.append(value,breakdown,element('small',tapeClock.format(start)+' → '+tapeClock.format(end)+' Baghdad'));
+  summary.append(line);
+ }
+ if(!totals.size)summary.append(element('p','No captured trades for this selection.','footnote'));
+}
 function drawTape(){
  const frameMs=Number($('tapeFrame').value),side=$('tapeSide').value,venue=$('tapeVenue').value;
- const filtered=[...tapeRows.values()].filter(row=>(!side||row.side===side)&&(!venue||venue===tapeKey(row)));
+ const venueRows=[...tapeRows.values()].filter(row=>!venue||venue===tapeKey(row));
+ drawTapeNet(venueRows);
+ const filtered=venueRows.filter(row=>!side||row.side===side);
  let items=filtered.map(row=>({...row,count:1}));
  if(frameMs){
   const grouped=new Map();
@@ -402,15 +483,16 @@ function drawTape(){
   items=[...grouped.values()].map(row=>({...row,price:row.notional/row.quantity}));
  }
  items.sort((a,b)=>b.time_ms-a.time_ms);
- const format=value=>Number(value).toLocaleString('en-US',{maximumSignificantDigits:9});
  $('tapeRows').replaceChildren(...items.slice(0,tapeLimit).map(row=>{
   const tr=element('tr','');
   const platform=tapeKey(row);
   const venueCell=element('td',platform);
   if(!frameMs&&row.pool)venueCell.title='Pool '+row.pool+(row.tx?' · Tx '+row.tx:'');
-  tr.append(element('td',tapeClock.format(row.time_ms)),venueCell,element('td',row.side.toUpperCase()),
-   element('td',format(row.quantity)),element('td',format(row.price)+' '+row.quote),
-   element('td',format(row.notional)+' '+row.quote),element('td',String(row.count)));
+  const sideCell=element('td',row.side.toUpperCase(),'tape-side');
+  sideCell.dataset.tone=row.side==='buy'?'positive':'negative';
+  tr.append(element('td',tapeClock.format(row.time_ms)),venueCell,sideCell,
+   element('td',tapeValue(row.quantity)),element('td',tapeValue(row.price)+' '+row.quote),
+   element('td',tapeValue(row.notional)+' '+row.quote),element('td',String(row.count)));
   return tr;
  }));
  $('tapeMore').hidden=items.length<=tapeLimit;
@@ -450,7 +532,13 @@ $('tapeMore').addEventListener('click',()=>{tapeLimit+=100;drawTape()});
 setInterval(loadTape,30000);
 async function choosePair(){
  const value=$('pairSelect').value;if(!/^[A-Z0-9]{1,22}USDT$/.test(value)){notify('Select a currency from the list.','error');return}
- epoch++;for(const key of ['engine','market','quote','news']){pending.get(key)?.abort();pending.delete(key)}if(pair!==value){tapeIdentity=null;$('tapeContract').value='';resetTape()}pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
+ epoch++;for(const key of ['engine','market','quote','news']){pending.get(key)?.abort();pending.delete(key)}if(pair!==value){tapeIdentity=null;$('tapeContract').value='';resetTape();
+  newsSnapshot=null;
+  set('newsToggleLabel','Tracked headlines');
+  set('newsStatus','Loading selected pair headlines…');
+  set('newsModelStatus','Checking news impact for '+value+'…');
+  $('newsStories').replaceChildren();
+ }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
  for(const o of $('venue').options)o.disabled=false;if(!venuePinned)$('venue').value='';
  set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);forecastArrowPoints=[];predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');renderOutput();loadEngine();loadMarket();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
 $('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{venuePinned=!!$('venue').value;choosePair()});
@@ -663,7 +751,8 @@ function animate(now){
 }
 requestAnimationFrame(animate);
 try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0-9]{1,22}USDT$/.test(saved)){if(!catalog.pairs.includes(saved))catalog.pairs.push(saved);renderCurrencyList();$('pairSelect').value=saved}}catch{}
-readFavorites();choosePair();loadWorld();loadCatalog();
+readFavorites();choosePair();loadWorld();loadCatalog();loadMarketMood();
+setInterval(loadMarketMood,900000);
 setInterval(loadEngine,15000);setInterval(loadNews,300000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,15000);setInterval(updateSessionCountdowns,1000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld();loadTape();loadNews()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld();loadTape();loadNews();loadMarketMood()}});
 })();

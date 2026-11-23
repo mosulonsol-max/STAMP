@@ -30,6 +30,22 @@
    return {...saved,recorded:true,venue:'MEXC'};
   return live;
  }
+ function pairMood(candles, now=Date.now()){
+  const day=durations['1d'];
+  const closed=(candles||[]).filter(bar=>Number.isFinite(bar?.t)&&bar.t+day<=now).slice(-29);
+  if(closed.length!==29||now-(closed.at(-1).t+day)>=day||
+    closed.some((bar,i)=>!Number.isFinite(bar.c)||bar.c<=0||(i>0&&bar.t-closed[i-1].t!==day)))return null;
+  const returns=closed.slice(1).map((bar,i)=>Math.log(bar.c)-Math.log(closed[i].c));
+  const recent=returns.slice(-14);
+  const gains=recent.reduce((sum,r)=>sum+Math.max(0,r),0);
+  const losses=recent.reduce((sum,r)=>sum+Math.max(0,-r),0);
+  const rsi=gains+losses>0?100*gains/(gains+losses):50;
+  const baseline=returns.slice(0,-7);
+  const typical=Math.sqrt(7*baseline.reduce((sum,r)=>sum+r*r,0)/baseline.length);
+  const momentum=returns.slice(-7).reduce((sum,r)=>sum+r,0);
+  const scaled=typical>0?Math.tanh(momentum/typical):Math.sign(momentum);
+  return {value:Math.round((rsi+50+50*scaled)/2),closedAt:closed.at(-1).t+day};
+ }
  function chartRange(bars,record,frame,historical=false){
   const step=durations[frame]/1000,ref=Date.parse(record?.reference_at_utc)/1000,due=Date.parse(record?.due_at_utc)/1000;
   if(!bars.length&&!Number.isFinite(ref))return null;
@@ -38,5 +54,5 @@
   const to=(historical?due:Math.max(last,Number.isFinite(due)?due:last))+step*4;
   return to>from?{from,to}:null;
  }
- const api={currencyList,projection,active,chartRange};root.StampObservatory=api;if(typeof module!=='undefined')module.exports=api;
+ const api={currencyList,projection,active,pairMood,chartRange};root.StampObservatory=api;if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
