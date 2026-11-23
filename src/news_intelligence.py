@@ -1,11 +1,14 @@
 """Timestamped economic, political and crypto headlines with prospective scoring."""
 import datetime as dt
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from email.utils import parsedate_to_datetime
 import hashlib
 import json
 import math
 import re
 import time
-from urllib.parse import urlencode
+import xml.etree.ElementTree as ET
+from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 UTC = dt.timezone.utc
@@ -14,6 +17,10 @@ GDELT = "https://api.gdeltproject.org/api/v2/doc/doc?"
 QUERIES = {
     "macro_politics": '("Federal Reserve" OR Powell OR inflation OR CPI OR PPI OR GDP OR employment OR "jobs report" OR "interest rates" OR "bond yields" OR oil OR OPEC OR tariffs OR sanctions OR election OR parliament OR war OR ceasefire OR "central bank" OR treasury)',
     "digital_assets": '(cryptocurrency OR Bitcoin OR Ethereum OR "digital assets" OR "crypto regulation" OR "crypto ETF" OR blockchain OR Solana OR exchange hack)',
+}
+GOOGLE_QUERIES = {
+    "macro_politics": "Federal Reserve inflation interest rates jobs report tariffs sanctions election war oil markets",
+    "digital_assets": "Bitcoin cryptocurrency crypto regulation ETF exchange hack Solana Ethereum",
 }
 POSITIVE = {"beat", "beats", "cut", "cuts", "cutting", "eases", "easing", "approved", "approval", "adopts", "adoption", "surge", "surges", "inflow", "inflows", "ceasefire", "peace", "rebound", "recover", "recovery", "growth", "grows", "deal", "agreement", "support", "supports", "lower", "falls", "falling"}
 NEGATIVE = {"miss", "misses", "hike", "hikes", "tightening", "ban", "bans", "banned", "rejects", "rejected", "outflow", "outflows", "hack", "hacked", "exploit", "war", "attack", "attacks", "sanction", "sanctions", "tariff", "tariffs", "crash", "crashes", "drop", "drops", "rises", "surge", "surges", "default", "defaults", "crisis", "escalation", "higher"}
@@ -39,6 +46,33 @@ def _get(query):
         raise ValueError("news_response_too_large")
     payload = json.loads(raw)
     return payload.get("articles", []) if isinstance(payload, dict) else []
+
+
+def _get_google(query, name, now):
+    params = urlencode({"q": "(" + query + ") when:6h", "hl": "en-US", "gl": "US", "ceid": "US:en"})
+    request = Request("https://news.google.com/rss/search?" + params,
+                      headers={"User-Agent": "STAMP-Market-News/1.0", "Accept": "application/rss+xml, application/xml"})
+    with urlopen(request, timeout=10) as response:
+        raw = response.read(1_000_001)
+    if len(raw) > 1_000_000:
+        raise ValueError("news_feed_too_large")
+    root = ET.fromstring(raw)
+    articles = []
+    for item in root.findall("./channel/item"):
+        title = (item.findtext("title") or "").strip()
+        link = (item.findtext("link") or "").strip()
+        publisher = item.find("source")
+        source_url = publisher.attrib.get("url", "") if publisher is not None else ""
+        domain = urlparse(source_url or link).hostname or ""
+        published = parsedate_to_datetime(item.findtext("pubDate") or "")
+        if published.tzinfo is None:
+            published = published.replace(tzinfo=UTC)
+        article = {"title": title.rsplit(" - ", 1)[0] if publisher is not None else title,
+                   "url": link, "domain": domain, "seendate": published.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")}
+        normalized = _normalize_article(article, "Google News · " + name, now, "published_at_source")
+        if normalized:
+            articles.append(normalized)
+    return articles
 
 
 def _time(value):
@@ -70,7 +104,7 @@ def _sentiment(title):
     return max(-1.0, min(1.0, (positive - negative) / max(1, total)))
 
 
-def _normalize_article(article, query_name, now):
+def _normalize_article(article, query_name, now, timestamp_type="seen_by_gdelt"):
     title = str(article.get("title") or "").strip()
     url = str(article.get("url") or "").strip()
     when = _time(article.get("seendate"))
@@ -84,7 +118,7 @@ def _normalize_article(article, query_name, now):
     identity = hashlib.sha256((domain + "\n" + title.lower()).encode()).hexdigest()[:24]
     return {"id": identity, "title": title[:360], "url": url[:1600], "domain": domain,
             "seen_at_utc": when, "query": query_name, "categories": categories,
-            "headline_sentiment": _sentiment(title)}
+            "timestamp_type": timestamp_type, "headline_sentiment": _sentiment(title)}
 
 
 def _similar(left, right):
@@ -120,21 +154,29 @@ def refresh(previous=None, now=None, force=False):
     previous = previous if isinstance(previous, dict) else {}
     last_fetch = previous.get("checked_at_utc")
     try:
-        recent = last_fetch and (now - dt.datetime.fromisoformat(last_fetch)).total_seconds() < 900
+        recent = previous.get("status") != "unavailable" and last_fetch and (now - dt.datetime.fromisoformat(last_fetch)).total_seconds() < 900
     except (TypeError, ValueError):
         recent = False
     if recent and not force:
         return previous
     articles, sources, errors = [], [], {}
-    for name, query in QUERIES.items():
-        try:
-            rows = _get(query)
-            sources.append({"name": "GDELT · " + name, "status": "ok", "articles": len(rows)})
-            articles.extend(item for row in rows if isinstance(row, dict)
-                            if (item := _normalize_article(row, name, now)) is not None)
-        except Exception as exc:
-            errors[name] = type(exc).__name__
-            sources.append({"name": "GDELT · " + name, "status": "unavailable", "articles": 0})
+    tasks = {}
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        for name, query in QUERIES.items():
+            tasks[pool.submit(_get, query)] = ("GDELT · " + name, "gdelt", name)
+        for name, query in GOOGLE_QUERIES.items():
+            tasks[pool.submit(_get_google, query, name, now)] = ("Google News · " + name, "google", name)
+        for task in as_completed(tasks):
+            label, provider, name = tasks[task]
+            try:
+                result = task.result()
+                normalized = result if provider == "google" else [item for row in result if isinstance(row, dict)
+                                                                    if (item := _normalize_article(row, name, now)) is not None]
+                sources.append({"name": label, "status": "ok", "articles": len(normalized)})
+                articles.extend(normalized)
+            except Exception as exc:
+                errors[label] = type(exc).__name__
+                sources.append({"name": label, "status": "unavailable", "articles": 0})
     merged = {row["id"]: row for row in (previous.get("articles") or []) if isinstance(row, dict) and row.get("id")}
     merged.update({row["id"]: row for row in articles})
     cutoff = now - dt.timedelta(hours=6)
@@ -144,7 +186,7 @@ def refresh(previous=None, now=None, force=False):
     successful_sources = sum(source["status"] == "ok" for source in sources)
     return {"source": "GDELT DOC API", "checked_at_utc": now.isoformat(),
             "last_successful_fetch_utc": now.isoformat() if successful_sources else previous.get("last_successful_fetch_utc"),
-            "status": "ok" if successful_sources == len(QUERIES) else "partial" if successful_sources else "unavailable",
+            "status": "ok" if successful_sources == len(sources) else "partial" if successful_sources else "unavailable",
             "sources": sources, "errors": errors, "articles": saved[:240],
             "corroborated": _clusters(saved)[:80], "analysis": "Headline-keyword sentiment; source corroboration requires a similar headline from two independent domains. This is not article-content fact checking."}
 
@@ -294,6 +336,6 @@ def public_snapshot(snapshot, pair=None):
             "checked_at_utc": snapshot.get("checked_at_utc"),
             "last_successful_fetch_utc": snapshot.get("last_successful_fetch_utc"),
             "status": snapshot.get("status", "unavailable"),
-            "sources": snapshot.get("sources") or [], "analysis": snapshot.get("analysis"),
+            "sources": snapshot.get("sources") or [], "errors": snapshot.get("errors") or {}, "analysis": snapshot.get("analysis"),
             "stories": stories[:20], "models": models,
             "pair_signal": pair_signal(snapshot, pair) if pair else None}
