@@ -1,6 +1,7 @@
 """Autonomous per-asset prospective validation. Never promote from backtests alone."""
 import datetime as dt,gzip,json,math,os,pathlib
 from array import array
+import watch_priority
 from multi_asset import symbol,forecasts,candles,universe
 from forecast_adaptation import DEFAULT, advance, drift, shared_models, transferred_model
 
@@ -302,7 +303,8 @@ def cycle(pairs=None):
         # Revisit actively monitored liquid pairs each cycle, without bypassing market discovery.
         priority=[p.strip().upper() for p in os.getenv("STAMP_PRIORITY_PAIRS","BTCUSDT,ETHUSDT,SOLUSDT,STAMPUSDT").split(",")]
         priority=[p for p in dict.fromkeys(priority) if p in requested]
-        pairs=priority[:batch]
+        watched=watch_priority.select(set(available)-set(priority),min(4,max(0,(batch-len(priority))//4)))
+        pairs=(priority+watched)[:batch]
         for p in retry:
             if p not in pairs and len(pairs)<batch:pairs.append(p)
         scanned=0

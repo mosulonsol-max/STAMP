@@ -696,6 +696,33 @@ class Handler(BaseHTTPRequestHandler):
   path=urlsplit(self.path).path
   if path=="/logout":
    return self.send(303,b"",extra={"Location":"/","Set-Cookie":"stamp_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax"})
+  if path=="/api/research/priority":
+   if not session_valid(self.headers.get("Cookie")):
+    return self.send(401,b'{"error":"login_required"}',"application/json")
+   if self.headers.get("Sec-Fetch-Site") not in (None,"same-origin") or self.headers.get("Content-Type")!="application/json":
+    return self.send(403,b'{"error":"same_origin_required"}',"application/json")
+   token=os.getenv("STAMP_PRIORITY_TOKEN","")
+   if not token:return self.send(503,b'{"error":"priority_unavailable"}',"application/json")
+   try:
+    length=int(self.headers.get("Content-Length","0"))
+    if not 0<length<=128:raise ValueError("invalid_request_size")
+    payload=json.loads(self.rfile.read(length))
+    pair=payload["symbol"]
+    if not isinstance(pair,str) or not pair.isascii() or not pair.isalnum() or not 5<=len(pair)<=26 or not pair.endswith("USDT") or pair!=pair.upper():
+     raise ValueError("invalid_symbol")
+   except (ValueError,TypeError,KeyError):
+    return self.send(400,b'{"error":"invalid_symbol"}',"application/json")
+   req=Request("https://stamp-autonomous-worker.onrender.com/research/priority",
+    data=json.dumps({"symbol":pair}).encode(),
+    headers={"Authorization":"Bearer "+token,"Content-Type":"application/json"})
+   try:
+    with urlopen(req,timeout=10) as response:
+     return self.send(response.status,response.read(512),"application/json")
+   except HTTPError as exc:
+    if exc.code==422:return self.send(422,exc.read(512),"application/json")
+    return self.send(503,b'{"error":"priority_unavailable"}',"application/json")
+   except OSError:
+    return self.send(503,b'{"error":"priority_unavailable"}',"application/json")
   if path!="/login":return self.send(405,b"Method not allowed")
   try:
    length=int(self.headers.get("Content-Length","0"))

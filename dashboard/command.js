@@ -525,6 +525,27 @@ $('tapeContractForm').addEventListener('submit',event=>{
 for(const id of ['tapeWindow','tapeFrame','tapeSide','tapeVenue'])$(id).addEventListener('change',()=>{tapeLimit=100;drawTape()});
 $('tapeMore').addEventListener('click',()=>{tapeLimit+=100;drawTape()});
 setInterval(loadTape,30000);
+let priorityController;
+async function prioritizePair(){
+ if(document.hidden)return;
+ priorityController?.abort();
+ const controller=new AbortController(),version=epoch,symbol=pair;
+ priorityController=controller;
+ const timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  const response=await fetch('/api/research/priority',{method:'POST',credentials:'same-origin',
+   headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol}),signal:controller.signal});
+  if(version!==epoch)return;
+  if(response.status===422){set('pairPriority','Outside the worker’s MEXC catalog. Venue projections available when supported.');return}
+  if(response.status!==202)throw Error('Priority unavailable');
+  const result=await response.json();
+  if(version===epoch&&result.symbol===symbol&&result.status==='prioritized'){
+   set('pairPriority','Priority requested · eligible for an upcoming worker cycle');
+  }
+ }catch{
+  if(version===epoch&&priorityController===controller)set('pairPriority','Priority request unavailable · regular worker schedule');
+ }finally{clearTimeout(timer)}
+}
 async function choosePair(){
  const value=$('pairSelect').value;if(!/^[A-Z0-9]{1,22}USDT$/.test(value)){notify('Select a currency from the list.','error');return}
  epoch++;for(const key of ['engine','market','quote','news']){pending.get(key)?.abort();pending.delete(key)}if(pair!==value){tapeIdentity=null;$('tapeContract').value='';resetTape();
@@ -535,7 +556,7 @@ async function choosePair(){
   $('newsStories').replaceChildren();
  }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
  for(const o of $('venue').options)o.disabled=false;if(!venuePinned)$('venue').value='';
- set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);forecastArrowPoints=[];predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');renderOutput();loadEngine();loadMarket();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
+ set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);forecastArrowPoints=[];predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');set('pairPriority','');renderOutput();loadEngine();loadMarket();prioritizePair();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
 $('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{venuePinned=!!$('venue').value;choosePair()});
 $('frame').addEventListener('change',()=>{frame=$('frame').value;selected=null;chartView='';renderOutput();drawNews()});$('latest').addEventListener('click',()=>{selected=null;chartView='';renderOutput()});$('focusForecast').addEventListener('click',()=>{chartView='';renderChart()});$('signout').addEventListener('click',async()=>{await fetch('/logout',{method:'POST',credentials:'same-origin'});location.href='/'});
 for(const s of stages){const b=element('button',s.name);b.dataset.stage=s.id;b.type='button';b.setAttribute('aria-pressed',String(s.id===stage));b.addEventListener('click',()=>{stage=s.id;renderInspector()});$('stageControls').append(b)}
@@ -748,6 +769,7 @@ requestAnimationFrame(animate);
 try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0-9]{1,22}USDT$/.test(saved)){if(!catalog.pairs.includes(saved))catalog.pairs.push(saved);renderCurrencyList();$('pairSelect').value=saved}}catch{}
 readFavorites();choosePair();loadWorld();loadCatalog();loadMarketMood();
 setInterval(loadMarketMood,900000);
+setInterval(prioritizePair,240000);
 setInterval(loadEngine,15000);setInterval(loadNews,300000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden&&!selected&&activeRecord()===null)renderOutput()},5000);setInterval(loadWorld,15000);setInterval(updateSessionCountdowns,1000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld();loadTape();loadNews();loadMarketMood()}});
 })();

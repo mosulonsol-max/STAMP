@@ -1,5 +1,5 @@
 """Resilient independent worker loop. Run under a platform process supervisor."""
-import datetime as dt,gc,json,logging,os,pathlib,signal,time,threading
+import datetime as dt,gc,hmac,json,logging,os,pathlib,signal,time,threading
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import urlsplit,parse_qs
 from multi_asset_governor import cycle,audit_records
@@ -15,7 +15,28 @@ ROOT=pathlib.Path(__file__).resolve().parents[1]
 LAST={"success":None,"attempt":None,"error":None,"cycles":0,"failures":0,"running":False,"discovered":0,"processed":0}
 class Health(BaseHTTPRequestHandler):
  def do_POST(self):
-  if urlsplit(self.path).path!="/pipeline/events":return self.respond(404,{"error":"not_found"})
+  path=urlsplit(self.path).path
+  if path=="/research/priority":
+   from multi_asset import symbol
+   from market_gateway import serve
+   import watch_priority
+   secret=os.getenv("STAMP_PRIORITY_TOKEN","")
+   supplied=self.headers.get("Authorization","").encode()
+   if not secret or not hmac.compare_digest(supplied,("Bearer "+secret).encode()):
+    return self.respond(401,{"error":"authorization_required"})
+   try:
+    length=int(self.headers.get("Content-Length","0"))
+    if not 0<length<=128:return self.respond(400,{"error":"invalid_request_size"})
+    pair=symbol(json.loads(self.rfile.read(length))["symbol"])
+    if pair not in serve("universe")["pairs"]:
+     return self.respond(422,{"status":"not_in_worker_universe","symbol":pair})
+    watch_priority.request(pair)
+    return self.respond(202,{"status":"prioritized","symbol":pair})
+   except (ValueError,AttributeError,TypeError,KeyError):
+    return self.respond(400,{"error":"invalid_symbol"})
+   except OSError:
+    return self.respond(503,{"error":"catalog_unavailable"})
+  if path!="/pipeline/events":return self.respond(404,{"error":"not_found"})
   try:
    length=int(self.headers.get("Content-Length","0"))
    if not 0<length<=2048:return self.respond(400,{"error":"invalid_event_size"})
