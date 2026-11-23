@@ -12,6 +12,7 @@ from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 UTC = dt.timezone.utc
+NEWS_WINDOW_HOURS = 24
 HORIZON_MS = {"15m": 900_000, "1h": 3_600_000, "4h": 14_400_000, "1d": 86_400_000}
 GDELT = "https://api.gdeltproject.org/api/v2/doc/doc?"
 QUERIES = {
@@ -38,7 +39,7 @@ WORD = re.compile(r"[a-z0-9]+")
 
 
 def _get(query):
-    params = urlencode({"query": query, "mode": "ArtList", "format": "json", "sort": "DateDesc", "maxrecords": 75, "timespan": "6h"})
+    params = urlencode({"query": query, "mode": "ArtList", "format": "json", "sort": "DateDesc", "maxrecords": 75, "timespan": f"{NEWS_WINDOW_HOURS}h"})
     request = Request(GDELT + params, headers={"User-Agent": "STAMP-Market-News/1.0", "Accept": "application/json"})
     with urlopen(request, timeout=12) as response:
         raw = response.read(2_000_001)
@@ -49,7 +50,7 @@ def _get(query):
 
 
 def _get_google(query, name, now):
-    params = urlencode({"q": "(" + query + ") when:6h", "hl": "en-US", "gl": "US", "ceid": "US:en"})
+    params = urlencode({"q": "(" + query + ") when:24h", "hl": "en-US", "gl": "US", "ceid": "US:en"})
     request = Request("https://news.google.com/rss/search?" + params,
                       headers={"User-Agent": "STAMP-Market-News/1.0", "Accept": "application/rss+xml, application/xml"})
     with urlopen(request, timeout=10) as response:
@@ -113,7 +114,7 @@ def _normalize_article(article, query_name, now, timestamp_type="seen_by_gdelt")
     if not title or not url.startswith("https://") or not when or not domain or not categories:
         return None
     age_hours = (now - dt.datetime.fromisoformat(when)).total_seconds() / 3600
-    if age_hours < -0.1 or age_hours > 6.1:
+    if age_hours < -0.1 or age_hours > NEWS_WINDOW_HOURS + 0.1:
         return None
     identity = hashlib.sha256((domain + "\n" + title.lower()).encode()).hexdigest()[:24]
     return {"id": identity, "title": title[:360], "url": url[:1600], "domain": domain,
@@ -150,7 +151,7 @@ def _clusters(articles):
 
 
 def refresh(previous=None, now=None, force=False):
-    """Fetch a bounded six-hour feed. A fetch failure never takes the market worker down."""
+    """Fetch a bounded 24-hour feed; forecast signals independently expire after six hours."""
     now = now or dt.datetime.now(UTC)
     previous = previous if isinstance(previous, dict) else {}
     last_fetch = previous.get("checked_at_utc")
@@ -180,7 +181,7 @@ def refresh(previous=None, now=None, force=False):
                 sources.append({"name": label, "status": "unavailable", "articles": 0})
     merged = {row["id"]: row for row in (previous.get("articles") or []) if isinstance(row, dict) and row.get("id")}
     merged.update({row["id"]: row for row in articles})
-    cutoff = now - dt.timedelta(hours=6)
+    cutoff = now - dt.timedelta(hours=NEWS_WINDOW_HOURS)
     saved = [row for row in merged.values()
              if row.get("seen_at_utc") and cutoff <= dt.datetime.fromisoformat(row["seen_at_utc"]) <= now + dt.timedelta(minutes=5)]
     saved.sort(key=lambda row: row["seen_at_utc"], reverse=True)
