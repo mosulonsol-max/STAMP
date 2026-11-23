@@ -156,7 +156,9 @@ def refresh(previous=None, now=None, force=False):
     previous = previous if isinstance(previous, dict) else {}
     last_fetch = previous.get("checked_at_utc")
     try:
-        recent = previous.get("status") != "unavailable" and last_fetch and (now - dt.datetime.fromisoformat(last_fetch)).total_seconds() < 900
+        recent = (previous.get("window_hours") == NEWS_WINDOW_HOURS
+                  and previous.get("status") != "unavailable" and last_fetch
+                  and (now - dt.datetime.fromisoformat(last_fetch)).total_seconds() < 900)
     except (TypeError, ValueError):
         recent = False
     if recent and not force:
@@ -187,6 +189,7 @@ def refresh(previous=None, now=None, force=False):
     saved.sort(key=lambda row: row["seen_at_utc"], reverse=True)
     successful_sources = sum(source["status"] == "ok" for source in sources)
     return {"source": "GDELT DOC API + Google News RSS", "checked_at_utc": now.isoformat(),
+            "window_hours": NEWS_WINDOW_HOURS,
             "last_successful_fetch_utc": now.isoformat() if successful_sources else previous.get("last_successful_fetch_utc"),
             "status": "ok" if successful_sources == len(sources) else "partial" if successful_sources else "unavailable",
             "sources": sources, "errors": errors, "articles": saved[:240],
