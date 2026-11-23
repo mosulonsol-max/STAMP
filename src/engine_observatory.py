@@ -18,19 +18,26 @@ def summarize(data,pair,worker=None):
         features=r.get("features") or {}
         returns=features.get("recent_returns")
         version=r.get("model_version") or r.get("method") or "unknown"
-        scale=0 if version=="no_change" else .5 if version.startswith("damped_") else -.5 if version.startswith("reversal_") else 1
-        lookback=int(version.split("_")[-1]) if version.startswith(("momentum_","damped_","reversal_")) and version.split("_")[-1].isdigit() else 6
+        base_version=version.removesuffix("_validated_news")
+        scale=0 if base_version=="no_change" else .5 if base_version.startswith("damped_") else -.5 if base_version.startswith("reversal_") else 1
+        lookback=int(base_version.split("_")[-1]) if base_version.startswith(("momentum_","damped_","reversal_")) and base_version.split("_")[-1].isdigit() else 6
         valid=isinstance(returns,list) and len(returns)>=lookback and all(isinstance(x,(float,int)) and math.isfinite(x) for x in returns)
         expected=None;matches=None
         if valid:
             try:
                 expected=float(r["reference_price"])*math.exp(scale*sum(returns[-lookback:])/lookback)
+                news_effect=r.get("news_effect") or {}
+                if news_effect.get("used_in_directional_forecast"):
+                    expected*=math.exp(float(news_effect["applied_log_return_adjustment"]))
                 if not math.isfinite(expected) or expected<=0:raise ValueError("invalid_calculation")
                 matches=math.isclose(expected,float(r["predicted_price"]),rel_tol=1e-9)
             except (KeyError,TypeError,ValueError,OverflowError):expected=None
+        news_effect=r.get("news_effect") or {}
+        display_version=version+"_validated_news" if news_effect.get("used_in_directional_forecast") else version
         return {k:r.get(k) for k in ("id","frame","reference_at_utc","due_at_utc","reference_price","predicted_price","outcome","validation_at_issue","model_origin")}|{
-            "model_version":version,"inputs":{"source":"MEXC closed spot candles","recent_log_returns":returns if valid else [],"lookback":lookback,"available":valid},
-            "calculation":{"formula":f"Reference × exp({scale:g} × mean of last {lookback} log returns)","recomputed_price":expected,"matches_recorded":matches},
+            "model_version":display_version,"inputs":{"source":"MEXC closed spot candles","recent_log_returns":returns if valid else [],"lookback":lookback,"news":features.get("news"),"available":valid},
+            "calculation":{"formula":f"Reference × exp({scale:g} × mean of last {lookback} log returns + validated news correction)","recomputed_price":expected,"matches_recorded":matches},
+            "news_effect":r.get("news_effect"),
             "review":reviews.get(r.get("id"),{"status":"unreviewed","reason":"no_saved_decision"})}
     ids = Counter(record.get("id") for record in records)
     valid = [record for record in records if ids[record.get("id")] == 1
@@ -46,6 +53,8 @@ def summarize(data,pair,worker=None):
     groups = {}
     for record in settled:
         model = record.get("model_version") or record.get("method")
+        if (record.get("news_effect") or {}).get("used_in_directional_forecast"):
+            model += "_validated_news"
         if model:
             groups.setdefault(record["frame"], {}).setdefault(model, []).append(record)
     target_rates = {}
@@ -66,6 +75,12 @@ def summarize(data,pair,worker=None):
                           for record in valid) for status in ("accepted", "rejected", "pending")}
     last_cycle=data.get("cycle_result") or {}
     diagnostic=data.get("model_selection_diagnostics") or {}
+    news=data.get("news_intelligence") or {}
+    news_models=news.get("models") or {}
+    news_active=any((model or {}).get("used_in_directional_forecast") for model in news_models.values())
+    used_inputs=["Closed candle prices","Recorded recent log returns","Verified target candle outcomes for evaluation"]
+    if news_active:used_inputs.append("Economic, political and digital-asset headline correction with prospective walk-forward validation")
+    observed_inputs=["Corroborated headline sentiment awaiting prospective validation","Cross-venue order books","Cross-venue candle momentum","Global exchange sessions","Public executed buy/sell samples"]
     return {"symbol":pair,"source":"worker_recorded_computation","generated_utc":now.isoformat(),"storage":"postgres" if worker and worker.get("storage")=="postgres" else "ephemeral_filesystem",
         "worker":worker or {},"archive_updated_at_utc":data.get("loop_updated_at_utc"),"review_updated_at_utc":(data.get("autonomous_review") or {}).get("checked_at_utc"),
         "coverage":{"universe":(data.get("universe") or {}).get("count"),"archive_records":data.get("archive_records_total",len(data.get("records",[]))),"pair_records":len(records),"settled":len(settled),"invalid_outcomes":invalid_outcomes,"decisions":counts},
@@ -73,5 +88,6 @@ def summarize(data,pair,worker=None):
         "target_rates":target_rates,"scene_outcomes":scene_outcomes,"settlement_queue":data.get("settlement") or {},"latest":latest,"recent_outcomes":[entry(r) for r in settled[-16:]],
         "validation":{frame:(data.get("validation") or {}).get(pair+"|"+frame,{}) for frame in FRAMES},
         "learning":{"peer_models":{frame:model for frame in FRAMES if (model:=transferred_model(data,pair,frame))},"selected_models":{frame:value for frame in FRAMES if (value:=(data.get("model_selections") or {}).get(pair+"|"+frame))},"adaptation":{frame:value for frame in FRAMES if (value:=(data.get("forecast_adaptation") or {}).get(pair+"|"+frame))},"next_action":diagnostic.get("next_action"),"missing_historical_features":diagnostic.get("historical_features_unrecoverable"),"policy":"Candidates must improve error by 5% on a chronological holdout and 20 later outcomes. Degraded adaptive models revert to unchanged price."},
-        "input_contract":{"used":["Closed candle prices","Recorded recent log returns","Verified target candle outcomes for evaluation"],"observed_only":["Cross-venue order books","Cross-venue candle momentum","Global exchange sessions","Public executed buy/sell samples"],"not_implemented":["News-driven forecasts","On-chain holder features in this model","Automatic live trade execution"]},
+        "news_model":{"status":"validated" if news_active else "collecting_prospective_evidence","models":news_models,"source_status":news.get("status"),"checked_at_utc":news.get("checked_at_utc")},
+        "input_contract":{"used":used_inputs,"observed_only":observed_inputs,"not_implemented":["On-chain holder features in this model","Automatic live trade execution"]},
         "trading_approved":False}

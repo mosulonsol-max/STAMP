@@ -28,6 +28,18 @@ class Health(BaseHTTPRequestHandler):
   except Exception:return self.respond(503,{"error":"telemetry_verification_unavailable"})
  def do_GET(self):
   path=urlsplit(self.path).path
+  if path=="/research/news":
+   try:
+    from news_intelligence import public_snapshot
+    pair=parse_qs(urlsplit(self.path).query).get("symbol",[""])[0].upper()
+    if pair and (not pair.endswith("USDT") or len(pair)>26 or not pair.isalnum()):return self.respond(400,{"error":"invalid_symbol"})
+    if os.getenv("DATABASE_URL"):
+     saved=load_pair("__market_news__")
+    else:
+     from multi_asset_governor import load
+     saved=load()
+    return self.respond(200,public_snapshot(saved.get("news_intelligence"),pair or None))
+   except Exception as exc:return self.respond(503,{"error":"news_intelligence_unavailable","reason":type(exc).__name__})
   if path=="/world/rankings":
    try:
     from session_rankings import snapshot

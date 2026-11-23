@@ -73,3 +73,14 @@ main { padding-top: 27px; }
 .world .sessions button { display: grid; gap: 4px; min-width: 120px; text-align: left; }
 .world .sessions button > span { padding: 0; border: 0; color: inherit; }
 .session-countdown { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.news-panel { margin: 16px 0; }
+.news-model-status { margin: 0 24px 14px; color: var(--amber); font-size: 14px; line-height: 1.65; }
+.news-stories { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0 24px; }
+.news-story { min-width: 0; padding: 13px 15px; border: 1px solid #263d4c; border-radius: 7px; background: #0b1721; }
+.news-story h3 { margin: 0; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.news-story h3 a { color: var(--ink); text-decoration-color: #547184; text-underline-offset: .2em; }
+.news-story .footnote { margin: 7px 0 0; font-size: 12px; }
+.news-story .news-tags { color: var(--cyan); font-size: 12px; line-height: 1.5; margin: 7px 0 0; }
+.news-limit { margin: 14px 24px 20px; }
+@media(max-width:720px) { .news-stories { grid-template-columns: 1fr; padding: 0 16px; } .news-model-status,.news-limit { margin-left: 16px; margin-right: 16px; } }

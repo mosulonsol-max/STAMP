@@ -8,6 +8,7 @@ PATH=ROOT/"data"/"multi_asset_forecasts.json"
 HORIZONS={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000}
 MIN_VERIFIED=30
 from research_storage import encode_state, decode_state, prepare_archive_chunks, read_archive, write_archive, publish_pair_states
+from news_intelligence import refresh as refresh_news, apply_model as apply_news_model, evaluate_model as evaluate_news_model
 def merge_state(computed,persisted):
     """Preserve the union of forecasts when overlapping worker deployments finish out of order."""
     newest=max((computed,persisted),key=lambda state:str(state.get("loop_updated_at_utc") or ""))
@@ -48,6 +49,9 @@ def retrain_candidates(data):
     for rec in records:
         if not rec.get("outcome"):
             diagnostics["exclusions"]["unsettled"]+=1
+            continue
+        if (rec.get("news_effect") or {}).get("used_in_directional_forecast"):
+            # News corrections are evaluated separately from the candle model.
             continue
         if not audit_records([rec])["passed"]:
             diagnostics["exclusions"]["invalid_audit"]+=1
@@ -273,6 +277,13 @@ def cycle(pairs=None):
     def checkpoint(stage):logging.info('cycle stage=%s peak_rss_mib=%.1f',stage,resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024)
     data=load()
     checkpoint('archive_loaded')
+    try:
+        data['news_intelligence']=refresh_news(data.get('news_intelligence'))
+    except Exception as exc:
+        news=data.get('news_intelligence') or {}
+        news['status']='unavailable'
+        news['last_error']=type(exc).__name__
+        data['news_intelligence']=news
     if pairs is None:
         # Rotate through the entire discovered market universe to respect API quotas.
         try:
@@ -305,6 +316,8 @@ def cycle(pairs=None):
     checkpoint('outcomes_reconciled')
     data=retrain_candidates(data)
     checkpoint('models_evaluated')
+    news_state=data.setdefault('news_intelligence',{})
+    news_state['models']={frame:evaluate_news_model(data['records'],frame) for frame in HORIZONS}
     issued={r["id"] for r in data["records"]}
     processed=[]
     failed={}
@@ -328,7 +341,14 @@ def cycle(pairs=None):
             recent=[math.log(b["c"]/a["c"]) for a,b in zip(closed,closed[1:]) if b["t"]-a["t"]==HORIZONS[frame]][-20:]
             if selected and len(recent)>=selected["lookback"]:
                 result=dict(result,predicted_price=result["reference_price"]*math.exp(drift(recent,selected)),method=selected["version"])
-            data["records"].append(dict(features={"recent_returns":recent},validation_at_issue=gate.get("status","research_only"),model_version=result["method"],model_origin=("pair" if key in (data.get("model_selections") or {}) else "peer" if selected else "default"),id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
+            base_prediction=result["predicted_price"]
+            news_prediction,news_feature=apply_news_model(data.get("news_intelligence") or {},data["records"],pair,frame,base_prediction,result["reference_price"],result["reference_at_utc"])
+            if news_feature["used_in_directional_forecast"]:
+                result=dict(result,predicted_price=news_prediction)
+            models=(data.get("news_intelligence") or {}).setdefault("models",{})
+            models[frame]=news_feature["model"]
+            features={"recent_returns":recent,"base_predicted_log_return":news_feature["base_predicted_log_return"],"news":news_feature["analysis"]}
+            data["records"].append(dict(features=features,news_effect={"used_in_directional_forecast":news_feature["used_in_directional_forecast"],"applied_log_return_adjustment":news_feature["applied_log_return_adjustment"],"model_status":news_feature["model"]["status"]},validation_at_issue=gate.get("status","research_only"),model_version=result["method"],model_origin=("pair" if key in (data.get("model_selections") or {}) else "peer" if selected else "default"),id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
             issued.add(rid)

@@ -488,6 +488,14 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(200,json.dumps(world_snapshot(),allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"world_sessions_unavailable","detail":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path=="/api/research/news":
+   try:
+    pair=parse_qs(urlsplit(self.path).query).get("symbol",[""])[0].upper()
+    params={"symbol":pair} if pair else {}
+    req=Request("https://stamp-autonomous-worker.onrender.com/research/news?"+urlencode(params),headers={"Accept":"application/json","User-Agent":"STAMP-dashboard-news"})
+    with urlopen(req,timeout=12) as response:result=json.loads(response.read(200000))
+    return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except Exception as exc:return self.send(503,json.dumps({"error":"news_intelligence_unavailable","reason":type(exc).__name__}).encode(),"application/json; charset=utf-8")
   if path in ("/api/assets/learning-loop","/api/engine-state"):
    try:
     q=parse_qs(urlsplit(self.path).query)
