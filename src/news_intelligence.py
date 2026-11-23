@@ -144,7 +144,8 @@ def _clusters(articles):
                           "title": group[0]["title"], "url": group[0]["url"],
                           "seen_at_utc": group[0]["seen_at_utc"], "domains": domains,
                           "categories": sorted({item for row in group for item in row["categories"]}),
-                          "sentiment": sum(scores) / len(scores), "reports": len(group)})
+                          "sentiment": sum(scores) / len(scores), "reports": len(group),
+                          "corroborated": True})
     return confirmed
 
 
@@ -184,7 +185,7 @@ def refresh(previous=None, now=None, force=False):
              if row.get("seen_at_utc") and cutoff <= dt.datetime.fromisoformat(row["seen_at_utc"]) <= now + dt.timedelta(minutes=5)]
     saved.sort(key=lambda row: row["seen_at_utc"], reverse=True)
     successful_sources = sum(source["status"] == "ok" for source in sources)
-    return {"source": "GDELT DOC API", "checked_at_utc": now.isoformat(),
+    return {"source": "GDELT DOC API + Google News RSS", "checked_at_utc": now.isoformat(),
             "last_successful_fetch_utc": now.isoformat() if successful_sources else previous.get("last_successful_fetch_utc"),
             "status": "ok" if successful_sources == len(sources) else "partial" if successful_sources else "unavailable",
             "sources": sources, "errors": errors, "articles": saved[:240],
@@ -327,12 +328,28 @@ def apply_model(snapshot, record_list, pair, frame, base_prediction, reference, 
 
 def public_snapshot(snapshot, pair=None):
     snapshot = snapshot if isinstance(snapshot, dict) else {}
-    stories = snapshot.get("corroborated") or []
-    if pair:
-        ids = set(pair_signal(snapshot, pair).get("article_ids") or [])
-        stories = [row for row in stories if row.get("id") in ids]
+    stories = list(snapshot.get("corroborated") or [])
+    corroborated = snapshot.get("corroborated") or []
+    # Keep single-source reports visible with an explicit label. They remain
+    # excluded from pair_signal and therefore cannot steer forecasts.
+    for article in snapshot.get("articles") or []:
+        if not isinstance(article, dict):
+            continue
+        duplicate = any(_similar(article.get("title", ""), story.get("title", "")) >= 0.55
+                        and article.get("domain") in (story.get("domains") or [])
+                        for story in corroborated)
+        if duplicate:
+            continue
+        stories.append({"id": article.get("id"), "title": article.get("title"),
+                        "url": article.get("url"), "seen_at_utc": article.get("seen_at_utc"),
+                        "timestamp_type": article.get("timestamp_type"),
+                        "domains": [article.get("domain")] if article.get("domain") else [],
+                        "categories": article.get("categories") or [],
+                        "sentiment": article.get("headline_sentiment", 0.0),
+                        "reports": 1, "corroborated": False})
+    stories.sort(key=lambda row: row.get("seen_at_utc") or "", reverse=True)
     models = snapshot.get("models") or {}
-    return {"source": snapshot.get("source", "GDELT DOC API"),
+    return {"source": snapshot.get("source", "GDELT DOC API + Google News RSS"),
             "checked_at_utc": snapshot.get("checked_at_utc"),
             "last_successful_fetch_utc": snapshot.get("last_successful_fetch_utc"),
             "status": snapshot.get("status", "unavailable"),
