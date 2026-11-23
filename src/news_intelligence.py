@@ -20,13 +20,14 @@ QUERIES = {
     "digital_assets": '(cryptocurrency OR Bitcoin OR Ethereum OR "digital assets" OR "crypto regulation" OR "crypto ETF" OR blockchain OR Solana OR exchange hack)',
 }
 GOOGLE_QUERIES = {
-    "macro_politics": "Federal Reserve inflation interest rates jobs report tariffs sanctions election war oil markets",
+    "economic": '"Federal Reserve" OR inflation OR CPI OR PPI OR GDP OR employment OR Treasury OR "interest rates" OR recession OR economy OR oil OR OPEC OR tariffs OR "bond yields"',
+    "political": 'election OR president OR Congress OR parliament OR government OR sanctions OR war OR ceasefire OR diplomacy OR "trade deal" OR budget OR legislation',
     "digital_assets": "Bitcoin cryptocurrency crypto regulation ETF exchange hack Solana Ethereum",
 }
 POSITIVE = {"beat", "beats", "cut", "cuts", "cutting", "eases", "easing", "approved", "approval", "adopts", "adoption", "surge", "surges", "inflow", "inflows", "ceasefire", "peace", "rebound", "recover", "recovery", "growth", "grows", "deal", "agreement", "support", "supports", "lower", "falls", "falling"}
 NEGATIVE = {"miss", "misses", "hike", "hikes", "tightening", "ban", "bans", "banned", "rejects", "rejected", "outflow", "outflows", "hack", "hacked", "exploit", "war", "attack", "attacks", "sanction", "sanctions", "tariff", "tariffs", "crash", "crashes", "drop", "drops", "rises", "surge", "surges", "default", "defaults", "crisis", "escalation", "higher"}
-MACRO = {"federal reserve", "powell", "interest rate", "rate cut", "rate hike", "inflation", "cpi", "ppi", "jobs report", "employment", "payrolls", "unemployment", "treasury", "central bank", "gdp", "recession", "tariff", "trade war", "oil price", "opec", "bond yield", "jobless claims", "retail sales"}
-POLITICAL = {"election", "president", "congress", "parliament", "sanction", "sanctions", "war", "ceasefire", "military", "government", "geopolitical", "trade deal", "tariffs"}
+MACRO = {"federal reserve", "powell", "interest rate", "rate cut", "rate hike", "inflation", "cpi", "ppi", "jobs report", "employment", "payrolls", "unemployment", "treasury", "central bank", "gdp", "recession", "economy", "economic", "tariff", "trade war", "oil price", "opec", "bond yield", "jobless claims", "retail sales"}
+POLITICAL = {"election", "president", "congress", "parliament", "sanction", "sanctions", "war", "ceasefire", "military", "government", "geopolitical", "diplomacy", "trade deal", "tariffs", "legislation", "budget", "shutdown"}
 CRYPTO = {"bitcoin", "btc", "ethereum", "ether", "crypto", "cryptocurrency", "digital asset", "sec", "etf", "blockchain", "solana", "exchange hack"}
 ASSETS = {
     "BTC": ("bitcoin", "btc"), "ETH": ("ethereum", "ether", "eth"),
