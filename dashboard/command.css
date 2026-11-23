@@ -111,3 +111,36 @@ main { padding-top: 27px; }
  .mood-grid { grid-template-columns: minmax(0, 1fr); }
  .news-disclosure > summary { margin-inline: 16px; }
 }
+
+/* Market workspace */
+:root { --bg:#0a1019; --panel:#111b28; --line:#24354a; --muted:#a7b7ca; --cyan:#7ce1ee; }
+body { background:radial-gradient(ellipse at 45% -12%,#1a2e48 0,transparent 62rem),var(--bg); }
+main { width:min(94%,1440px); }
+.heading { display:grid; grid-template-columns:minmax(220px,1fr) minmax(300px,1.45fr); align-items:center; gap:20px; }
+.heading h1 { font-size:clamp(1.8rem,4vw,3.1rem); letter-spacing:-.045em; }
+.pair-form { width:auto; display:grid; grid-template-columns:1fr 1fr; gap:7px 14px; }
+.pair-form > label,.pair-form #catalogStatus,.pair-form #retryCatalog { grid-column:1/-1; }
+.pair-form > select,.pair-form .source-select { margin:0; min-width:0; }
+.pair-form .source-select select { min-width:0; max-width:60%; }
+.quote-bar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px 22px; padding:12px 18px; margin-bottom:12px; }
+.quote-bar article { display:flex; align-items:baseline; flex-wrap:wrap; gap:5px 12px; }
+.quote-bar strong { font:700 1.5rem ui-monospace,monospace; }
+.quote-bar small,.service-details small { color:var(--muted); }
+.quote-bar nav { display:flex; flex-wrap:wrap; gap:5px 14px; }
+.quote-bar nav a { display:block; padding:6px 0; color:var(--cyan); text-underline-offset:.22em; font-size:.85rem; }
+.analysis-grid { display:grid; grid-template-columns:minmax(0,2.25fr) minmax(280px,1fr); gap:12px; margin:0 0 14px; }
+.analysis-grid > article { min-width:0; }
+.chart-panel #priceChart { height:clamp(340px,40vw,540px); }
+.output-panel .output-values { grid-template-columns:1fr; gap:6px; }
+.output-panel .output-values > div { padding:8px 10px; }
+.output-panel .output-values strong { overflow-wrap:anywhere; }
+.record-details,.model-inputs,.service-details { margin:12px 0; }
+.record-details summary,.model-inputs summary,.service-details summary { cursor:pointer; padding:8px 0; color:var(--cyan); }
+.service-details { padding:0 14px; }
+.service-details small { margin-inline-start:12px; }
+.service-details .notice { margin:0 0 8px; }
+.service-details .notice[data-state="ok"] { display:none; }
+#signalNetwork,#forecastHistory,#marketWorkspace { scroll-margin-top:16px; }
+#forecastHistory .metrics { margin-top:12px; grid-template-columns:repeat(2,minmax(0,1fr)); }
+@media(max-width:850px) { .analysis-grid { grid-template-columns:minmax(0,1fr); } .output-panel .output-values { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(max-width:650px) { .heading { grid-template-columns:minmax(0,1fr); gap:12px; } .pair-form { grid-template-columns:minmax(0,1fr); } .pair-form>.source-select { margin-top:4px; } .chart-panel #priceChart { height:340px; } .output-panel .output-values { grid-template-columns:1fr; } }

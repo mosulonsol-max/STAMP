@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 
 UTC = dt.timezone.utc
 NEWS_WINDOW_HOURS = 24
-NEWS_QUERY_VERSION = 2
+NEWS_QUERY_VERSION = 3
 HORIZON_MS = {"15m": 900_000, "1h": 3_600_000, "4h": 14_400_000, "1d": 86_400_000}
 GDELT = "https://api.gdeltproject.org/api/v2/doc/doc?"
 QUERIES = {
@@ -139,13 +139,21 @@ def _clusters(articles):
             match.append(article)
     confirmed = []
     for group in clusters:
+        # Identical headlines across outlets can be a syndicated copy.
+        unique = {}
+        for row in sorted(group, key=lambda item: item.get("observed_at_utc") or ""):
+            title_key = " ".join(WORD.findall(row["title"].casefold()))
+            if row.get("observed_at_utc"):
+                unique.setdefault(title_key, row)
+        group = list(unique.values())
         domains = sorted({row["domain"] for row in group})
         if len(domains) < 2:
             continue
         scores = [row["headline_sentiment"] for row in group]
         confirmed.append({"id": hashlib.sha256("|".join(sorted(row["id"] for row in group)).encode()).hexdigest()[:24],
                           "title": group[0]["title"], "url": group[0]["url"],
-                          "seen_at_utc": group[0]["seen_at_utc"], "domains": domains,
+                          "seen_at_utc": max(row["seen_at_utc"] for row in group),
+                          "observed_at_utc": max(row["observed_at_utc"] for row in group), "domains": domains,
                           "categories": sorted({item for row in group for item in row["categories"]}),
                           "sentiment": sum(scores) / len(scores), "reports": len(group),
                           "corroborated": True})
@@ -185,7 +193,10 @@ def refresh(previous=None, now=None, force=False):
                 errors[label] = type(exc).__name__
                 sources.append({"name": label, "status": "unavailable", "articles": 0})
     merged = {row["id"]: row for row in (previous.get("articles") or []) if isinstance(row, dict) and row.get("id")}
-    merged.update({row["id"]: row for row in articles})
+    fetched = dt.datetime.now(UTC).isoformat()
+    for row in articles:
+        first_seen = (merged.get(row["id"]) or {}).get("observed_at_utc")
+        merged[row["id"]] = {**row, "observed_at_utc": first_seen or fetched}
     cutoff = now - dt.timedelta(hours=NEWS_WINDOW_HOURS)
     saved = [row for row in merged.values()
              if row.get("seen_at_utc") and cutoff <= dt.datetime.fromisoformat(row["seen_at_utc"]) <= now + dt.timedelta(minutes=5)]
@@ -200,12 +211,22 @@ def refresh(previous=None, now=None, force=False):
             "corroborated": _clusters(saved)[:80], "analysis": "Headline-keyword sentiment; source corroboration requires a similar headline from two independent domains. This is not article-content fact checking."}
 
 
+SIGNAL_VERSION = 2
+MACRO_EVENTS = re.compile(r"\b(?:federal reserve|fomc|central bank|interest rates?|inflation|consumer price index|payrolls|tariffs?|sanctions?|rate cuts?|rate hikes?)\b", re.I)
+
+
+def _story_scope(title, pair):
+    base = pair.removesuffix("USDT").upper()
+    terms = ASSETS.get(base, (base.lower(),) if len(base) >= 3 else ())
+    if any(re.search(r"\b" + re.escape(term) + r"\b", title, re.I) for term in terms):
+        return "pair"
+    return "market" if MACRO_EVENTS.search(title) else "other"
+
+
 def pair_signal(snapshot, pair, reference_at_utc=None):
     reference = dt.datetime.fromisoformat(reference_at_utc) if reference_at_utc else dt.datetime.now(UTC)
     if reference.tzinfo is None:
         reference = reference.replace(tzinfo=UTC)
-    base = pair[:-4].upper() if pair.endswith("USDT") else pair.upper()
-    terms = ASSETS.get(base, (base.lower(),))
     values, articles, categories = [], [], set()
     checked = snapshot.get("last_successful_fetch_utc")
     try:
@@ -219,18 +240,18 @@ def pair_signal(snapshot, pair, reference_at_utc=None):
     for story in (snapshot.get("corroborated") or []):
         try:
             published = dt.datetime.fromisoformat(story["seen_at_utc"])
-            hours = max(0, (reference - published).total_seconds() / 3600)
+            observed = dt.datetime.fromisoformat(story["observed_at_utc"])
+            hours = (reference - published).total_seconds() / 3600
             title = story["title"].lower()
         except (KeyError, TypeError, ValueError):
             continue
-        if hours > 6 or hours < -0.1:
+        if observed > reference or not 0 <= hours <= 6:
             continue
         kinds = set(story.get("categories") or [])
-        asset_match = any(re.search(r"\b" + re.escape(term) + r"\b", title) for term in terms)
-        relevant = asset_match or bool(kinds & {"economic", "political", "digital_assets"})
-        if not relevant:
+        scope = _story_scope(title, pair)
+        if scope == "other":
             continue
-        direct = 1.0 if asset_match else 0.8 if "digital_assets" in kinds else 0.6
+        direct = 1.0 if scope == "pair" else 0.6
         decay = math.exp(-hours / 2.5)
         weight = direct * decay * min(1.5, 1 + 0.1 * max(0, len(story.get("domains") or []) - 2))
         values.append((float(story.get("sentiment") or 0), weight))
@@ -238,7 +259,7 @@ def pair_signal(snapshot, pair, reference_at_utc=None):
         articles.append(story)
     denominator = sum(weight for _, weight in values)
     score = sum(value * weight for value, weight in values) / denominator if denominator else 0.0
-    return {"signal": round(max(-1, min(1, score)), 6), "stories": len(articles),
+    return {"signal_version": SIGNAL_VERSION, "signal": round(max(-1, min(1, score)), 6), "stories": len(articles),
             "corroborated_stories": len(articles), "domains": sorted({d for row in articles for d in row.get("domains", [])}),
             "categories": sorted(categories), "article_ids": [row["id"] for row in articles[:12]],
             "as_of_utc": reference.isoformat(), "status": "available" if articles else "no_corroborated_relevant_news"}
@@ -259,7 +280,7 @@ def evaluate_model(records, frame):
         outcome, feature = record.get("outcome"), record.get("features") or {}
         news = feature.get("news") or {}
         try:
-            if record.get("frame") != frame or frame not in HORIZON_MS or not outcome or not news.get("corroborated_stories"):
+            if record.get("frame") != frame or frame not in HORIZON_MS or not outcome or news.get("signal_version") != SIGNAL_VERSION or not news.get("corroborated_stories"):
                 continue
             if record.get("id") in seen:
                 continue
@@ -284,7 +305,7 @@ def evaluate_model(records, frame):
             if not math.isclose(baseline_error, float(outcome["baseline_squared_log_error"]), rel_tol=1e-7, abs_tol=1e-12):
                 continue
             seen.add(record.get("id"))
-            rows.append({"pair": record["pair"], "issued": issued, "due": due,
+            rows.append({"pair": record["pair"], "issued": issued, "due": due, "measured": measured,
                          "news_signal": max(-1, min(1, signal)),
                          "residual": math.log(actual / reference) - base})
         except (KeyError, TypeError, ValueError, OverflowError):
@@ -299,7 +320,7 @@ def evaluate_model(records, frame):
         last_due[row["pair"]] = row["due"]
     scored = []
     for index, row in enumerate(independent):
-        past = [item for item in independent[:index] if item["due"] <= row["issued"]]
+        past = [item for item in independent[:index] if item["measured"] <= row["issued"]]
         if len(past) < 60:
             continue
         coefficient = _fit(past)
@@ -356,6 +377,10 @@ def public_snapshot(snapshot, pair=None):
                         "sentiment": article.get("headline_sentiment", 0.0),
                         "reports": 1, "corroborated": False})
     stories.sort(key=lambda row: row.get("seen_at_utc") or "", reverse=True)
+    if pair:
+        stories = [{**story, "scope": _story_scope(story.get("title") or "", pair)} for story in stories]
+        rank = {"pair": 0, "market": 1, "other": 2}
+        stories.sort(key=lambda story: rank[story["scope"]])
     models = snapshot.get("models") or {}
     return {"source": snapshot.get("source", "GDELT DOC API + Google News RSS"),
             "checked_at_utc": snapshot.get("checked_at_utc"),

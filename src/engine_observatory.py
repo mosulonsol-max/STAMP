@@ -65,7 +65,15 @@ def summarize(data,pair,worker=None):
             sample = outcomes[-100:]
             hits = sum(abs(float(record["outcome"]["actual_price"]) /
                            float(record["predicted_price"]) - 1) <= .01 for record in sample)
-            target_rates[frame][model] = {"hits": hits, "samples": len(sample),
+            actual_and_forecast = [(float(record["outcome"]["actual_price"]),
+                                    float(record["predicted_price"]), float(record["reference_price"]))
+                                   for record in sample]
+            correct = sum((predicted > reference, predicted < reference) ==
+                          (actual > reference, actual < reference)
+                          for actual, predicted, reference in actual_and_forecast)
+            mean_error = 100 * sum(abs(predicted / actual - 1)
+                                   for actual, predicted, _ in actual_and_forecast) / len(sample)
+            target_rates[frame][model] = {"direction_accuracy": correct / len(sample), "mean_price_error_pct": mean_error,"hits": hits, "samples": len(sample),
                                          "rate": hits / len(sample) if len(sample) >= 30 else None}
     by_verified_at = sorted(settled, key=lambda record: record["outcome"]["measured_at_utc"])[-16:]
     scene_outcomes = [{"id": record["id"], "frame": record["frame"],

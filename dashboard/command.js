@@ -57,11 +57,10 @@ function targetRate(record){
 }
 function renderOutput(){
  const r=activeRecord(),v=r?.venue==='MEXC'?(engine?.validation?.[r?.frame||frame]||{}):{};
- renderForecastCards();
  set('recordKind',selected?'HISTORICAL RESULT':r?.recorded===false?'CURRENT CANDLE PROJECTION':'SAVED UPCOMING FORECAST');
  const change=r?100*(r.predicted_price/r.reference_price-1):null;
  set('forecastDirection',r?(change>=0?'Up ':'Down ')+(change>=0?'+':'')+change.toFixed(3)+'% · '+(r.venue||'MEXC')+' · '+r.frame:'No current forecast · checking source data');
- set('outputTitle',pair.replace('USDT',' / USDT')+' · '+(r?.frame||frame));set('recordId',r?.id||'No current forecast. Expired records remain in the history below.');
+ set('outputTitle',selected?'Measured forecast':'Forecast');set('recordId',r?.id||'No current forecast. Expired records remain in the history below.');
  set('outputState',String(r?.review.status||'NO RECORD').toUpperCase());$('outputState').dataset.state=r?.review.status||'unknown';
  for(const [id,value] of [['reference',r?.reference_price],['prediction',r?.predicted_price],['actual',r?.outcome?.actual_price]])set(id,price(value));
  set('issued','Issued '+utc(r?.reference_at_utc));set('due','Target '+utc(r?.due_at_utc));set('measured',r?.outcome?'Measured '+utc(r.outcome.measured_at_utc):r&&age(r.due_at_utc)<1?'Target not yet reached':'Awaiting matching target candle');
@@ -70,6 +69,14 @@ function renderOutput(){
  const newsEffect=r?.news_effect;const reviewText=reasons[r?.review.reason]||'No saved automatic review for this record.';set('outputReason',reviewText+(newsEffect?.used_in_directional_forecast?' Validated news adjustment applied '+(Number(newsEffect.applied_log_return_adjustment)*100).toFixed(3)+'% in log return.':newsEffect?' News was recorded as an input. Its directional effect was not enabled at issue.':''));set('model',r?.model_version||'Unavailable');
  set('formula',r?.inputs.available?(r.calculation.formula||'Reference × exp(mean of the last '+r.inputs.lookback+' saved log returns)') :'Original calculation inputs are unavailable.');
  set('recompute',r?.calculation.matches_recorded===true?(r.recorded===false?'Recomputed from current source candles · matches projection':'Recomputed from saved inputs · matches recorded prediction'):r?.calculation.matches_recorded===false?'Calculation mismatch · investigate':'Cannot independently reproduce this historical record');
+ const performance=r?.venue==='MEXC'?engine?.target_rates?.[r.frame]?.[r.model_version]:null;
+ set('pairPerformance',performance?.direction_accuracy!=null?
+  'Direction '+(100*performance.direction_accuracy).toFixed(1)+'% · mean price error '+performance.mean_price_error_pct.toFixed(2)+'% · '+performance.samples+' audited results for this model':'');
+ const saved=engine?.latest?.[r?.frame||frame];
+ const report=engine?.learning?.adaptation?.[r?.frame||frame];
+ set('forecastDiagnosis',report?.error_hypothesis?
+  'Model review: '+report.error_hypothesis.replaceAll('_',' ')+(report.status?' · '+report.status.replaceAll('_',' '):''):'');
+ set('lastPairForecast',saved?'Latest archived reference '+worldTime(saved.reference_at_utc)+' Baghdad':'');
  const skill=v.observed_skill;set('skill',skill==null?'Insufficient evidence':(skill>=0?'+':'')+(skill*100).toFixed(2)+'%');
  set('quality',(v.observed_samples??0)+' verified samples · '+(v.status||'unverified').replaceAll('_',' ')+'. Positive skill means lower error than unchanged price. This is separate from the selected record’s review.');
  renderInspector();renderChart();
@@ -84,13 +91,12 @@ function renderEngine(){
  set('workerState',engineFailed?'Connection interrupted':!fresh?'Evidence delayed':
   starting?'Processing after restart':e.worker.running?'Processing':'Between cycles');
  set('workerTime',(e.storage==='postgres'?'PostgreSQL':'Temporary storage')+' · last saved '+utc(savedAt(e)));
- set('sceneTime','Archive '+utc(e.archive_updated_at_utc));
- notify(engineFailed?'Worker refresh failed. Saved evidence remains visible with its original timestamp.':fresh?'Worker connected · '+pair+' · '+e.coverage.pair_records+' recorded forecasts. Select a stage or open a result to follow its evidence.':'Worker evidence is delayed. Inspect the last saved record and its timestamps.',''+(fresh?'ok':'error'));
+ notify(engineFailed?'Worker refresh failed. Saved evidence remains visible with its original timestamp.':fresh?'Archive available for '+pair+'.':'Worker evidence is delayed. Inspect the last saved record and its timestamps.',''+(fresh?'ok':'error'));
  set('historySummary',e.coverage.settled+' verified outcomes · latest 16 shown');$('history').replaceChildren();
  for(const r of [...e.recent_outcomes].reverse()){
   const tr=document.createElement('tr');tr.append(element('td',pair+' / '+r.frame),element('td',utc(r.reference_at_utc)),element('td',price(r.predicted_price)),element('td',price(r.outcome?.actual_price)));
   const decision=element('td',r.review.status);decision.dataset.state=r.review.status;tr.append(decision);
-  const td=document.createElement('td'),button=element('button','Open record');button.type='button';button.addEventListener('click',()=>{selected=r;frame=r.frame;$('frame').value=frame;stage='compute';if(market?.venue!=='MEXC'){pending.get('market')?.abort();pending.delete('market');pending.get('quote')?.abort();pending.delete('quote');market=null;lastQuote=null;$('venue').value='MEXC';venuePinned=true;set('quote','—');set('quoteTime','Loading MEXC candles for the saved record…');loadMarket()}renderOutput();$('engineScene').scrollIntoView({behavior:'smooth',block:'center'})});td.append(button);tr.append(td);$('history').append(tr);
+  const td=document.createElement('td'),button=element('button','Open record');button.type='button';button.addEventListener('click',()=>{selected=r;frame=r.frame;$('frame').value=frame;stage='compute';if(market?.venue!=='MEXC'){pending.get('market')?.abort();pending.delete('market');pending.get('quote')?.abort();pending.delete('quote');market=null;lastQuote=null;$('venue').value='MEXC';venuePinned=true;set('quote','—');set('quoteTime','Loading MEXC candles for the saved record…');loadMarket()}renderOutput();$('marketWorkspace').scrollIntoView({block:'start'})});td.append(button);tr.append(td);$('history').append(tr);
  }
  if(!e.recent_outcomes.length){const tr=document.createElement('tr'),td=element('td','No verified outcomes for this market yet.');td.colSpan=6;tr.append(td);$('history').append(tr)}
  $('contract').replaceChildren();for(const [title,key] of [['Used in this model','used'],['Observed as context','observed_only'],['Not implemented in this engine','not_implemented']]){const ul=document.createElement('ul');for(const text of e.input_contract[key])ul.append(element('li',text));$('contract').append(element('h3',title),ul)}
@@ -172,18 +178,6 @@ async function loadMarket(){if(pending.has('market')||document.hidden)return;con
 async function loadQuote(){if(!market||pending.has('quote')||document.hidden)return;const version=epoch,venue=market.venue;
  try{const d=await request('/api/assets/quote?symbol='+encodeURIComponent(pair)+'&venue='+encodeURIComponent(venue),'quote',13000);if(version!==epoch)return;if(d.symbol!==pair||d.venue!==venue)throw Error('Mismatched quote');applyQuote(d.price,d.venue,d.retrieved_at_utc,d.provider_at_utc)}
  catch{paintQuote()}}
-function renderForecastCards(){
- const container=$('forecastStrip');container.replaceChildren();
- for(const horizon of Object.keys(MS)){
-  const r=Model.active(engine,market,horizon),card=element('button','','forecast-card');card.type='button';card.dataset.state=r?'available':'unavailable';card.setAttribute('aria-pressed',String(frame===horizon&&!selected));
-  card.append(element('span',horizon+' · '+(r?.venue||market?.venue||'waiting')));
-  card.append(element('strong',r?price(r.predicted_price):'No current target'));
-  if(r){const delta=100*(r.predicted_price/r.reference_price-1);card.append(element('span',(delta>=0?'+':'')+delta.toFixed(3)+'% from '+price(r.reference_price)),element('small','Target '+utc(r.due_at_utc)),element('small',r.model_origin==='peer'?'Shared model · '+(r.recorded===false?'current projection':'saved forecast'):r.recorded===false?'Current computed projection':'Saved worker forecast'))}
-  else card.append(element('small',market?'Insufficient fresh closed candles for this horizon.':'Loading source candles…'));
-  if(r)card.append(element('small',targetRate(r)));
-  card.addEventListener('click',()=>{selected=null;frame=horizon;$('frame').value=frame;chartView='';renderOutput()});container.append(card);
- }
-}
 function renderCurrencyList(){
  const previous=$('pairSelect').value,rows=Model.currencyList(catalog,$('pair').value);
  const typed=$('pair').value.toUpperCase().replace(/\//g,'').trim();if(!rows.length&&/^[A-Z0-9]{1,22}USDT$/.test(typed))rows.push(typed);$('pairSelect').replaceChildren();
@@ -242,7 +236,7 @@ function selectWorld(code){
  renderSessionButtons(worldSessions);loadSessionRanking();draw();
 }
 const worldClock=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Baghdad',dateStyle:'medium',timeStyle:'short'});
-function worldTime(value){return Number.isFinite(Date.parse(value))?worldClock.format(Date.parse(value)):'—'}
+function worldTime(value){const stamp=typeof value==='number'?value:Date.parse(value);return Number.isFinite(stamp)?worldClock.format(stamp):'—'}
 function renderSessionButtons(sessions){
  const group=$('sessions');
  const buttons=new Map([...group.querySelectorAll('button')].map(button=>[button.dataset.exchange,button]));
@@ -412,7 +406,7 @@ function drawNews(){
   const timeLabel=story.timestamp_type==='published_at_source'?'Published':'Seen by GDELT';
   const metadata=element('p',(story.domains||[]).join(' · ')+' · '+timeLabel+': '+(story.seen_at_utc?newsTime.format(Date.parse(story.seen_at_utc))+' Baghdad':'time unavailable'),'footnote');
   const verification=story.corroborated?'CORROBORATED · '+story.reports+' outlets':'SINGLE SOURCE · not corroborated';
-  const tags=element('p',verification+' · '+(story.categories||[]).join(' · ')+' · headline polarity '+(Number(story.sentiment)>=0?'+':'')+Number(story.sentiment||0).toFixed(2),'news-tags');
+  const tags=element('p',verification+' · '+(story.scope==='pair'?'Selected pair':story.scope==='market'?'Market event':'Other coverage')+' · '+(story.categories||[]).join(' · ')+' · headline polarity '+(Number(story.sentiment)>=0?'+':'')+Number(story.sentiment||0).toFixed(2),'news-tags');
   article.append(heading,metadata,tags);if(link.hasAttribute('href'))article.append(link);list.append(article);
  }
  if(!list.children.length)list.append(element('p',data.status==='unavailable'?'The news source has not returned headlines. Check the source status and timestamp.':'No recent economic, political or digital-asset headlines are available.','footnote'));
@@ -468,7 +462,8 @@ function drawTapeNet(rows){
 }
 function drawTape(){
  const frameMs=Number($('tapeFrame').value),side=$('tapeSide').value,venue=$('tapeVenue').value;
- const venueRows=[...tapeRows.values()].filter(row=>!venue||venue===tapeKey(row));
+ const now=Date.now(),cutoff=now-Number($('tapeWindow').value);
+ const venueRows=[...tapeRows.values()].filter(row=>row.time_ms>=cutoff&&row.time_ms<=now+5000&&(!venue||venue===tapeKey(row)));
  drawTapeNet(venueRows);
  const filtered=venueRows.filter(row=>!side||row.side===side);
  let items=filtered.map(row=>({...row,count:1}));
@@ -527,7 +522,7 @@ $('tapeContractForm').addEventListener('submit',event=>{
  event.preventDefault();const contract=$('tapeContract').value.trim();
  tapeIdentity=contract?{network:$('tapeNetwork').value,contract}:null;resetTape();loadTape();
 });
-for(const id of ['tapeFrame','tapeSide','tapeVenue'])$(id).addEventListener('change',()=>{tapeLimit=100;drawTape()});
+for(const id of ['tapeWindow','tapeFrame','tapeSide','tapeVenue'])$(id).addEventListener('change',()=>{tapeLimit=100;drawTape()});
 $('tapeMore').addEventListener('click',()=>{tapeLimit+=100;drawTape()});
 setInterval(loadTape,30000);
 async function choosePair(){
@@ -753,6 +748,6 @@ requestAnimationFrame(animate);
 try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0-9]{1,22}USDT$/.test(saved)){if(!catalog.pairs.includes(saved))catalog.pairs.push(saved);renderCurrencyList();$('pairSelect').value=saved}}catch{}
 readFavorites();choosePair();loadWorld();loadCatalog();loadMarketMood();
 setInterval(loadMarketMood,900000);
-setInterval(loadEngine,15000);setInterval(loadNews,300000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden){renderForecastCards();if(!selected&&activeRecord()===null)renderOutput()}},5000);setInterval(loadWorld,15000);setInterval(updateSessionCountdowns,1000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
+setInterval(loadEngine,15000);setInterval(loadNews,300000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden&&!selected&&activeRecord()===null)renderOutput()},5000);setInterval(loadWorld,15000);setInterval(updateSessionCountdowns,1000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld();loadTape();loadNews();loadMarketMood()}});
 })();
