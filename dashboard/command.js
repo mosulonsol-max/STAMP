@@ -20,8 +20,49 @@ async function request(path,key,timeout=14000){
 function activeRecord(){return selected?{...selected,recorded:true,venue:'MEXC'}:Model.active(engine,market,frame)}
 function notify(text,state){set('notice',text);$('notice').dataset.state=state}
 function facts(rows){$('stageFacts').replaceChildren();for(const [label,value] of rows){$('stageFacts').append(element('dt',label),element('dd',value))}}
+const previewSpine=window.StampSpine;
+let sourceDetail=null,bookEvidence=null;
+function paintSpineEvidence(){
+ if(!previewSpine)return;
+ const book=bookEvidence?.venue===market?.venue?bookEvidence?.result?.book?.data:null;
+ const bookFresh=book&&age(bookEvidence.result.book.retrieved_at_utc)<90;
+ const venueTrades=[...tapeRows.values()].filter(row=>row.type==='CEX'&&row.source===market?.venue&&row.time_ms>=Date.now()-3600000);
+ const candles=market?.candles?.[frame]||[];
+ set('spineTrades',venueTrades.length?number(venueTrades.length)+' captured':'—');
+ set('spineLiquidity',bookFresh?number(book.bid_depth_usdt+book.ask_depth_usdt)+' USDT':'—');
+ set('spineCandles',candles.length?number(candles.length)+' bars':'—');
+ return {book,bookFresh,venueTrades,candles};
+}
+async function loadSpineBook(){
+ if(!previewSpine||document.hidden||!market?.venue||pending.has('spine-book'))return;
+ const version=epoch,venue=market.venue;
+ try{
+  const book=await request('/api/assets/microstructure?symbol='+encodeURIComponent(pair)+'&venue='+encodeURIComponent(venue),'spine-book',9500);
+  if(version!==epoch||book.symbol!==pair||book.venue!==market?.venue)return;
+  bookEvidence=book;
+ }catch{if(version!==epoch)return}
+ if(sourceDetail)renderInspector();else draw();
+}
 function renderInspector(){
  const r=activeRecord(),e=engine,valid=!!e&&!engineFailed&&age(e.archive_updated_at_utc)<600;
+ if(previewSpine&&sourceDetail){
+  const {book,bookFresh,venueTrades,candles}=paintSpineEvidence();
+  set('stageLabel','MARKET EVIDENCE');set('stageTitle',{trades:'Executed trades',liquidity:'Order book liquidity',candles:'Candles'}[sourceDetail]);
+  set('stageExtra','');
+  for(const button of $('stageControls').children)button.setAttribute('aria-pressed','false');
+  if(sourceDetail==='liquidity'){
+   set('stageSummary','Visible order book depth on the selected venue. This measurement provides market context.');
+   facts(bookFresh?[['Venue',market.venue],['Bid depth',number(book.bid_depth_usdt)+' USDT'],['Ask depth',number(book.ask_depth_usdt)+' USDT'],['Sample levels per side',number(book.levels)],['Observed',utc(bookEvidence.result.book.retrieved_at_utc)]]:[['Depth','Waiting for a fresh order book']]);
+  }else if(sourceDetail==='candles'){
+   set('stageSummary','Closed candle returns are the price input of the forecast. The last bar on the chart can still be forming.');
+   facts([['Venue',market?.venue||'—'],['Horizon',frame],['Chart bars',number(candles.length)],['Fetched',utc(market?.retrieved_at_utc)]]);
+  }else{
+   const latest=venueTrades.reduce((max,row)=>Math.max(max,row.time_ms),0);
+   set('stageSummary','Sampled executions over the last hour on the selected venue. Trade flow is shown as market context.');
+   facts([['Venue',market?.venue||'—'],['Sampled executions',number(venueTrades.length)],['Latest execution',latest?utc(new Date(latest).toISOString()):'—']]);
+  }
+  draw();return;
+ }
  const config=stages.find(s=>s.id===stage);set('stageLabel',config.name.toUpperCase());set('stageTitle',config.short);set('stageExtra',"");
  for(const b of $('stageControls').children)b.setAttribute('aria-pressed',String(b.dataset.stage===stage));
  if(!e){
@@ -180,7 +221,7 @@ function applyQuote(value,venue,fetched,provider,transport='REST'){
 function paintQuote(){if(!lastQuote)return;const stale=Date.now()-lastQuote.fetchedMs>20000;const timed=Number.isFinite(lastQuote.providerMs);const oldProvider=timed&&Date.now()-lastQuote.providerMs>60000;
  $('quote').dataset.state=stale||oldProvider?'stale':'current';set('quoteTime',lastQuote.venue+' Spot · '+lastQuote.transport+' · '+(stale||oldProvider?'DELAYED · ':'')+(timed?'exchange '+utc(new Date(lastQuote.providerMs).toISOString()):'exchange time unavailable')+' · fetched '+utc(new Date(lastQuote.fetchedMs).toISOString()));$('quoteTime').dataset.state=stale||oldProvider?'error':'ok';}
 async function loadMarket(){if(pending.has('market')||document.hidden)return;const version=epoch,venue=$('venue').value;
- try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair)+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000);if(version!==epoch)return;if(d.symbol!==pair||venue&&d.venue!==venue)throw Error('Mismatched market source');const previousMarket=market;market=d;$('venue').value=d.venue;syncQuoteStream();drawPairMood();
+ try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair)+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000);if(version!==epoch)return;if(d.symbol!==pair||venue&&d.venue!==venue)throw Error('Mismatched market source');const previousMarket=market;market=d;$('venue').value=d.venue;syncQuoteStream();drawPairMood();loadSpineBook();
  for(const horizon of Object.keys(MS)){
   const current=Model.active(engine,d,horizon);
   const prior=previousMarket?.research_forecasts?.[horizon];
@@ -531,6 +572,7 @@ async function loadTape(){
   set('tapeCoverage',result.sources.map(source=>source.venue+' '+source.status+' ('+source.count+')').join(' · ')+
    (result.contract?' · Up to '+result.dex_pool_limit+' of '+result.dex_pools_discovered+' discovered pools queried':''));
   drawTape();
+  if(previewSpine){if(sourceDetail==='trades')renderInspector();else draw()}
  }catch(error){
   if(revision===tapeRevision){set('tapeStatus','Trade refresh unavailable. '+(tapeRows.size?'Showing last captured trades inside the selected window.':'Check source or contract.'));drawTape()}
  }
@@ -565,19 +607,26 @@ async function prioritizePair(){
 }
 async function choosePair(){
  const value=$('pairSelect').value;if(!/^[A-Z0-9]{1,22}USDT$/.test(value)){notify('Select a currency from the list.','error');return}
- epoch++;for(const key of ['engine','market','quote','news']){pending.get(key)?.abort();pending.delete(key)}if(pair!==value){tapeIdentity=null;$('tapeContract').value='';resetTape();
+ epoch++;for(const key of ['engine','market','quote','news','spine-book']){pending.get(key)?.abort();pending.delete(key)}if(pair!==value){tapeIdentity=null;$('tapeContract').value='';resetTape();
   newsSnapshot=null;
   set('newsToggleLabel','Tracked headlines');
   set('newsStatus','Loading selected pair headlines…');
   set('newsModelStatus','Checking news impact for '+value+'…');
   $('newsStories').replaceChildren();
- }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;syncQuoteStream();drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
+ }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;bookEvidence=null;syncQuoteStream();drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
  for(const o of $('venue').options)o.disabled=false;if(!venuePinned)$('venue').value='';
  set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);forecastArrowPoints=[];predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');set('pairPriority','');renderOutput();loadEngine();loadMarket();prioritizePair();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
 $('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{venuePinned=!!$('venue').value;choosePair()});
 $('frame').addEventListener('change',()=>{frame=$('frame').value;selected=null;chartView='';renderOutput();drawNews()});$('latest').addEventListener('click',()=>{selected=null;chartView='';renderOutput()});$('focusForecast').addEventListener('click',()=>{chartView='';renderChart()});$('signout').addEventListener('click',async()=>{await fetch('/logout',{method:'POST',credentials:'same-origin'});location.href='/'});
-for(const s of stages){const b=element('button',s.name);b.dataset.stage=s.id;b.type='button';b.setAttribute('aria-pressed',String(s.id===stage));b.addEventListener('click',()=>{stage=s.id;renderInspector()});$('stageControls').append(b)}
+for(const s of stages){const b=element('button',s.name);b.dataset.stage=s.id;b.type='button';b.setAttribute('aria-pressed',String(s.id===stage));b.addEventListener('click',()=>{sourceDetail=null;stage=s.id;renderInspector()});$('stageControls').append(b)}
 $('rotate').addEventListener('click',()=>{rotate=!rotate;$('rotate').setAttribute('aria-pressed',String(rotate));$('rotate').textContent=rotate?'Pause rotation':'Rotate scene';draw()});
+if(previewSpine){
+ const controls=[...document.querySelectorAll('[data-evidence]')];
+ for(const button of controls)button.addEventListener('click',()=>{
+  sourceDetail=sourceDetail===button.dataset.evidence?null:button.dataset.evidence;
+  renderInspector();
+ });
+}
 const canvas=$('engineScene'),ctx=canvas.getContext('2d');
 const motionPreference=matchMedia('(prefers-reduced-motion: reduce)');
 const cities=[
@@ -637,6 +686,14 @@ function draw(now=performance.now()){
  }
  ctx.setTransform(dpr,0,0,dpr,0,0);
  ctx.clearRect(0,0,w,h);
+ if(previewSpine){
+  const {venueTrades,bookFresh,candles}=paintSpineEvidence();
+  for(const button of document.querySelectorAll('[data-evidence]'))button.setAttribute('aria-pressed',String(button.dataset.evidence===sourceDetail));
+  hitboxes=previewSpine.draw(ctx,{w,h,angle,stage:sourceDetail?null:stage,
+   available:{trades:venueTrades.length>0,liquidity:bookFresh,candles:candles.length>0},
+   matched:!!activeRecord()?.inputs?.available,events:motionPreference.matches?[]:sceneEvents,now,lifetime:eventLifetime});
+  return;
+ }
  const compact=w<580,scale=Math.min(w/(compact?550:800),h/(compact?540:435));
  const centerX=w*.51,centerY=h*(compact?.49:.51),yaw=angle||.13;
  const camera=(x,y,z)=>{
@@ -763,7 +820,7 @@ canvas.addEventListener('pointerup',event=>{
  const shouldSelect=drag?.id===event.pointerId&&!drag.moved;drag=null;
  if(!shouldSelect)return;
  const hit=findSceneHit(event);
- if(hit?.kind==='stage'){stage=hit.id;renderInspector()}
+ if(hit?.kind==='stage'){sourceDetail=null;stage=hit.id;renderInspector()}
  if(hit?.kind==='frame'){frame=hit.id;selected=null;$('frame').value=frame;stage='forecast';renderOutput()}
  if(hit?.kind==='city'){selectWorld(hit.id);$('worldTitle').scrollIntoView({block:'start',behavior:motionPreference.matches?'instant':'smooth'})}
 });

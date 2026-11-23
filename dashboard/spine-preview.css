@@ -1,0 +1,34 @@
+body.nexus-preview{--bg:#0a1017;--panel:#101922;--line:#263440;--cyan:#8ee7de;--amber:#ffca88;background:#0a1017;color:#edf2f5}
+.nexus-preview main{max-width:1580px;width:calc(100% - 56px);padding-top:30px}
+.nexus-preview h1{font-size:clamp(2rem,4vw,4rem);font-weight:600;letter-spacing:-.055em;line-height:1}
+.nexus-preview .topbar{background:#0b1219;border-bottom:1px solid #2a3842}
+.nexus-preview .current-dashboard{color:#adc7d5;margin-inline-start:auto;font-size:.8rem}
+.nexus-preview .heading{border:0;margin-bottom:22px}
+.nexus-preview .quote-bar{margin-bottom:18px;background:#14212a}
+.nexus-preview .quote-bar strong{font-size:clamp(1.5rem,3vw,2.3rem)}
+.nexus-preview .analysis-grid{grid-template-columns:minmax(0,1fr) minmax(0,1.06fr);grid-template-areas:"spine chart" "spine forecast";gap:12px;align-items:stretch}
+.nexus-preview #signalNetwork{grid-area:spine;margin:0;background:radial-gradient(ellipse at 53% 31%,#20313d,#101922 68%);border-radius:10px}
+.nexus-preview .chart-panel{grid-area:chart;border-radius:10px}
+.nexus-preview .output-panel{grid-area:forecast;border-radius:10px}
+.nexus-preview .scene-layout{display:block}
+.nexus-preview .engine .scene-wrap{background:transparent}
+.nexus-preview #engineScene{height:clamp(270px,31vw,430px)}
+.nexus-preview .inspector{border:0;border-top:1px solid var(--line);padding:14px 18px;overflow-wrap:anywhere}
+.nexus-preview .inspector dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.nexus-preview #stageControls{display:flex;flex-wrap:wrap;gap:6px;padding:4px 12px 12px}
+.nexus-preview #stageControls button,.evidence-sources button{background:#14222b;color:#c8dae2;border:1px solid #384c59;border-radius:5px}
+.nexus-preview button[aria-pressed=true]{border-color:var(--amber)!important;color:var(--amber)!important}
+.evidence-sources{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 12px}
+.evidence-sources button{min-width:0;padding:7px 3px;font-size:.77rem}
+.evidence-sources strong{display:block;color:#f4f8fa;font-variant-numeric:tabular-nums;line-height:1.5}
+.nexus-preview .output-values{grid-template-columns:repeat(3,minmax(0,1fr))}
+.nexus-preview #priceChart{height:clamp(260px,29vw,390px)}
+.nexus-preview :focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+@media(max-width:840px){
+ .nexus-preview main{width:calc(100% - 24px);padding-top:16px}
+ .nexus-preview .analysis-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"forecast" "chart" "spine"}
+ .nexus-preview #engineScene{height:clamp(230px,70vw,360px)}
+ .nexus-preview .output-values strong{font-size:1rem}
+ .nexus-preview .output-values small{font-size:.66rem}
+ .nexus-preview .edition{display:none}
+}

@@ -367,14 +367,14 @@ def session_valid(cookie_header):
   expected=hmac.new(session_key(),body.encode(),hashlib.sha256).hexdigest()
   return bool(os.getenv("DASHBOARD_USER") and os.getenv("DASHBOARD_PASSWORD")) and hmac.compare_digest(sig,expected)
  except (ValueError,TypeError):return False
-def login_html(error=False, trades=False):
+def login_html(error=False, trades=False, preview=False):
  message='<p class="warning" role="alert">تحقّق من اسم المستخدم وكلمة المرور.</p>' if error else ''
  return ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
  '<meta name="robots" content="noindex,nofollow"><title>STAMP | تسجيل الدخول</title>'
  '<link rel="stylesheet" href="/assets/style.css?v=venue-scene-4"></head><body class="login-page">'
  '<main class="panel login-card"><div class="brand"><span class="brand-mark" aria-hidden="true">S</span><span>STAMP</span></div>'
  '<h1>الدخول إلى لوحة السوق</h1>'+message+
- '<form method="post" action="'+('/login?view=trades' if trades else '/login')+'"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
+ '<form method="post" action="'+('/login?view=preview' if preview else '/login?view=trades' if trades else '/login')+'"><p><label for="user">اسم المستخدم</label><input id="user" name="user" autocomplete="username" required></p>'
  '<p><label for="password">كلمة المرور</label><input id="password" type="password" name="password" autocomplete="current-password" required></p>'
  '<button type="submit">تسجيل الدخول</button></form></main></body></html>').encode("utf-8")
 
@@ -410,7 +410,7 @@ class Handler(BaseHTTPRequestHandler):
    try:return self.send(200,(ROOT/"dashboard"/"private.css").read_bytes(),"text/css; charset=utf-8")
    except OSError:return self.send(503,b"Asset unavailable")
   if not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
-   if path in ("/","/index.html","/nexus","/market-flow","/login"):return self.send(200,login_html(trades=parse_qs(urlsplit(self.path).query).get("view")==["trades"]),"text/html; charset=utf-8")
+   if path in ("/","/index.html","/nexus","/nexus-preview","/market-flow","/login"):return self.send(200,login_html(trades=parse_qs(urlsplit(self.path).query).get("view")==["trades"],preview=path=="/nexus-preview" or parse_qs(urlsplit(self.path).query).get("view")==["preview"]),"text/html; charset=utf-8")
    if path.startswith("/api/"):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
@@ -662,7 +662,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
-  paths={"/":"command.html","/index.html":"command.html","/nexus":"command.html","/assets/command.js":"command.js","/assets/command-model.js":"command-model.js","/assets/command.css":"command.css","/assets/world-sessions.js":"world-sessions.js","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
+  paths={"/":"command.html","/index.html":"command.html","/nexus":"command.html","/nexus-preview":"spine-preview.html","/assets/spine-preview.js":"spine-preview.js","/assets/spine-preview.css":"spine-preview.css","/assets/command.js":"command.js","/assets/command-model.js":"command-model.js","/assets/command.css":"command.css","/assets/world-sessions.js":"world-sessions.js","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:
@@ -733,8 +733,9 @@ class Handler(BaseHTTPRequestHandler):
    good=authorized("Basic "+base64.b64encode((username+":"+password).encode()).decode())
   except (ValueError,UnicodeError,TypeError):good=False
   trades=parse_qs(urlsplit(self.path).query).get("view")==["trades"]
-  if not good:return self.send(401,login_html(True,trades),"text/html; charset=utf-8")
-  return self.send(303,b"",extra={"Location":"/nexus#tradeTape" if trades else "/","Set-Cookie":"stamp_session="+make_session()+"; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax"})
+  preview=parse_qs(urlsplit(self.path).query).get("view")==["preview"]
+  if not good:return self.send(401,login_html(True,trades,preview),"text/html; charset=utf-8")
+  return self.send(303,b"",extra={"Location":"/nexus-preview" if preview else "/nexus#tradeTape" if trades else "/","Set-Cookie":"stamp_session="+make_session()+"; Path=/; Max-Age=43200; HttpOnly; Secure; SameSite=Lax"})
 def main():
  if not os.getenv("DASHBOARD_USER") or not os.getenv("DASHBOARD_PASSWORD"):raise SystemExit("Refusing to start without dashboard authentication")
  port=int(os.getenv("PORT","10000"))
