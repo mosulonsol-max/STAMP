@@ -151,27 +151,43 @@ let chartView='';function renderChart(){initChart();const rows=market?.candles?.
  set('chartTitle',pair.replace('USDT',' / USDT')+' · '+(market?.venue||r?.venue||'—')+' · '+frame);
  set('chartStatus',bars.length?'Candles: '+market.source+' · fetched '+utc(market.retrieved_at_utc)+'. Last candle may be forming; forecasts use closed candles only. '+(r?'Forecast '+(r.venue||'MEXC')+' · issued '+utc(r.reference_at_utc)+' · target '+utc(r.due_at_utc):'No upcoming forecast from fresh candles.')+(selected&&bars[0].time>due?' Historical result predates the candle window.':''):'Current candles unavailable. '+(r?'The saved reference and target are drawn.':'No forecast can be plotted until data arrives.'));
 }
-function applyQuote(value,venue,fetched,provider){
+let quoteStream=null,streamSymbol=null;
+function syncQuoteStream(){
+ const symbol=!document.hidden&&market?.venue==='MEXC'&&typeof window.WebSocket==='function'&&window.StampMarket?.Stream?pair:null;
+ if(symbol===streamSymbol)return;
+ quoteStream?.stop();
+ quoteStream=null;streamSymbol=symbol;
+ if(!symbol)return;
+ const stream=new window.StampMarket.Stream({symbol,onData(update){
+  const q=update.quote;
+  if(quoteStream!==stream||pair!==symbol||update.kind!=='trade'||q?.symbol!==symbol)return;
+  applyQuote(q.price,'MEXC',q.retrieved_at_utc,q.provider_at_utc,'WebSocket');
+ }});
+ quoteStream=stream;stream.start();
+}
+function applyQuote(value,venue,fetched,provider,transport='REST'){
  if(!(Number(value)>0)||venue!==market?.venue)return;
  const providerMs=Date.parse(provider),fetchedMs=Date.parse(fetched);
- if(!Number.isFinite(fetchedMs)||fetchedMs>Date.now()+5000)return;
+ if(!Number.isFinite(fetchedMs)||fetchedMs>Date.now()+5000||providerMs>Date.now()+5000)return;
+ if(transport==='REST'&&lastQuote?.transport==='WebSocket'&&Date.now()-lastQuote.fetchedMs<8000)return;
  if(lastQuote?.venue===venue&&Number.isFinite(providerMs)&&Number.isFinite(lastQuote.providerMs)&&providerMs<lastQuote.providerMs)return;
  if(lastQuote?.venue===venue&&fetchedMs<lastQuote.fetchedMs)return;
  const isNewExecution=Number.isFinite(providerMs)&&providerMs<=Date.now()+5000&&Date.now()-providerMs<60000&&lastQuote?.venue===venue&&providerMs>lastQuote.providerMs;
- lastQuote={value:Number(value),venue,providerMs,fetchedMs};
+ lastQuote={value:Number(value),venue,providerMs,fetchedMs,transport};
  if(isNewExecution)signal(['quote','collect'],colors.cyan,venue+' reported a newer quote',new Date(providerMs).toISOString());set('quote',price(value));paintQuote();
  const tail=market.candles?.[frame]?.at(-1);if(tail&&providerMs>=tail.t&&providerMs<tail.t+MS[frame]&&tail.t+MS[frame]>Date.now()){tail.c=Number(value);tail.h=Math.max(tail.h,tail.c);tail.l=Math.min(tail.l,tail.c);series?.update({time:Math.floor(tail.t/1000),open:tail.o,high:tail.h,low:tail.l,close:tail.c})}
 }
 function paintQuote(){if(!lastQuote)return;const stale=Date.now()-lastQuote.fetchedMs>20000;const timed=Number.isFinite(lastQuote.providerMs);const oldProvider=timed&&Date.now()-lastQuote.providerMs>60000;
- $('quote').dataset.state=stale||oldProvider?'stale':'current';set('quoteTime',lastQuote.venue+' Spot · '+(stale||oldProvider?'DELAYED · ':'')+(timed?'exchange '+utc(new Date(lastQuote.providerMs).toISOString()):'exchange time unavailable')+' · fetched '+utc(new Date(lastQuote.fetchedMs).toISOString()));$('quoteTime').dataset.state=stale||oldProvider?'error':'ok';}
+ $('quote').dataset.state=stale||oldProvider?'stale':'current';set('quoteTime',lastQuote.venue+' Spot · '+lastQuote.transport+' · '+(stale||oldProvider?'DELAYED · ':'')+(timed?'exchange '+utc(new Date(lastQuote.providerMs).toISOString()):'exchange time unavailable')+' · fetched '+utc(new Date(lastQuote.fetchedMs).toISOString()));$('quoteTime').dataset.state=stale||oldProvider?'error':'ok';}
 async function loadMarket(){if(pending.has('market')||document.hidden)return;const version=epoch,venue=$('venue').value;
- try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair)+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000);if(version!==epoch)return;if(d.symbol!==pair||venue&&d.venue!==venue)throw Error('Mismatched market source');const previousMarket=market;market=d;$('venue').value=d.venue;drawPairMood();
+ try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair)+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000);if(version!==epoch)return;if(d.symbol!==pair||venue&&d.venue!==venue)throw Error('Mismatched market source');const previousMarket=market;market=d;$('venue').value=d.venue;syncQuoteStream();drawPairMood();
  for(const horizon of Object.keys(MS)){
   const current=Model.active(engine,d,horizon);
   const prior=previousMarket?.research_forecasts?.[horizon];
   if(current?.recorded===false&&Date.parse(current.reference_at_utc)>Date.parse(prior?.reference_at_utc||'1970-01-01'))
    signal(['collect','compute','forecast',horizon],colors.amber,'Projection calculated · '+horizon,current.reference_at_utc);
  }
+ const currentQuote=lastQuote;if(currentQuote?.venue===d.venue&&currentQuote.transport==='WebSocket'&&Date.now()-currentQuote.fetchedMs<8000)applyQuote(currentQuote.value,d.venue,new Date(currentQuote.fetchedMs).toISOString(),new Date(currentQuote.providerMs).toISOString(),'WebSocket');
  const close=d.ticker?.closeTime;applyQuote(d.ticker?.lastPrice,d.venue,d.retrieved_at_utc,close?new Date(Number(close)).toISOString():null);renderOutput();
  }catch(e){if(version===epoch){set('quoteTime','Selected venue unavailable · '+e.message);$('quoteTime').dataset.state='error';set('chartStatus','Current source unavailable. No replacement venue was selected.');if(!market){set('quote','—');renderOutput()}}}
 }
@@ -555,7 +571,7 @@ async function choosePair(){
   set('newsStatus','Loading selected pair headlines…');
   set('newsModelStatus','Checking news impact for '+value+'…');
   $('newsStories').replaceChildren();
- }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
+ }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;syncQuoteStream();drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
  for(const o of $('venue').options)o.disabled=false;if(!venuePinned)$('venue').value='';
  set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);forecastArrowPoints=[];predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');set('pairPriority','');renderOutput();loadEngine();loadMarket();prioritizePair();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
 $('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{venuePinned=!!$('venue').value;choosePair()});
@@ -772,5 +788,5 @@ readFavorites();choosePair();loadWorld();loadCatalog();loadMarketMood();
 setInterval(loadMarketMood,900000);
 setInterval(prioritizePair,240000);
 setInterval(loadEngine,15000);setInterval(loadNews,300000);setInterval(loadMarket,30000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden&&!selected&&activeRecord()===null)renderOutput()},5000);setInterval(loadWorld,15000);setInterval(updateSessionCountdowns,1000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadQuote();loadWorld();loadTape();loadNews();loadMarketMood()}});
+document.addEventListener('visibilitychange',()=>{syncQuoteStream();if(!document.hidden){loadEngine();loadMarket();loadQuote();loadWorld();loadTape();loadNews();loadMarketMood()}});
 })();
