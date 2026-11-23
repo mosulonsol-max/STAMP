@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 
 UTC = dt.timezone.utc
 NEWS_WINDOW_HOURS = 24
+NEWS_QUERY_VERSION = 2
 HORIZON_MS = {"15m": 900_000, "1h": 3_600_000, "4h": 14_400_000, "1d": 86_400_000}
 GDELT = "https://api.gdeltproject.org/api/v2/doc/doc?"
 QUERIES = {
@@ -158,6 +159,7 @@ def refresh(previous=None, now=None, force=False):
     last_fetch = previous.get("checked_at_utc")
     try:
         recent = (previous.get("window_hours") == NEWS_WINDOW_HOURS
+                  and previous.get("query_version") == NEWS_QUERY_VERSION
                   and previous.get("status") != "unavailable" and last_fetch
                   and (now - dt.datetime.fromisoformat(last_fetch)).total_seconds() < 900)
     except (TypeError, ValueError):
@@ -191,6 +193,7 @@ def refresh(previous=None, now=None, force=False):
     successful_sources = sum(source["status"] == "ok" for source in sources)
     return {"source": "GDELT DOC API + Google News RSS", "checked_at_utc": now.isoformat(),
             "window_hours": NEWS_WINDOW_HOURS,
+            "query_version": NEWS_QUERY_VERSION,
             "last_successful_fetch_utc": now.isoformat() if successful_sources else previous.get("last_successful_fetch_utc"),
             "status": "ok" if successful_sources == len(sources) else "partial" if successful_sources else "unavailable",
             "sources": sources, "errors": errors, "articles": saved[:240],
