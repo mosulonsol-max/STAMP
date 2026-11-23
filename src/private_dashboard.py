@@ -410,7 +410,7 @@ class Handler(BaseHTTPRequestHandler):
    try:return self.send(200,(ROOT/"dashboard"/"private.css").read_bytes(),"text/css; charset=utf-8")
    except OSError:return self.send(503,b"Asset unavailable")
   if not (authorized(self.headers.get("Authorization")) or session_valid(self.headers.get("Cookie"))):
-   if path in ("/","/index.html","/nexus","/nexus-preview","/market-flow","/login"):return self.send(200,login_html(trades=parse_qs(urlsplit(self.path).query).get("view")==["trades"],preview=path=="/nexus-preview" or parse_qs(urlsplit(self.path).query).get("view")==["preview"]),"text/html; charset=utf-8")
+   if path in ("/","/index.html","/nexus","/nexus-preview","/nexus-classic","/market-flow","/login"):return self.send(200,login_html(trades=parse_qs(urlsplit(self.path).query).get("view")==["trades"],preview=path=="/nexus-preview" or parse_qs(urlsplit(self.path).query).get("view")==["preview"]),"text/html; charset=utf-8")
    if path.startswith("/api/"):
     # Browser fetches must not trigger a confusing HTTP Basic modal when a cookie expires.
     return self.send(401,b'{"error":"login_required"}',"application/json; charset=utf-8")
@@ -662,7 +662,7 @@ class Handler(BaseHTTPRequestHandler):
    except Exception:
     return self.send(503,b'{"api":"error"}',"application/json; charset=utf-8")
   if path=="/market-flow":return self.send(302,b"",extra={"Location":"/#globalMarketFlow"})
-  paths={"/":"command.html","/index.html":"command.html","/nexus":"command.html","/nexus-preview":"spine-preview.html","/assets/spine-preview.js":"spine-preview.js","/assets/spine-preview.css":"spine-preview.css","/assets/command.js":"command.js","/assets/command-model.js":"command-model.js","/assets/command.css":"command.css","/assets/world-sessions.js":"world-sessions.js","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
+  paths={"/":"spine-preview.html","/index.html":"spine-preview.html","/nexus":"spine-preview.html","/nexus-preview":"spine-preview.html","/nexus-classic":"command.html","/assets/spine-preview.js":"spine-preview.js","/assets/spine-preview.css":"spine-preview.css","/assets/command.js":"command.js","/assets/command-model.js":"command-model.js","/assets/command.css":"command.css","/assets/world-sessions.js":"world-sessions.js","/assets/market-flow.js":"market-flow.js","/assets/market-map.js":"market-map.js","/assets/market-map.css":"market-map.css","/assets/pipeline-3d.js":"pipeline-3d.js","/legacy":"private.html","/assets/nexus.js":"nexus.js","/assets/nexus.css":"nexus.css","/assets/app.js":"private.js","/assets/market-stream.js":"market-stream.js","/assets/technical-overlays.js":"technical-overlays.js","/assets/chart-events.js":"chart-events.js","/assets/market-lens.js":"market-lens.js","/assets/style.css":"private.css"}
   if path not in paths:return self.send(404,b"Not found")
   name=paths[path];kind="text/html" if name.endswith(".html") else "text/javascript" if name.endswith(".js") else "text/css"
   try:
