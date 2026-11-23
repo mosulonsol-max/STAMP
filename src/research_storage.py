@@ -1,12 +1,18 @@
 """Bounded HTTP reads and streaming archive serialization."""
 import gzip,io,json
 import ijson
+from array import array
+
+
+def _json_default(value):
+    if isinstance(value,array):return value.tolist()
+    raise TypeError(f'unsupported archive value: {type(value).__name__}')
 
 def encode_state(data):
     output=io.BytesIO()
     with gzip.GzipFile(fileobj=output,mode='wb',compresslevel=3,mtime=0) as zipped:
         with io.TextIOWrapper(zipped,encoding='utf-8') as text:
-            json.dump(data,text,separators=(',',':'),ensure_ascii=False,allow_nan=False)
+            json.dump(data,text,separators=(',',':'),ensure_ascii=False,allow_nan=False,default=_json_default)
     return output.getvalue()
 
 def decode_state(payload, *, skip_review=False):
@@ -19,6 +25,9 @@ def decode_state(payload, *, skip_review=False):
         __slots__ = ()
 
         def __setitem__(self, key, value):
+            if key == 'recent_returns' and isinstance(value,list):
+                try:value=array('d',value)
+                except (TypeError,OverflowError):pass
             if "|" not in key and len(key) <= 48 and len(field_names) < 512:
                 key = field_names.setdefault(key, key)
             if key in ("pair", "frame", "model_version", "method", "validation_at_issue",

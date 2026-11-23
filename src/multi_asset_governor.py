@@ -1,5 +1,6 @@
 """Autonomous per-asset prospective validation. Never promote from backtests alone."""
 import datetime as dt,gzip,json,math,os,pathlib
+from array import array
 from multi_asset import symbol,forecasts,candles,universe
 from forecast_adaptation import DEFAULT, advance, drift, shared_models, transferred_model
 
@@ -57,7 +58,7 @@ def retrain_candidates(data):
             diagnostics["exclusions"]["invalid_audit"]+=1
             continue
         returns=(rec.get("features") or {}).get("recent_returns")
-        if not isinstance(returns,list):
+        if not isinstance(returns,(list,array)):
             diagnostics["exclusions"]["missing_features"]+=1
             continue
         if len(returns)<20 or not all(isinstance(v,(int,float)) and math.isfinite(v) for v in returns[-20:]):

@@ -1,6 +1,7 @@
 """A bounded view of the worker's actual computation and prospective evidence."""
 import datetime as dt
 import math
+from array import array
 from collections import Counter
 from multi_asset_governor import audit_records
 try:
@@ -21,7 +22,7 @@ def summarize(data,pair,worker=None):
         base_version=version.removesuffix("_validated_news")
         scale=0 if base_version=="no_change" else .5 if base_version.startswith("damped_") else -.5 if base_version.startswith("reversal_") else 1
         lookback=int(base_version.split("_")[-1]) if base_version.startswith(("momentum_","damped_","reversal_")) and base_version.split("_")[-1].isdigit() else 6
-        valid=isinstance(returns,list) and len(returns)>=lookback and all(isinstance(x,(float,int)) and math.isfinite(x) for x in returns)
+        valid=isinstance(returns,(list,array)) and len(returns)>=lookback and all(isinstance(x,(float,int)) and math.isfinite(x) for x in returns)
         expected=None;matches=None
         if valid:
             try:
@@ -35,7 +36,7 @@ def summarize(data,pair,worker=None):
         news_effect=r.get("news_effect") or {}
         display_version=version+"_validated_news" if news_effect.get("used_in_directional_forecast") else version
         return {k:r.get(k) for k in ("id","frame","reference_at_utc","due_at_utc","reference_price","predicted_price","outcome","validation_at_issue","model_origin")}|{
-            "model_version":display_version,"inputs":{"source":"MEXC closed spot candles","recent_log_returns":returns if valid else [],"lookback":lookback,"news":features.get("news"),"available":valid},
+            "model_version":display_version,"inputs":{"source":"MEXC closed spot candles","recent_log_returns":list(returns) if valid else [],"lookback":lookback,"news":features.get("news"),"available":valid},
             "calculation":{"formula":f"Reference × exp({scale:g} × mean of last {lookback} log returns + validated news correction)","recomputed_price":expected,"matches_recorded":matches},
             "news_effect":r.get("news_effect"),
             "review":reviews.get(r.get("id"),{"status":"unreviewed","reason":"no_saved_decision"})}
