@@ -509,13 +509,14 @@ async function loadTape(){
   const names=[...new Set([...tapeRows.values()].map(tapeKey))].sort();
   venue.replaceChildren(new Option('All sources',''),...names.map(name=>new Option(name,name)));
   if(names.includes(selection))venue.value=selection;
-  set('tapeStatus',pair+' · '+tapeRows.size+' captured trades · checked '+tapeClock.format(Date.parse(result.observed_utc))+
+  const latestTrade=Math.max(0,...[...tapeRows.values()].map(row=>row.time_ms).filter(Number.isFinite));
+  set('tapeStatus',pair+' · '+tapeRows.size+' captured trades · checked '+tapeClock.format(Date.parse(result.observed_utc))+(latestTrade?' · last execution '+tapeClock.format(latestTrade)+' Baghdad':' · no execution captured')+
    (result.contract?' · '+result.network+': '+result.contract:' · Add a verified contract for DEX trades'));
   set('tapeCoverage',result.sources.map(source=>source.venue+' '+source.status+' ('+source.count+')').join(' · ')+
    (result.contract?' · Up to '+result.dex_pool_limit+' of '+result.dex_pools_discovered+' discovered pools queried':''));
   drawTape();
  }catch(error){
-  if(revision===tapeRevision)set('tapeStatus','Trade feed unavailable. '+(tapeRows.size?'Showing last captured trades.':'Check source or contract.'));
+  if(revision===tapeRevision){set('tapeStatus','Trade refresh unavailable. '+(tapeRows.size?'Showing last captured trades inside the selected window.':'Check source or contract.'));drawTape()}
  }
 }
 $('tapeContractForm').addEventListener('submit',event=>{
@@ -524,7 +525,7 @@ $('tapeContractForm').addEventListener('submit',event=>{
 });
 for(const id of ['tapeWindow','tapeFrame','tapeSide','tapeVenue'])$(id).addEventListener('change',()=>{tapeLimit=100;drawTape()});
 $('tapeMore').addEventListener('click',()=>{tapeLimit+=100;drawTape()});
-setInterval(loadTape,30000);
+setInterval(loadTape,15000);
 let priorityController;
 async function prioritizePair(){
  if(document.hidden)return;
@@ -770,6 +771,6 @@ try{const saved=localStorage.getItem('stamp_observatory_pair');if(saved&&/^[A-Z0
 readFavorites();choosePair();loadWorld();loadCatalog();loadMarketMood();
 setInterval(loadMarketMood,900000);
 setInterval(prioritizePair,240000);
-setInterval(loadEngine,15000);setInterval(loadNews,300000);setInterval(loadMarket,60000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden&&!selected&&activeRecord()===null)renderOutput()},5000);setInterval(loadWorld,15000);setInterval(updateSessionCountdowns,1000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadWorld();loadTape();loadNews();loadMarketMood()}});
+setInterval(loadEngine,15000);setInterval(loadNews,300000);setInterval(loadMarket,30000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden&&!selected&&activeRecord()===null)renderOutput()},5000);setInterval(loadWorld,15000);setInterval(updateSessionCountdowns,1000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadEngine();loadMarket();loadQuote();loadWorld();loadTape();loadNews();loadMarketMood()}});
 })();
