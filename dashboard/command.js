@@ -26,7 +26,7 @@ function paintSpineEvidence(){
  if(!previewSpine)return;
  const book=bookEvidence?.venue===market?.venue?bookEvidence?.result?.book?.data:null;
  const bookFresh=book&&age(bookEvidence.result.book.retrieved_at_utc)<90;
- const venueTrades=[...tapeRows.values()].filter(row=>row.type==='CEX'&&row.source===market?.venue&&row.time_ms>=Date.now()-3600000);
+ const venueTrades=[...tapeRows.values()].filter(row=>row.type==='CEX'&&row.source===market?.venue+' Spot'&&row.time_ms>=Date.now()-3600000);
  const candles=market?.candles?.[frame]||[];
  set('spineTrades',venueTrades.length?number(venueTrades.length)+' captured':'—');
  set('spineLiquidity',bookFresh?number(book.bid_depth_usdt+book.ask_depth_usdt)+' USDT':'—');
