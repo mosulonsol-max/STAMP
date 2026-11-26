@@ -348,8 +348,8 @@ async function loadMarket(){if(pending.has('market')||document.hidden)return;con
  for(const horizon of Object.keys(MS)){
   const current=Model.active(engine,d,horizon);
   const prior=previousMarket?.research_forecasts?.[horizon];
-  if(current?.recorded===false&&Date.parse(current.reference_at_utc)>Date.parse(prior?.reference_at_utc||'1970-01-01'))
-   signal(['candles','collect','compute','forecast',horizon],colors.amber,'Projection calculated · '+horizon,current.reference_at_utc);
+  if(current?.recorded===false&&current.calculation?.matches_recorded===true&&Date.parse(current.reference_at_utc)>Date.parse(prior?.reference_at_utc||'1970-01-01'))
+   signal(['candles','collect','compute','forecast',horizon],colors.amber,d.venue+' projection · '+horizon+' · '+price(current.predicted_price)+' USDT',current.reference_at_utc);
  }
  const currentQuote=lastQuote;if(currentQuote?.venue===d.venue&&currentQuote.transport==='WebSocket'&&Date.now()-currentQuote.fetchedMs<8000)applyQuote(currentQuote.value,d.venue,new Date(currentQuote.fetchedMs).toISOString(),new Date(currentQuote.providerMs).toISOString(),'WebSocket');
  const close=d.ticker?.closeTime;applyQuote(d.ticker?.lastPrice,d.venue,d.retrieved_at_utc,close?new Date(Number(close)).toISOString():null);renderOutput();
@@ -751,7 +751,9 @@ async function choosePair(){
   set('newsStatus','Loading selected pair headlines…');
   set('newsModelStatus','Checking news impact for '+value+'…');
   $('newsStories').replaceChildren();
- }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;bookEvidence=null;paintSpineTape();syncQuoteStream();drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
+ }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;bookEvidence=null;paintSpineTape();syncQuoteStream();drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;traceEnd=0;
+ if(previewSpine)$('signalTrace').replaceChildren();
+ set('signalEvent','Waiting for a new observed event.');
  for(const o of $('venue').options)o.disabled=false;$('venue').value=preferredVenue;
  set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);forecastArrowPoints=[];predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');set('pairPriority','');renderOutput();loadEngine();loadMarket();prioritizePair();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
 $('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{preferredVenue=$('venue').value;choosePair()});
@@ -783,14 +785,44 @@ const cities=[
  {code:'XASX',label:'Sydney',lat:-33.9,lon:151.2}
 ];
 const sceneEvents=[],eventLifetime=2100;
+let traceEnd=0;
+const traceNames={quote:'Price',trades:'Trades',liquidity:'Depth',liquidityContext:'Depth context',
+ candles:'Candles',collect:'Collection',compute:'Calculation',forecast:'Forecast',verify:'Verification',learn:'Learning'};
 let sessionStates=new Map(),hitboxes=[],drag=null,lastDraw=0,continuous=false;
 const colors={cyan:'#78e4ff',amber:'#ffc57f',green:'#82e6ad',violet:'#bba8ff',gray:'#6b8298'};
 function signal(path,color,label,at){
  const eventTime=Date.parse(at);
  if(!Number.isFinite(eventTime)||eventTime>Date.now()+5000)return;
- sceneEvents.push({path,color,at:performance.now()});
- if(sceneEvents.length>12)sceneEvents.shift();
- set('signalEvent',label+' · '+utc(at));
+ const now=performance.now();
+ if(previewSpine){
+  path=path.map(id=>Object.hasOwn(MS,id)?'forecast':id)
+   .filter((id,i,ids)=>Object.hasOwn(traceNames,id)&&id!==ids[i-1]);
+  if(path.length<2)return;
+  const description=label+' · '+path.map(id=>traceNames[id]).join(' → ')+' · '+utc(at);
+  const traceList=$('signalTrace');
+  if([...traceList.children].some(row=>row.dataset.trace===description))return;
+  const row=element('li','');
+  row.dataset.trace=description;
+  const button=element('button',description,'quiet');
+  button.type='button';
+  const duration=Math.max(1700,950*(path.length-1));
+  button.addEventListener('click',()=>{
+   sceneEvents.length=0;
+   traceEnd=performance.now()+duration;
+   sceneEvents.push({path,color,description:'Replay · '+description,at:traceEnd-duration,duration});
+   draw();
+  });
+  row.append(button);traceList.prepend(row);
+  if(traceList.children.length>8)traceList.lastElementChild.remove();
+  if(traceEnd-now>15000)return;
+  const start=Math.max(now,traceEnd);
+  traceEnd=start+duration+220;
+  sceneEvents.push({path,color,description,at:start,duration});
+ }else{
+  sceneEvents.push({path,color,at:now});
+  if(sceneEvents.length>12)sceneEvents.shift();
+  set('signalEvent',label+' · '+utc(at));
+ }
  draw();
 }
 function observeArchive(previous,next){
@@ -798,25 +830,32 @@ function observeArchive(previous,next){
  const recent=at=>Date.now()-Date.parse(at)<=120000;
  for(const [h,record] of Object.entries(next.latest||{})){
   if(!record?.id||record.id===previous?.latest?.[h]?.id||
-   (!previous&&!recent(record.reference_at_utc)))continue;
-  const path=record.calculation?.matches_recorded?['candles','collect','compute','forecast',h]:['forecast',h];
-  signal(path,colors.amber,'Saved '+h+' forecast',record.reference_at_utc);
+   (!previous&&!recent(record.reference_at_utc)&&(!previewSpine||h!==frame)))continue;
+  if(record.calculation?.matches_recorded!==true)continue;
+  signal(['candles','collect','compute','forecast',h],colors.amber,
+   (!previous&&previewSpine?'Saved trace':'Worker forecast')+' · '+h+' · '+record.model_version+' · '+price(record.predicted_price)+' USDT',record.reference_at_utc);
  }
  const previousIds=new Set((previous?.scene_outcomes||[]).map(record=>record.id));
  const outcomes=(next.scene_outcomes||[]).filter(record=>!previousIds.has(record.id)&&
-  (previous||recent(record.measured_at_utc)));
- for(const record of outcomes.slice(-4))
-  signal([record.frame,'verify'],colors.green,'Measured '+record.frame+' result',record.measured_at_utc);
- if(previous){
+  (previous||recent(record.measured_at_utc)||(previewSpine&&record.frame===frame)));
+ for(const record of outcomes.slice(previous?-4:-1)){
+  const result=next.recent_outcomes?.find(r=>r.id===record.id);
+  const actual=result?.outcome?.actual_price;
+  signal([record.frame,'verify'],colors.green,(!previous&&previewSpine?'Saved verification':'Worker verified')+
+   ' · '+record.frame+(actual?' · '+price(actual)+' USDT':''),record.measured_at_utc);
+ }
+ if(previous||previewSpine){
   for(const [h,evaluated] of Object.entries(next.learning?.adaptation||{})){
-   const prior=previous.learning?.adaptation?.[h];
-   if(evaluated.samples!==prior?.samples||evaluated.status!==prior?.status||
-    evaluated.forward_samples!==prior?.forward_samples||evaluated.last_tested_reference!==prior?.last_tested_reference)
-    signal(['verify','learn'],colors.violet,'Evaluation updated · '+h,next.review_updated_at_utc);
+   const prior=previous?.learning?.adaptation?.[h];
+   if((previous||h===frame)&&(evaluated.tested_model||evaluated.forward)&&
+    (evaluated.status!==prior?.status||evaluated.forward_samples!==prior?.forward_samples||
+     evaluated.last_tested_reference!==prior?.last_tested_reference||evaluated.tested_model!==prior?.tested_model))
+    signal(['verify','learn'],colors.violet,(!previous?'Saved evaluation':'Worker evaluated')+
+     ' · '+h+' · '+String(evaluated.status||'recorded').replaceAll('_',' '),next.review_updated_at_utc);
   }
   for(const [h,model] of Object.entries(next.learning?.selected_models||{})){
-   if(model?.selected_at_utc&&model.selected_at_utc!==previous.learning?.selected_models?.[h]?.selected_at_utc)
-    signal(['learn','compute'],colors.violet,'Model selection recorded · '+h,model.selected_at_utc);
+   if(model?.selected_at_utc&&(previous||h===frame)&&model.selected_at_utc!==previous?.learning?.selected_models?.[h]?.selected_at_utc)
+    signal(['learn','compute'],colors.violet,(!previous?'Saved model selection':'Worker selected')+' · '+h+' · '+model.version,model.selected_at_utc);
   }
  }
 }
@@ -831,6 +870,9 @@ function draw(now=performance.now()){
  ctx.setTransform(dpr,0,0,dpr,0,0);
  ctx.clearRect(0,0,w,h);
  if(previewSpine){
+  while(sceneEvents.length&&now>=sceneEvents[0].at+sceneEvents[0].duration+220)sceneEvents.shift();
+  const active=sceneEvents[0]?.at<=now?sceneEvents[0]:null;
+  if(active&&$('signalEvent').textContent!==active.description)set('signalEvent',active.description);
   const {venueTrades,book,bookFresh,candles}=paintSpineEvidence();
   for(const button of document.querySelectorAll('[data-evidence]')){
    const pressed=String(button.dataset.evidence===sourceDetail);
@@ -839,7 +881,7 @@ function draw(now=performance.now()){
   hitboxes=previewSpine.draw(ctx,{w,h,angle,stage:sourceDetail?null:stage,
    available:{trades:venueTrades.length>0,liquidity:bookFresh,candles:candles.length>0},
    evidence:{trades:venueTrades.slice(-24),bids:bookFresh?book.bids:[],asks:bookFresh?book.asks:[],candles:candles.slice(-15)},
-   matched:!!activeRecord()?.inputs?.available,events:motionPreference.matches?[]:sceneEvents,now,lifetime:eventLifetime});
+   matched:activeRecord()?.calculation?.matches_recorded===true,trace:active,reduceMotion:motionPreference.matches,now});
   return;
  }
  const compact=w<580,scale=Math.min(w/(compact?550:800),h/(compact?540:435));
@@ -986,13 +1028,13 @@ if(previewSpine&&'IntersectionObserver' in window){
 }
 function animate(now){
  if(!sceneVisible){requestAnimationFrame(animate);return;}
- if(!document.hidden&&!motionPreference.matches&&(rotate||sceneEvents.some(event=>now-event.at<eventLifetime))){
+ if(!document.hidden&&!motionPreference.matches&&(rotate||sceneEvents.some(event=>now-event.at<(event.duration||eventLifetime)))){
   if(now-lastDraw>(previewSpine?45:33)){
    if(rotate&&!drag){angle=(previewSpine ? .34 : .26)*Math.sin(now/(previewSpine ? 5100 : 4100));continuous=true}
    draw(now);lastDraw=now;
   }
  }else if(continuous||sceneEvents.length){
-  sceneEvents.splice(0,sceneEvents.length,...sceneEvents.filter(event=>now-event.at<eventLifetime));
+  sceneEvents.splice(0,sceneEvents.length,...sceneEvents.filter(event=>now-event.at<(event.duration||eventLifetime)));
   draw(now);continuous=false;
  }
  requestAnimationFrame(animate);

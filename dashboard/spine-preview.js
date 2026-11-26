@@ -7,7 +7,7 @@
  };
  const turns=Array.from({length:97},(_,i)=>i*tau/96);
  const major=124, minor=49;
- function draw(ctx,{w,h,angle,stage,available,evidence,matched,events,now,lifetime}){
+ function draw(ctx,{w,h,angle,stage,available,evidence,matched,trace,reduceMotion,now}){
   const scale=Math.min(w/590,h/470);
   const project=(x,y,z)=>{
    const depth=z*Math.cos(angle)+x*Math.sin(angle);
@@ -85,24 +85,29 @@
   observed(evidence.bids.slice(0,14),size,1.6,.7,'#66e8b9');
   observed(evidence.asks.slice(0,14),size,2.28,.65,'#e98c8d');
   observed(evidence.candles,c=>Number(c.c)-Number(c.o),4.2,1.4,c=>c.c<c.o?'#ff826f':'#b3cfff');
-  for(const event of events){
-   const progress=(now-event.at)/lifetime;
-   const route=event.path.map(id=>gates[id]||(id==='15m'||id==='1h'||id==='4h'||id==='1d'?gates.forecast:null))
-    .filter(Boolean).filter((p,i,points)=>i===0||p!==points[i-1]);
-   if(progress<0||progress>=1||route.length<2)continue;
-   const step=progress*(route.length-1),index=Math.floor(step),a=route[index],b=route[index+1],t=step-index;
+  let activeNode=null;
+  if(trace){
+   const route=trace.path.map(id=>gates[id]);
+   const progress=reduceMotion?1:Math.min(1,Math.max(0,(now-trace.at)/trace.duration));
+   const step=progress*(route.length-1);
+   const index=Math.min(route.length-2,Math.floor(step));
+   const a=route[index],b=route[index+1],t=step-index;
+   activeNode=trace.path[t>.83?index+1:index];
+   stroke(route.slice(0,index+1),trace.color,1.6);
+   stroke([a,b],trace.color,.9,[3,4]);
    const tail=Array.from({length:12},(_,i)=>{
-    const s=Math.max(0,t-(11-i)*.023);
-    return {x:a.x+(b.x-a.x)*s,y:a.y+(b.y-a.y)*s+Math.sin(i*1.8+now/65)*Math.sin(i*Math.PI/11)*3};
+    const s=Math.max(0,t-(11-i)*.022);
+    const ripple=reduceMotion?0:Math.sin(i*1.8+now/65)*Math.sin(i*Math.PI/11)*3;
+    return {x:a.x+(b.x-a.x)*s,y:a.y+(b.y-a.y)*s+ripple};
    });
-   ctx.shadowColor=event.color;ctx.shadowBlur=14;
-   stroke(tail,event.color,1.75);dot(tail.at(-1),event.color,3.5);ctx.shadowBlur=0;
+   ctx.shadowColor=trace.color;ctx.shadowBlur=18;
+   stroke(tail,trace.color,2.2);dot(tail.at(-1),trace.color,4.6);ctx.shadowBlur=0;
   }
   const hits=[];
   for(const [id,name] of Object.entries(names)){
    const p=gates[id],source=Object.hasOwn(available,id);
-   const tone=source&&!available[id]?'#8e9eac':colors[id];
-   dot(p,'#060b12',7);dot(p,tone,id===stage?5:3.2);
+   const tone=id===activeNode?trace.color:source&&!available[id]?'#8e9eac':colors[id];
+   dot(p,'#060b12',7);dot(p,tone,id===activeNode?6:id===stage?5:3.2);
    label({x:p.x,y:p.y-14},name,tone,source?'left':'center');
    hits.push({x:p.x,y:p.y-6,radius:22,kind:source?'source':'stage',id});
   }
