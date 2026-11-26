@@ -25,9 +25,6 @@ def decode_state(payload, *, skip_review=False):
         __slots__ = ()
 
         def __setitem__(self, key, value):
-            if key == 'recent_returns' and isinstance(value,list):
-                try:value=array('d',value)
-                except (TypeError,OverflowError):pass
             if "|" not in key and len(key) <= 48 and len(field_names) < 512:
                 key = field_names.setdefault(key, key)
             if key in ("pair", "frame", "model_version", "method", "validation_at_issue",
@@ -51,6 +48,15 @@ def decode_state(payload, *, skip_review=False):
         else:
             data = next(ijson.items(zipped,'',use_float=True,map_type=ArchiveMap))
     if not isinstance(data,dict):raise ValueError('invalid_research_state')
+    # ijson assigns a list to its parent before emitting its elements.
+    # Compact each feature vector only after the parser has filled it.
+    for record in data.get("records", ()):
+        features = record.get("features")
+        if isinstance(features, dict) and isinstance(features.get("recent_returns"), list):
+            try:
+                features["recent_returns"] = array("d", features["recent_returns"])
+            except (TypeError, OverflowError):
+                pass
     return data
 
 ARCHIVE_CHUNK_SIZE = 256 * 1024
