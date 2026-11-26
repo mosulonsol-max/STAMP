@@ -3,6 +3,8 @@ import datetime as dt
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from email.utils import parsedate_to_datetime
 import hashlib
+from bisect import insort
+from heapq import heappop, heappush
 import json
 import math
 import re
@@ -318,25 +320,39 @@ def evaluate_model(records, frame):
             continue
         independent.append(row)
         last_due[row["pair"]] = row["due"]
-    scored = []
+    # Advance the training set only when a previously issued result matures.
+    pending, residuals = [], []
+    numerator, denominator = 0., 12.
+    baseline_error = adjusted_error = 0.
+    scored_count = 0
+    scored_pairs, scored_days = set(), set()
     for index, row in enumerate(independent):
-        past = [item for item in independent[:index] if item["measured"] <= row["issued"]]
-        if len(past) < 60:
+        while pending and pending[0][0] <= row["issued"]:
+            _, previous = heappop(pending)
+            item = independent[previous]
+            numerator += item["news_signal"] * item["residual"]
+            denominator += item["news_signal"] ** 2
+            insort(residuals, abs(item["residual"]))
+        heappush(pending, (row["measured"], index))
+        if len(residuals) < 60:
             continue
-        coefficient = _fit(past)
-        scored.append({"pair": row["pair"], "issued": row["issued"],
-                       "actual": row["residual"], "adjustment": coefficient * row["news_signal"]})
-    base_mae = sum(abs(row["actual"]) for row in scored) / len(scored) if scored else None
-    adjusted_mae = sum(abs(row["actual"] - row["adjustment"]) for row in scored) / len(scored) if scored else None
-    pairs = len({row["pair"] for row in scored})
-    days = len({row["issued"].date() for row in scored})
+        limit = residuals[math.ceil(.9 * len(residuals)) - 1]
+        coefficient = max(-limit, min(limit, numerator / denominator))
+        baseline_error += abs(row["residual"])
+        adjusted_error += abs(row["residual"] - coefficient * row["news_signal"])
+        scored_count += 1
+        scored_pairs.add(row["pair"])
+        scored_days.add(row["issued"].date())
+    base_mae = baseline_error / scored_count if scored_count else None
+    adjusted_mae = adjusted_error / scored_count if scored_count else None
+    pairs, days = len(scored_pairs), len(scored_days)
     improvement = (1 - adjusted_mae / base_mae) if base_mae and adjusted_mae is not None else None
-    ready = len(scored) >= 30 and pairs >= 5 and days >= 20 and improvement is not None and improvement >= 0.05
+    ready = scored_count >= 30 and pairs >= 5 and days >= 20 and improvement is not None and improvement >= 0.05
     matured = [row for row in independent if row["due"] <= dt.datetime.now(UTC)]
     beta = _fit(matured) if len(matured) >= 60 else 0.0
     return {"status": "validated" if ready else "collecting_prospective_evidence",
             "used_in_directional_forecast": bool(ready), "coefficient": beta if ready else 0.0,
-            "training_samples": len(matured), "walk_forward_samples": len(scored),
+            "training_samples": len(matured), "walk_forward_samples": scored_count,
             "independent_pairs": pairs, "independent_days": days,
             "baseline_residual_mae": base_mae, "news_adjusted_residual_mae": adjusted_mae,
             "holdout_improvement": improvement, "updated_at_utc": dt.datetime.now(UTC).isoformat(),
