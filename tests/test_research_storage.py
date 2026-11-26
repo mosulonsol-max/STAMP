@@ -12,7 +12,11 @@ class ResearchStorageTests(unittest.TestCase):
   self.assertEqual(set(btc['autonomous_review']['decisions']),{a['id']})
   self.assertEqual(set(btc['validation']),{'BTCUSDT|1h'})
   self.assertEqual(set(btc['venue_evidence']['pairs']),{'BTCUSDT'})
-  self.assertEqual(storage.decode_state(storage.encode_state(btc)),btc)
+  decoded=storage.decode_state(storage.encode_state(btc))
+  returns=decoded['records'][0]['features']['recent_returns']
+  self.assertEqual(list(returns),a['features']['recent_returns'])
+  decoded['records'][0]['features']['recent_returns']=list(returns)
+  self.assertEqual(decoded,btc)
  def test_http_pair_read_never_decodes_global_archive(self):
   import os
   c=MagicMock();c.execute.side_effect=[MagicMock(fetchone=lambda:('research_pair_state',)),MagicMock(fetchone=lambda:(storage.encode_state({'records':[]}),))]

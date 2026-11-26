@@ -44,7 +44,9 @@ class EngineObservatoryTests(unittest.TestCase):
   model='causal_6_return_momentum'
   self.assertIsNone(summarize({'records':rows[:-1]},'BTCUSDT')['target_rates']['1h'][model]['rate'])
   result=summarize({'records':rows},'BTCUSDT')
-  self.assertEqual(result['target_rates']['1h'][model],{'hits':21,'samples':30,'rate':.7})
+  rate=result['target_rates']['1h'][model]
+  self.assertEqual({key:rate[key] for key in ('hits','samples','rate')},{'hits':21,'samples':30,'rate':.7})
+  self.assertEqual(rate['direction_accuracy'],.7)
   self.assertEqual(result['scene_outcomes'][-1]['id'],'29')
  def test_empty_archive_has_no_synthetic_forecast(self):
   result=summarize({},'STAMPUSDT')
