@@ -8,13 +8,13 @@ const age=v=>{const t=Date.parse(v);return Number.isFinite(t)?Math.max(0,(Date.n
 const set=(id,v)=>{$(id).textContent=v};
 const element=(tag,text,cls)=>{const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;return e};
 let pair="BTCUSDT",frame="1h",engine=null,market=null,selected=null,stage="collect",epoch=0,engineFailed=false,rotate=false,angle=.1;
-let chart,series,predicted,actualLine,catalog={pairs:['BTCUSDT','ETHUSDT','SOLUSDT','STAMPUSDT','ZECUSDT']},lastQuote=null,venuePinned=false;
+let chart,series,predicted,actualLine,catalog={pairs:['BTCUSDT','ETHUSDT','SOLUSDT','STAMPUSDT','ZECUSDT']},lastQuote=null,preferredVenue='';
 const Model=window.StampObservatory;
 const pending=new Map(),MS={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000};
 const stages=[{id:"collect",name:"Collection",short:"Closed candles",color:"#64dce1"},{id:"compute",name:"Calculation",short:"Recorded returns",color:"#69bbc9"},{id:"forecast",name:"Forecast",short:"Issued output",color:"#e9b976"},{id:"verify",name:"Verification",short:"Measured outcome",color:"#a6d59a"},{id:"learn",name:"Learning",short:"Holdout selection",color:"#b9b2e5"}];
 async function request(path,key,timeout=14000){
  pending.get(key)?.abort();const ctl=new AbortController();pending.set(key,ctl);const timer=setTimeout(()=>ctl.abort(),timeout);
- try{const r=await fetch(path,{credentials:"same-origin",cache:"no-store",signal:ctl.signal});if(r.status===401){location.href="/login";throw Error("Sign in required")}if(!r.ok)throw Error("Source returned "+r.status);return await r.json()}
+ try{const r=await fetch(path,{credentials:"same-origin",cache:"no-store",signal:ctl.signal});if(r.status===401){location.href="/login";throw Error("Sign in required")}if(!r.ok)throw Object.assign(Error("Source returned "+r.status),{status:r.status});return await r.json()}
  finally{clearTimeout(timer);if(pending.get(key)===ctl)pending.delete(key)}
 }
 function activeRecord(){return selected?{...selected,recorded:true,venue:'MEXC'}:Model.active(engine,market,frame)}
@@ -175,7 +175,7 @@ function renderEngine(){
  for(const r of [...e.recent_outcomes].reverse()){
   const tr=document.createElement('tr');tr.append(element('td',pair+' / '+r.frame),element('td',utc(r.reference_at_utc)),element('td',price(r.predicted_price)),element('td',price(r.outcome?.actual_price)));
   const decision=element('td',r.review.status);decision.dataset.state=r.review.status;tr.append(decision);
-  const td=document.createElement('td'),button=element('button','Open record');button.type='button';button.addEventListener('click',()=>{selected=r;frame=r.frame;$('frame').value=frame;stage='compute';if(previewSpine)$('forecastPanel').open=true;if(market?.venue!=='MEXC'){pending.get('market')?.abort();pending.delete('market');pending.get('quote')?.abort();pending.delete('quote');market=null;lastQuote=null;$('venue').value='MEXC';venuePinned=true;set('quote','—');set('quoteTime','Loading MEXC candles for the saved record…');loadMarket()}renderOutput();$('marketWorkspace').scrollIntoView({block:'start'})});td.append(button);tr.append(td);$('history').append(tr);
+  const td=document.createElement('td'),button=element('button','Open record');button.type='button';button.addEventListener('click',()=>{selected=r;frame=r.frame;$('frame').value=frame;stage='compute';if(previewSpine)$('forecastPanel').open=true;if(market?.venue!=='MEXC'){pending.get('market')?.abort();pending.delete('market');pending.get('quote')?.abort();pending.delete('quote');market=null;lastQuote=null;$('venue').value='MEXC';preferredVenue='MEXC';set('quote','—');set('quoteTime','Loading MEXC candles for the saved record…');loadMarket()}renderOutput();$('marketWorkspace').scrollIntoView({block:'start'})});td.append(button);tr.append(td);$('history').append(tr);
  }
  if(!e.recent_outcomes.length){const tr=document.createElement('tr'),td=element('td','No verified outcomes for this market yet.');td.colSpan=6;tr.append(td);$('history').append(tr)}
  $('contract').replaceChildren();for(const [title,key] of [['Used in this model','used'],['Observed as context','observed_only'],['Not implemented in this engine','not_implemented']]){const ul=document.createElement('ul');for(const text of e.input_contract[key])ul.append(element('li',text));$('contract').append(element('h3',title),ul)}
@@ -265,17 +265,32 @@ function applyQuote(value,venue,fetched,provider,transport='REST'){
 }
 function paintQuote(){if(!lastQuote)return;const stale=Date.now()-lastQuote.fetchedMs>20000;const timed=Number.isFinite(lastQuote.providerMs);const oldProvider=timed&&Date.now()-lastQuote.providerMs>60000;
  $('quote').dataset.state=stale||oldProvider?'stale':'current';set('quoteTime',lastQuote.venue+' Spot · '+lastQuote.transport+' · '+(stale||oldProvider?'DELAYED · ':'')+(timed?'exchange '+utc(new Date(lastQuote.providerMs).toISOString()):'exchange time unavailable')+' · fetched '+utc(new Date(lastQuote.fetchedMs).toISOString()));$('quoteTime').dataset.state=stale||oldProvider?'error':'ok';}
-async function loadMarket(){if(pending.has('market')||document.hidden)return;const version=epoch,venue=venuePinned?$('venue').value:'';
+async function loadMarket(){if(pending.has('market')||document.hidden)return;const version=epoch,venue=preferredVenue;
+ const path='/api/assets/snapshot?symbol='+encodeURIComponent(pair);
  if(!market)marketFeedback('Loading '+pair+' price and candles…','loading');
- try{const d=await request('/api/assets/snapshot?symbol='+encodeURIComponent(pair)+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000);if(version!==epoch)return;if(d.symbol!==pair||venue&&d.venue!==venue)throw Error('Mismatched market source');const previousMarket=market;
+ try{
+ let d,fallbackRequested=false;
+ try{d=await request(path+(venue?'&venue='+encodeURIComponent(venue):''),'market',30000)}
+ catch(e){
+  if(version!==epoch)return;
+  // Only automatically switch markets with established cross-venue asset identity.
+  if(!venue||selected||!['BTCUSDT','ETHUSDT','SOLUSDT'].includes(pair)||!(e.status>=500||e.status===429))throw e;
+  marketFeedback(venue+' unavailable. Checking other venues for '+pair+'…','loading');
+  fallbackRequested=true;
+  d=await request(path,'market',30000);
+ }
+ if(version!==epoch)return;
+ if(d.symbol!==pair||!d.venue||venue&&!fallbackRequested&&d.venue!==venue)throw Error('Mismatched market source');
+ const previousMarket=market;
  if(previousMarket&&previousMarket.venue!==d.venue){
   pending.get('quote')?.abort();pending.delete('quote');
   pending.get('spine-book')?.abort();pending.delete('spine-book');
   lastQuote=null;bookEvidence=null;set('quote','—');
  }
- market=d;$('venue').value=d.venue;
+ market=d;$('venue').value=venue||d.venue;
  const bars=d.candles?.[frame]||[];
- marketFeedback(bars.length?'':d.venue+' returned a price but no candles for '+frame+'.',bars.length?'ready':'error');
+ const fallback=venue&&venue!==d.venue?venue+' unavailable. Showing '+d.venue+' for '+pair+'. ':'';
+ marketFeedback(fallback+(bars.length?'':d.venue+' returned a price but no candles for '+frame+'.'),bars.length?'ready':'error');
  syncQuoteStream();drawPairMood();loadSpineBook();paintSpineTape();
  for(const horizon of Object.keys(MS)){
   const current=Model.active(engine,d,horizon);
@@ -291,7 +306,7 @@ async function loadMarket(){if(pending.has('market')||document.hidden)return;con
   const reason=e.name==='AbortError'?'request timed out':e.message;
   set('quoteTime',source+' · '+reason);$('quoteTime').dataset.state='error';
   if(!market){set('quote','—');renderOutput()}
-  marketFeedback(source+' could not refresh '+pair+'. '+(market?'Showing the last received chart.':'Retry or select a different market.'),'error');
+  marketFeedback(source+' could not refresh '+pair+'. '+(market?'Showing the last received chart.':'Retry or choose Find available venue in Market settings.'),'error');
  }
 }
 async function loadQuote(){if(!market||pending.has('quote')||document.hidden)return;const version=epoch,venue=market.venue;
@@ -676,9 +691,9 @@ async function choosePair(){
   set('newsModelStatus','Checking news impact for '+value+'…');
   $('newsStories').replaceChildren();
  }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;bookEvidence=null;paintSpineTape();syncQuoteStream();drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;set('signalEvent','Waiting for a new observed event.');
- for(const o of $('venue').options)o.disabled=false;if(!venuePinned)$('venue').value='';
+ for(const o of $('venue').options)o.disabled=false;$('venue').value=preferredVenue;
  set('quotePair',pair.replace('USDT',' / USDT'));for(const id of ['quote','recordCount','settledCount'])set(id,'—');set('quoteTime','Loading selected venue quote…');set('workerState','Connecting');set('recordTime','Waiting for selected market');set('decisions','Waiting for selected market');set('workerTime','Status unverified');$('history').replaceChildren();set('historySummary','Loading selected market results…');$('contract').replaceChildren();if(series){series.setData([]);forecastArrowPoints=[];predicted.setData([]);actualLine.setData([])}notify('Loading '+pair+' price and forecasts…','loading');set('pairPriority','');renderOutput();loadEngine();loadMarket();prioritizePair();try{localStorage.setItem('stamp_observatory_pair',pair)}catch{}}
-$('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{venuePinned=!!$('venue').value;choosePair()});
+$('pairForm').addEventListener('submit',e=>{e.preventDefault();choosePair()});$('pairSelect').addEventListener('change',choosePair);$('pair').addEventListener('input',renderCurrencyList);$('retryCatalog').addEventListener('click',loadCatalog);$('venue').addEventListener('change',()=>{preferredVenue=$('venue').value;choosePair()});
 $('frame').addEventListener('change',()=>{frame=$('frame').value;selected=null;chartView='';renderOutput();drawNews()});$('latest').addEventListener('click',()=>{selected=null;chartView='';renderOutput()});$('focusForecast').addEventListener('click',()=>{chartView='';renderChart()});$('signout').addEventListener('click',async()=>{await fetch('/logout',{method:'POST',credentials:'same-origin'});location.href='/'});
 for(const s of stages){const b=element('button',s.name);b.dataset.stage=s.id;b.type='button';b.setAttribute('aria-pressed',String(s.id===stage));b.addEventListener('click',()=>{sourceDetail=null;stage=s.id;openSpineInspector();renderInspector()});$('stageControls').append(b)}
 $('rotate').addEventListener('click',()=>{rotate=!rotate;$('rotate').setAttribute('aria-pressed',String(rotate));$('rotate').textContent=rotate?'Pause rotation':'Rotate scene';draw()});
