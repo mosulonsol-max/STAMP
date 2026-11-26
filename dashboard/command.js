@@ -46,8 +46,12 @@ function paintSpineTape(){
   for(const [value,kind] of [[tapeClock.format(trade.time_ms),''],[side.toUpperCase(),side],[price(trade.price),''],[number(trade.quantity),''],[number(trade.notional),'']]){
    row.append(element('td',value,kind));
   }
+  bindSceneRow(row,row.cells[0],String(trade.id),['tape','trades'],side==='sell'?'#ff826f':colors.green,
+   trade.source+' · '+side.toUpperCase()+' · '+price(trade.price)+' USDT',
+   new Date(trade.time_ms).toISOString(),['spineRecentTrades','tapeRows']);
   target.append(row);
  }
+ highlightLinkedRow();
 }
 function paintSpineEvidence(){
  if(!previewSpine)return;
@@ -226,9 +230,14 @@ function renderEngine(){
  for(const r of [...e.recent_outcomes].reverse()){
   const tr=document.createElement('tr');tr.append(element('td',pair+' / '+r.frame),element('td',utc(r.reference_at_utc)),element('td',price(r.predicted_price)),element('td',price(r.outcome?.actual_price)));
   const decision=element('td',r.review.status);decision.dataset.state=r.review.status;tr.append(decision);
-  const td=document.createElement('td'),button=element('button','Open record');button.type='button';button.addEventListener('click',()=>{selected=r;frame=r.frame;$('frame').value=frame;stage='compute';if(previewSpine)$('forecastPanel').open=true;if(market?.venue!=='MEXC'){pending.get('market')?.abort();pending.delete('market');pending.get('quote')?.abort();pending.delete('quote');market=null;lastQuote=null;$('venue').value='MEXC';preferredVenue='MEXC';set('quote','—');set('quoteTime','Loading MEXC candles for the saved record…');loadMarket()}renderOutput();$('marketWorkspace').scrollIntoView({block:'start'})});td.append(button);tr.append(td);$('history').append(tr);
+  const td=document.createElement('td'),button=element('button','Open record');button.type='button';button.addEventListener('click',()=>{selected=r;frame=r.frame;$('frame').value=frame;stage='compute';if(previewSpine)$('forecastPanel').open=true;if(market?.venue!=='MEXC'){pending.get('market')?.abort();pending.delete('market');pending.get('quote')?.abort();pending.delete('quote');market=null;lastQuote=null;$('venue').value='MEXC';preferredVenue='MEXC';set('quote','—');set('quoteTime','Loading MEXC candles for the saved record…');loadMarket()}renderOutput();$('marketWorkspace').scrollIntoView({block:'start'})});td.append(button);tr.append(td);
+  bindSceneRow(tr,tr.cells[0],r.id,['forecast','verify'],colors.green,
+   r.frame+' · forecast '+price(r.predicted_price)+' · actual '+price(r.outcome?.actual_price)+' USDT',
+   r.outcome?.measured_at_utc||r.due_at_utc,['history'],button);
+  $('history').append(tr);
  }
  if(!e.recent_outcomes.length){const tr=document.createElement('tr'),td=element('td','No verified outcomes for this market yet.');td.colSpan=6;tr.append(td);$('history').append(tr)}
+ highlightLinkedRow();
  $('contract').replaceChildren();for(const [title,key] of [['Used in this model','used'],['Observed as context','observed_only'],['Not implemented in this engine','not_implemented']]){const ul=document.createElement('ul');for(const text of e.input_contract[key])ul.append(element('li',text));$('contract').append(element('h3',title),ul)}
  renderOutput();set('lastRefresh','Worker fetched '+utc(e.generated_utc));
 }
@@ -490,8 +499,9 @@ async function loadSessionRanking(){
   const previousWindow=seenSessionWindows.get(result.exchange);
   if(result.status==='ok'&&result.window_end_utc){
    seenSessionWindows.set(result.exchange,result.window_end_utc);
-   if(previousWindow&&Date.parse(result.window_end_utc)>Date.parse(previousWindow))
-    signal([result.exchange,'source'],colors.cyan,result.name+' ranking window updated',result.window_end_utc);
+   if(!previousWindow||Date.parse(result.window_end_utc)>Date.parse(previousWindow))
+    signal(previewSpine?['sessions','ranking']:[result.exchange,'source'],colors.cyan,
+     result.name+' · '+result.pairs.length+' ranked pairs',result.window_end_utc);
   }
   const mode={open:'Last 5 completed minutes of the open session',break:'Session so far · recess',closed:'Last completed session'}[result.session_status]||'Session status unknown';
   const rows=result.pairs.map((pair,index)=>{
@@ -504,9 +514,11 @@ async function loadSessionRanking(){
     return value.toLocaleString('en-US',{maximumFractionDigits:key.endsWith('quantity')?6:2});
    })];
    row.append(...values.map((value,column)=>{const cell=element(column===1?'th':'td',String(value));if(column===1)cell.scope='row';return cell}));
+   bindSceneRow(row,row.cells[1],result.exchange+':'+pair.symbol,['sessions','ranking'],colors.cyan,
+    result.name+' · '+pair.symbol+' · rank '+(index+1),result.window_end_utc,['flow']);
    return row;
   });
-  $('flow').replaceChildren(...rows);
+  $('flow').replaceChildren(...rows);highlightLinkedRow();
   const coverage=result.covered_count==null?'': ' · '+result.covered_count+'/'+result.candidate_count+' pairs checked';
   const window=result.window_end_utc?' · '+worldTime(result.window_start_utc)+' → '+worldTime(result.window_end_utc)+' Baghdad':'';
   set('flowTime',result.name+' · '+mode+window+coverage+(result.status==='partial'?' · Partial data':'')+(rows.length?'':' · No ranking available yet'));
@@ -659,7 +671,7 @@ function drawTape(){
   for(const row of filtered){
    const time=Math.floor((row.time_ms+10800000)/frameMs)*frameMs-10800000;
    const key=[time,tapeKey(row),row.side,row.quote].join('|');
-   const item=grouped.get(key)||{...row,time_ms:time,quantity:0,notional:0,count:0};
+   const item=grouped.get(key)||{...row,id:key,time_ms:time,quantity:0,notional:0,count:0};
    item.quantity+=row.quantity;item.notional+=row.notional;item.count++;grouped.set(key,item);
   }
   items=[...grouped.values()].map(row=>({...row,price:row.notional/row.quantity}));
@@ -675,8 +687,12 @@ function drawTape(){
   tr.append(element('td',tapeClock.format(row.time_ms)),venueCell,sideCell,
    element('td',tapeValue(row.quantity)),element('td',tapeValue(row.price)+' '+row.quote),
    element('td',tapeValue(row.notional)+' '+row.quote),element('td',String(row.count)));
+  bindSceneRow(tr,tr.cells[0],String(row.id),['trades','tape'],row.side==='sell'?'#ff826f':colors.green,
+   platform+' · '+row.side.toUpperCase()+' · '+tapeValue(row.notional)+' '+row.quote+(frameMs?' · '+row.count+' executions':''),
+   new Date(row.time_ms).toISOString(),frameMs?['tapeRows']:['tapeRows','spineRecentTrades']);
   return tr;
  }));
+ highlightLinkedRow();
  $('tapeMore').hidden=items.length<=tapeLimit;
 }
 async function loadTape(){
@@ -688,12 +704,16 @@ async function loadTape(){
   const result=await request('/api/trade-tape?'+query,'trade-tape',24000);
   if(revision!==tapeRevision||result.symbol!==pair)return;
   sceneEvidenceCache=null;
-  let newestTrade=0;
+  let newestTrade=0,newestTapeTrade=0;
   for(const row of result.trades){
-   if(!tapeRows.has(row.id)&&row.type==='CEX'&&row.source===market?.venue+' Spot')
-    newestTrade=Math.max(newestTrade,row.time_ms||0);
+   if(!tapeRows.has(row.id)){
+    newestTapeTrade=Math.max(newestTapeTrade,row.time_ms||0);
+    if(row.type==='CEX'&&row.source===market?.venue+' Spot')newestTrade=Math.max(newestTrade,row.time_ms||0);
+   }
    tapeRows.set(row.id,row);
   }
+  if(newestTapeTrade&&Math.abs(Date.now()-newestTapeTrade)<30000)
+   signal(['trades','tape'],colors.cyan,'Trade tape updated',new Date(newestTapeTrade).toISOString());
   if(newestTrade&&Math.abs(Date.now()-newestTrade)<30000)
    signal(['trades','collect'],colors.amber,market.venue+' executed trades received',new Date(newestTrade).toISOString());
   if(tapeRows.size>5000){
@@ -751,7 +771,7 @@ async function choosePair(){
   set('newsStatus','Loading selected pair headlines…');
   set('newsModelStatus','Checking news impact for '+value+'…');
   $('newsStories').replaceChildren();
- }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;bookEvidence=null;paintSpineTape();syncQuoteStream();drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;traceEnd=0;
+ }pair=value;renderFavorites();loadTape();loadNews();engine=null;market=null;bookEvidence=null;paintSpineTape();syncQuoteStream();drawPairMood();selected=null;lastQuote=null;chartView='';sceneEvents.length=0;traceEnd=0;linkedRow=null;
  if(previewSpine)$('signalTrace').replaceChildren();
  set('signalEvent','Waiting for a new observed event.');
  for(const o of $('venue').options)o.disabled=false;$('venue').value=preferredVenue;
@@ -785,12 +805,49 @@ const cities=[
  {code:'XASX',label:'Sydney',lat:-33.9,lon:151.2}
 ];
 const sceneEvents=[],eventLifetime=2100;
-let traceEnd=0;
+let traceEnd=0,linkedRow=null;
+const sceneTables={
+ trades:'spineRecentTrades',tape:'tapeRows',sessions:'flow',ranking:'flow',verify:'history'
+};
+function highlightLinkedRow(){
+ if(!previewSpine||!linkedRow)return;
+ for(const id of new Set(Object.values(sceneTables))){
+  const body=$(id);
+  for(const row of body?.children||[]){
+   const active=row.dataset.sceneRow===linkedRow.key&&linkedRow.tables.includes(id);
+   if(active)row.dataset.sceneSelected='true';else delete row.dataset.sceneSelected;
+  }
+ }
+}
+function bindSceneRow(row,cell,key,path,color,label,at,tables,openRecord){
+ if(!previewSpine)return;
+ row.dataset.sceneRow=key;
+ const button=element('button',cell.textContent,'scene-row-button');
+ button.type='button';
+ button.setAttribute('aria-label','Trace '+label);
+ cell.replaceChildren(button);
+ button.addEventListener('click',()=>{
+  linkedRow={key,tables};
+  highlightLinkedRow();
+  signal(path,color,'Selected row · '+label,at,true);
+  if(openRecord)openRecord.click();
+  else $('signalNetwork').scrollIntoView({block:'start'});
+ });
+}
+function openSceneTable(node){
+ const id=sceneTables[node];
+ const body=id&&$(id);
+ if(!body)return;
+ const row=[...body.children].find(item=>item.dataset.sceneSelected==='true');
+ const target=row?.querySelector('button')||body.querySelector('.scene-row-button')||body.closest('table');
+ target?.scrollIntoView({block:'center'});
+ if(target?.matches('button'))target.focus({preventScroll:true});
+}
 const traceNames={quote:'Price',trades:'Trades',liquidity:'Depth',liquidityContext:'Depth context',
- candles:'Candles',collect:'Collection',compute:'Calculation',forecast:'Forecast',verify:'Verification',learn:'Learning'};
+ tape:'CEX and DEX trade tape',sessions:'Market sessions',ranking:'Session ranking',candles:'Candles',collect:'Collection',compute:'Calculation',forecast:'Forecast',verify:'Verification',learn:'Learning'};
 let sessionStates=new Map(),hitboxes=[],drag=null,lastDraw=0,continuous=false;
 const colors={cyan:'#78e4ff',amber:'#ffc57f',green:'#82e6ad',violet:'#bba8ff',gray:'#6b8298'};
-function signal(path,color,label,at){
+function signal(path,color,label,at,immediate=false){
  const eventTime=Date.parse(at);
  if(!Number.isFinite(eventTime)||eventTime>Date.now()+5000)return;
  const now=performance.now();
@@ -800,7 +857,8 @@ function signal(path,color,label,at){
   if(path.length<2)return;
   const description=label+' · '+path.map(id=>traceNames[id]).join(' → ')+' · '+utc(at);
   const traceList=$('signalTrace');
-  if([...traceList.children].some(row=>row.dataset.trace===description))return;
+  const duplicate=[...traceList.children].find(row=>row.dataset.trace===description);
+  if(duplicate){if(immediate)duplicate.querySelector('button').click();return;}
   const row=element('li','');
   row.dataset.trace=description;
   const button=element('button',description,'quiet');
@@ -814,6 +872,7 @@ function signal(path,color,label,at){
   });
   row.append(button);traceList.prepend(row);
   if(traceList.children.length>8)traceList.lastElementChild.remove();
+  if(immediate){sceneEvents.length=0;traceEnd=now;}
   if(traceEnd-now>15000)return;
   const start=Math.max(now,traceEnd);
   traceEnd=start+duration+220;
@@ -1010,8 +1069,9 @@ canvas.addEventListener('pointerup',event=>{
  const shouldSelect=drag?.id===event.pointerId&&!drag.moved;drag=null;
  if(!shouldSelect)return;
  const hit=findSceneHit(event);
- if(hit?.kind==='source'){sourceDetail=hit.id;openSpineInspector();renderInspector()}
- if(hit?.kind==='stage'){sourceDetail=null;stage=hit.id;openSpineInspector();renderInspector()}
+ if(hit?.kind==='table'){openSceneTable(hit.id);return}
+ if(hit?.kind==='source'){sourceDetail=hit.id;openSpineInspector();renderInspector();if(hit.id==='trades')openSceneTable('trades')}
+ if(hit?.kind==='stage'){sourceDetail=null;stage=hit.id;openSpineInspector();renderInspector();if(hit.id==='verify')openSceneTable('verify')}
  if(hit?.kind==='frame'){frame=hit.id;selected=null;$('frame').value=frame;stage='forecast';renderOutput()}
  if(hit?.kind==='city'){selectWorld(hit.id);$('worldTitle').scrollIntoView({block:'start',behavior:motionPreference.matches?'instant':'smooth'})}
 });
