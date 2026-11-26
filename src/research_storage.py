@@ -2,6 +2,7 @@
 import gzip,io,json
 import ijson
 from array import array
+from tempfile import TemporaryFile
 
 
 def _json_default(value):
@@ -10,12 +11,19 @@ def _json_default(value):
 
 def encode_state(data):
     output=io.BytesIO()
+    _encode_archive(data, output)
+    return output.getvalue()
+
+
+def _encode_archive(data, output):
     with gzip.GzipFile(fileobj=output,mode='wb',compresslevel=3,mtime=0) as zipped:
         with io.TextIOWrapper(zipped,encoding='utf-8') as text:
             json.dump(data,text,separators=(',',':'),ensure_ascii=False,allow_nan=False,default=_json_default)
-    return output.getvalue()
-
 def decode_state(payload, *, skip_review=False):
+    return _decode_archive(io.BytesIO(payload), skip_review=skip_review)
+
+
+def _decode_archive(source, *, skip_review):
     # Share repeated JSON field names inside this decode. The table is local
     # and capped so growing archive identifiers cannot accumulate across cycles.
     field_names = {}
@@ -34,29 +42,33 @@ def decode_state(payload, *, skip_review=False):
                     value = values.setdefault(value, value)
             super().__setitem__(key, value)
 
-    with gzip.GzipFile(fileobj=io.BytesIO(payload),mode='rb') as zipped:
-        # Parse incrementally: json.load first materializes the entire decompressed
-        # UTF-8 string alongside the archive objects, exceeding small workers.
+    def archive_events(zipped):
+        events = iter(ijson.parse(zipped, use_float=True))
         if skip_review:
-            # The governor recreates every review from the original forecasts.
-            # Skip this derived map before allocating its Python objects.
-            events = (item for item in ijson.parse(zipped, use_float=True)
-                      if item[0] != 'autonomous_review'
-                      and not item[0].startswith('autonomous_review.')
-                      and item != ('', 'map_key', 'autonomous_review'))
-            data = next(ijson.items(events, '', map_type=ArchiveMap))
-        else:
-            data = next(ijson.items(zipped,'',use_float=True,map_type=ArchiveMap))
+            events = (item for item in events
+                      if item[0] != "autonomous_review"
+                      and not item[0].startswith("autonomous_review.")
+                      and item != ("", "map_key", "autonomous_review"))
+        for prefix, event, value in events:
+            if prefix == "records.item.features.recent_returns" and event == "start_array":
+                returns = array("d")
+                nested = 0
+                for _, item, number in events:
+                    if item == "end_array" and nested == 0:
+                        break
+                    if item in ("start_map", "start_array"):
+                        nested += 1
+                    elif item in ("end_map", "end_array"):
+                        nested -= 1
+                    elif item == "number" and nested == 0:
+                        returns.append(number)
+                yield prefix, "number", returns
+            else:
+                yield prefix, event, value
+
+    with gzip.GzipFile(fileobj=source,mode="rb") as zipped:
+        data = next(ijson.items(archive_events(zipped), "", map_type=ArchiveMap))
     if not isinstance(data,dict):raise ValueError('invalid_research_state')
-    # ijson assigns a list to its parent before emitting its elements.
-    # Compact each feature vector only after the parser has filled it.
-    for record in data.get("records", ()):
-        features = record.get("features")
-        if isinstance(features, dict) and isinstance(features.get("recent_returns"), list):
-            try:
-                features["recent_returns"] = array("d", features["recent_returns"])
-            except (TypeError, OverflowError):
-                pass
     return data
 
 ARCHIVE_CHUNK_SIZE = 256 * 1024
@@ -72,32 +84,37 @@ def prepare_archive_chunks(conn):
 
 
 def read_archive(conn, revision):
-    with conn.cursor() as cursor:
-        cursor.execute("""
-            SELECT payload FROM research_state_chunks
-            WHERE revision=%s ORDER BY position
-        """, (revision,))
-        chunks = [row[0] for row in cursor]
-    if chunks:
-        return decode_state(b"".join(chunks), skip_review=True)
+    with TemporaryFile() as payload:
+        with conn.cursor(name="stamp_archive_read") as cursor:
+            cursor.itersize = 8
+            cursor.execute("""
+                SELECT payload FROM research_state_chunks
+                WHERE revision=%s ORDER BY position
+            """, (revision,))
+            for row in cursor:
+                payload.write(row[0])
+        if payload.tell():
+            payload.seek(0)
+            return _decode_archive(payload, skip_review=True)
     # The original snapshot remains readable until the first chunked commit.
     row = conn.execute("SELECT payload FROM research_state_compact WHERE id=1").fetchone()
     return decode_state(row[0], skip_review=True)
 
 
 def write_archive(conn, data):
-    payload = encode_state(data)
     revision = conn.execute("""
         UPDATE research_state_compact SET updated_at=clock_timestamp()
         WHERE id=1 RETURNING updated_at
     """).fetchone()[0]
-    with conn.cursor() as cursor:
+    with TemporaryFile() as payload, conn.cursor() as cursor:
+        _encode_archive(data, payload)
+        payload.seek(0)
+        chunks = iter(lambda: payload.read(ARCHIVE_CHUNK_SIZE), b"")
         cursor.executemany("""
             INSERT INTO research_state_chunks(position,revision,payload) VALUES (%s,%s,%b)
             ON CONFLICT (position) DO UPDATE
             SET revision=EXCLUDED.revision,payload=EXCLUDED.payload
-        """, ((position, revision, payload[offset:offset + ARCHIVE_CHUNK_SIZE])
-              for position, offset in enumerate(range(0, len(payload), ARCHIVE_CHUNK_SIZE))))
+        """, ((position, revision, chunk) for position, chunk in enumerate(chunks)))
     conn.execute("DELETE FROM research_state_chunks WHERE revision<>%s", (revision,))
 
 
