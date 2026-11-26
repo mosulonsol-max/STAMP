@@ -7,7 +7,7 @@ const utc=v=>{const n=Date.parse(v);return Number.isFinite(n)?new Date(n).toISOS
 const age=v=>{const t=Date.parse(v);return Number.isFinite(t)?Math.max(0,(Date.now()-t)/1000):Infinity};
 const set=(id,v)=>{$(id).textContent=v};
 const element=(tag,text,cls)=>{const e=document.createElement(tag);e.textContent=text;if(cls)e.className=cls;return e};
-let pair="BTCUSDT",frame="1h",engine=null,market=null,selected=null,stage="collect",epoch=0,engineFailed=false,rotate=false,angle=.1;
+let pair="BTCUSDT",frame="1h",engine=null,market=null,selected=null,stage="collect",epoch=0,engineFailed=false,rotate=!!window.StampSpine,angle=.1;
 let chart,series,predicted,actualLine,catalog={pairs:['BTCUSDT','ETHUSDT','SOLUSDT','STAMPUSDT','ZECUSDT']},lastQuote=null,preferredVenue='';
 const Model=window.StampObservatory;
 const pending=new Map(),MS={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000};
@@ -21,7 +21,7 @@ function activeRecord(){return selected?{...selected,recorded:true,venue:'MEXC'}
 function notify(text,state){set('notice',text);$('notice').dataset.state=state}
 function facts(rows){$('stageFacts').replaceChildren();for(const [label,value] of rows){$('stageFacts').append(element('dt',label),element('dd',value))}}
 const previewSpine=window.StampSpine;
-let sourceDetail=null,bookEvidence=null;
+let sourceDetail=null,bookEvidence=null,sceneEvidenceCache=null;
 function marketFeedback(message,state){
  if(!previewSpine)return;
  set('marketFeedback',message);
@@ -51,6 +51,9 @@ function paintSpineTape(){
 }
 function paintSpineEvidence(){
  if(!previewSpine)return;
+ const now=Date.now();
+ if(sceneEvidenceCache?.market===market&&sceneEvidenceCache.bookEvidence===bookEvidence&&sceneEvidenceCache.frame===frame&&now-sceneEvidenceCache.at<400)
+  return sceneEvidenceCache.result;
  const book=bookEvidence?.venue===market?.venue?bookEvidence?.result?.book?.data:null;
  const bookFresh=book&&age(bookEvidence.result.book.retrieved_at_utc)<90;
  const venueTrades=[...tapeRows.values()].filter(row=>row.type==='CEX'&&row.source===market?.venue+' Spot'&&row.time_ms>=Date.now()-3600000);
@@ -58,7 +61,9 @@ function paintSpineEvidence(){
  set('spineTrades',venueTrades.length?number(venueTrades.length)+' captured':'—');
  set('spineLiquidity',bookFresh?number(book.bid_depth_usdt+book.ask_depth_usdt)+' USDT':'—');
  set('spineCandles',candles.length?number(candles.length)+' bars':'—');
- return {book,bookFresh,venueTrades,candles};
+ const result={book,bookFresh,venueTrades,candles};
+ sceneEvidenceCache={market,bookEvidence,frame,at:now,result};
+ return result;
 }
 async function loadSpineBook(){
  if(!previewSpine||document.hidden||!market?.venue||pending.has('spine-book'))return;
@@ -159,9 +164,7 @@ function tradePlan(record,quote,validation,performance,now){
  return {state:quote.value>reference?'WAIT FOR ENTRY':'ENTRY WINDOW OPEN',entry:reference,target,invalidation,now:quote.providerMs,due,
   reason:'Research plan based on the observed trade price. Fees and execution slippage are excluded.'};
 }
-const planPanel=element('section','','panel');
-planPanel.style.padding='12px 16px';
-planPanel.style.marginBlock='10px';
+const planPanel=element('section','','panel trade-plan');
 planPanel.setAttribute('aria-label','Trade plan');
 const planTitle=element('h2','Trade plan');
 const planState=element('p','Waiting for a current forecast.');
@@ -684,6 +687,7 @@ async function loadTape(){
  try{
   const result=await request('/api/trade-tape?'+query,'trade-tape',24000);
   if(revision!==tapeRevision||result.symbol!==pair)return;
+  sceneEvidenceCache=null;
   let newestTrade=0;
   for(const row of result.trades){
    if(!tapeRows.has(row.id)&&row.type==='CEX'&&row.source===market?.venue+' Spot')
@@ -828,7 +832,10 @@ function draw(now=performance.now()){
  ctx.clearRect(0,0,w,h);
  if(previewSpine){
   const {venueTrades,book,bookFresh,candles}=paintSpineEvidence();
-  for(const button of document.querySelectorAll('[data-evidence]'))button.setAttribute('aria-pressed',String(button.dataset.evidence===sourceDetail));
+  for(const button of document.querySelectorAll('[data-evidence]')){
+   const pressed=String(button.dataset.evidence===sourceDetail);
+   if(button.getAttribute('aria-pressed')!==pressed)button.setAttribute('aria-pressed',pressed);
+  }
   hitboxes=previewSpine.draw(ctx,{w,h,angle,stage:sourceDetail?null:stage,
    available:{trades:venueTrades.length>0,liquidity:bookFresh,candles:candles.length>0},
    evidence:{trades:venueTrades.slice(-24),bids:bookFresh?book.bids:[],asks:bookFresh?book.asks:[],candles:candles.slice(-15)},
@@ -969,10 +976,19 @@ canvas.addEventListener('pointerup',event=>{
 canvas.addEventListener('pointercancel',()=>{drag=null});
 canvas.addEventListener('pointerleave',()=>{drag=null});
 new ResizeObserver(()=>draw()).observe(canvas);
+let sceneVisible=true;
+if(previewSpine&&'IntersectionObserver' in window){
+ const observer=new IntersectionObserver(([entry])=>{
+  sceneVisible=entry.isIntersecting;
+  if(sceneVisible)draw();
+ });
+ observer.observe(canvas);
+}
 function animate(now){
+ if(!sceneVisible){requestAnimationFrame(animate);return;}
  if(!document.hidden&&!motionPreference.matches&&(rotate||sceneEvents.some(event=>now-event.at<eventLifetime))){
-  if(now-lastDraw>33){
-   if(rotate&&!drag){angle=.26*Math.sin(now/4100);continuous=true}
+  if(now-lastDraw>(previewSpine?45:33)){
+   if(rotate&&!drag){angle=(previewSpine ? .34 : .26)*Math.sin(now/(previewSpine ? 5100 : 4100));continuous=true}
    draw(now);lastDraw=now;
   }
  }else if(continuous||sceneEvents.length){

@@ -96,3 +96,75 @@ body.nexus-preview{--bg:#080d13;--panel:#101820;--line:#28343e;--cyan:#82ded2;--
 .market-feedback[data-state="error"]{color:#ffb4aa}
 .nexus-preview #marketRetry:not([hidden]){display:block;font-size:.72rem;margin-top:5px;padding:4px 7px}
 .nexus-preview #spineClose{float:right;font-size:.72rem;padding:4px 7px}
+
+/* Market terminal */
+body.nexus-preview{
+ --bg:#070b13;--panel:#0b121f;--line:#283751;--cyan:#79e2d5;--amber:#ffd084;
+ background:radial-gradient(ellipse at 40% -18%,#192943,#070b13 68%);
+ font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+.nexus-preview .topbar{min-height:49px;background:#0b1321;padding-inline:clamp(12px,2.2vw,32px)}
+.nexus-preview .brand{letter-spacing:.14em}
+.nexus-preview .edition{text-transform:uppercase;font-size:.7rem;letter-spacing:.12em}
+.nexus-preview main{width:calc(100% - 28px);max-width:1720px;padding-top:12px}
+.nexus-preview .panel,.nexus-preview .market-band,.nexus-preview .execution-strip{
+ background:#0c1422;border-color:var(--line);border-radius:2px;
+}
+.nexus-preview .market-band{padding:12px 14px;border-bottom:0;background:#0d1726}
+.nexus-preview .market-band select,.nexus-preview button,.nexus-preview .stage-controls button{font-family:inherit}
+.nexus-preview .band-value strong{letter-spacing:0}
+.nexus-preview .analysis-grid{
+ grid-template-columns:minmax(0,1.18fr) minmax(0,1fr);
+ grid-template-areas:"spine chart" "spine executions" "forecast forecast";
+ border:1px solid var(--line);align-items:stretch;
+}
+.nexus-preview #signalNetwork{background:#090f1c}
+.nexus-preview .chart-panel{background:#0a111e;border-bottom:1px solid var(--line)}
+.nexus-preview .section-head{border-bottom:1px solid #26375080;margin-bottom:6px;padding:10px 12px 8px}
+.nexus-preview .section-head h2,.nexus-preview .execution-strip h2,.nexus-preview .trade-plan h2{
+ font-size:.9rem;letter-spacing:.09em;text-transform:uppercase;font-weight:700;
+}
+.nexus-preview .scene-wrap{min-width:0}
+.nexus-preview #engineScene{height:clamp(375px,41vw,540px)}
+.nexus-preview #priceChart{height:clamp(240px,25vw,370px)}
+.nexus-preview .spine-target-card{
+ right:12px;bottom:19%;width:clamp(102px,24%,162px);border-radius:2px;
+ background:#0a1320e8;border-color:#88724f;box-shadow:0 0 18px #010307a0;
+}
+.nexus-preview .spine-target-card strong{font-size:clamp(.85rem,1.2vw,1.2rem)}
+.nexus-preview .evidence-sources button,.nexus-preview #stageControls button{
+ background:#0e1928;border-color:#2d415b;border-radius:2px;
+}
+.nexus-preview #signalEvent{border:1px solid #33445d;padding:6px 8px;color:#acd7e2;background:#0b1422}
+.nexus-preview .chart-caption{padding:5px 0}
+.nexus-preview .execution-strip{
+ grid-area:executions;grid-template-columns:1fr auto;
+ align-content:start;gap:8px;border:0;margin:0;padding:10px 12px;border-radius:0;
+}
+.nexus-preview .execution-table{grid-column:1/-1;grid-row:2;border:0;padding:0}
+.nexus-preview .execution-table table{border-collapse:collapse}
+.nexus-preview .execution-table th{border-bottom:1px solid #324663;color:#a0b2cc}
+.nexus-preview .execution-table td,.nexus-preview .execution-table th{padding:6px}
+.nexus-preview .execution-table tbody tr{border-bottom:1px solid #20334a}
+.nexus-preview .execution-table tr:nth-child(odd) td{background:#132139}
+.nexus-preview .trade-plan{padding:9px 13px;margin:7px 0;border-left:2px solid #b79862}
+.nexus-preview .trade-plan h2,.nexus-preview .trade-plan p{margin:0}
+.nexus-preview .trade-plan p{margin-top:5px;font-size:.76rem;line-height:1.5}
+@media(max-width:840px){
+ .nexus-preview main{width:calc(100% - 16px)}
+ .nexus-preview .analysis-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"chart" "spine" "executions" "forecast"}
+ .nexus-preview #engineScene{height:clamp(280px,83vw,460px)}
+ .nexus-preview #priceChart{height:clamp(235px,67vw,340px)}
+ .nexus-preview .execution-strip{border-top:1px solid var(--line)}
+ .nexus-preview .spine-target-card{width:28%;bottom:21%;right:7px}
+ .nexus-preview .scene-controls button{min-height:40px}
+}
+@media(max-width:840px){
+ .nexus-preview .spine-target-card{
+  position:static;width:auto;margin:0 13px 8px;display:grid;
+  grid-template-columns:auto 1fr;gap:3px 10px;align-items:center;
+ }
+ .nexus-preview .spine-target-card small{grid-column:1/-1}
+ .nexus-preview .spine-target-card strong{text-align:right}
+ .nexus-preview .spine-target-button{padding-bottom:0;text-align:left}
+}

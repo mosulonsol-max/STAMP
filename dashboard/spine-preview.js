@@ -1,109 +1,112 @@
 'use strict';
 (() => {
- function draw(ctx,{w,h,angle,stage,available,evidence,matched,events,now,lifetime}) {
-  const scale=Math.min(w/535,h/408);
+ const tau = Math.PI * 2;
+ const colors = {
+  trades:'#e7ba70', liquidity:'#72dad9', candles:'#91adff',
+  collect:'#7dceda', compute:'#aebafe', forecast:'#ffca83', verify:'#82ddb0', learn:'#ccacf9'
+ };
+ const turns=Array.from({length:97},(_,i)=>i*tau/96);
+ const major=124, minor=49;
+ function draw(ctx,{w,h,angle,stage,available,evidence,matched,events,now,lifetime}){
+  const scale=Math.min(w/590,h/470);
   const project=(x,y,z)=>{
-   const d=z*Math.cos(angle)+x*Math.sin(angle), k=770/(770-d);
-   return {x:w*.49+(x*Math.cos(angle)-z*Math.sin(angle))*scale*k,y:h*.5+(y+d*.12)*scale*k,z:d};
+   const depth=z*Math.cos(angle)+x*Math.sin(angle);
+   const k=720/(720-depth);
+   return {x:w*.49+(x*Math.cos(angle)-z*Math.sin(angle))*scale*k,y:h*.47+(y+.16*depth)*scale*k,z:depth};
   };
-  const ribbon=(t,v)=>project(173*Math.sin(t)-24,43*t+v*(25+8*Math.cos(t)*Math.cos(t)),84*Math.cos(t)+v*8);
-  const trace=(points,color,width,dash=[])=>{
+  const torus=(u,v)=>{
+   const radius=major+minor*Math.cos(v);
+   return project(.83*radius*Math.cos(u)+.65*minor*Math.sin(v),radius*Math.sin(u),
+    minor*Math.sin(v)-.56*radius*Math.cos(u));
+  };
+  const stroke=(points,color,width,dash=[])=>{
+   if(points.length<2)return;
    ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);
-   for(const p of points.slice(1))ctx.lineTo(p.x,p.y);
+   for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);
    ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash);ctx.stroke();ctx.setLineDash([]);
   };
-  const point=(p,color,r)=>{
-   ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
+  const dot=(p,color,r)=>{ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,r,0,tau);ctx.fill()};
+  const label=(p,value,color,align='left')=>{
+   ctx.font='600 '+Math.max(10,12*scale)+'px ui-monospace, monospace';
+   ctx.textAlign=align;ctx.textBaseline='middle';ctx.fillStyle=color;
+   ctx.fillText(value,p.x,p.y);
   };
-  const label=(p,text,color,align='left')=>{
-   ctx.font='600 '+Math.max(9,12*scale)+'px system-ui';ctx.textAlign=align;ctx.textBaseline='middle';
-   ctx.fillStyle=color;ctx.fillText(text,p.x,p.y);
-  };
-  const stops=Array.from({length:161},(_,i)=>-3.9+i*.048125);
-  const panels=stops.slice(1).map((b,i)=>{
-   const a=stops[i],corners=[ribbon(a,-1),ribbon(b,-1),ribbon(b,1),ribbon(a,1)];
-   return {corners,depth:corners.reduce((sum,p)=>sum+p.z,0)/4,light:.5+.5*Math.sin((a+b)*.5+angle)};
-  });
-  for(const {corners:p,light} of panels.sort((a,b)=>a.depth-b.depth)){
-   const g=ctx.createLinearGradient(p[0].x,p[0].y,p[3].x,p[3].y);
-   const spec=Math.pow(light,6);
-   g.addColorStop(0,`rgb(${102+78*spec} ${134+70*spec} ${151+73*spec})`);
-   g.addColorStop(.065,`rgb(${51+52*light} ${68+57*light} ${81+63*light})`);
-   g.addColorStop(.37,`rgb(${24+53*spec} ${34+52*spec} ${43+58*spec})`);
-   g.addColorStop(.75,`rgb(${14+29*light} ${22+32*light} ${29+34*light})`);
-   g.addColorStop(.96,`rgb(${55+42*light} ${78+43*light} ${91+51*light})`);
-   g.addColorStop(1,'#425661');
-   ctx.beginPath();ctx.moveTo(p[0].x,p[0].y);p.slice(1).forEach(v=>ctx.lineTo(v.x,v.y));ctx.closePath();
-   ctx.fillStyle=g;ctx.fill();ctx.strokeStyle=g;ctx.lineWidth=.85;ctx.stroke();
-
+  const middle=project(0,0,0);
+  ctx.save();
+  for(let x=middle.x%24;x<w;x+=24)stroke([{x,y:0},{x,y:h}],'#20304766',.65);
+  for(let y=middle.y%24;y<h;y+=24)stroke([{x:0,y},{x:w,y}],'#20304766',.65);
+  stroke([{x:0,y:middle.y},{x:w,y:middle.y}],'#4255737a',.8,[4,5]);
+  stroke([{x:middle.x,y:0},{x:middle.x,y:h}],'#4255737a',.8,[4,5]);
+  const glow=ctx.createRadialGradient(middle.x,middle.y,8,middle.x,middle.y,200*scale);
+  glow.addColorStop(0,'#3678a216');glow.addColorStop(.7,'#3d64b01d');glow.addColorStop(1,'#05081600');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
+  for(let lane=0;lane<37;lane++){
+   const v=lane*tau/37;
+   stroke(turns.map(u=>torus(u,v)),'#8bb7ef52',.68);
+   stroke(turns.map(u=>torus(u,v+u*(lane%2===0?2:-2))),
+    lane%3===0?'#9deae44f':'#b7cafa40',.68);
   }
-  trace(stops.map(t=>ribbon(t,-1)),'#b9d2e286',.8);
-  trace(stops.map(t=>ribbon(t,1)),'#79a6b76e',.8);
-  const plot=(rows,from,to,measure,color)=>{
-   const valid=rows.map(measure).filter(value=>Number.isFinite(value)&&value>0).slice(0,18);
-   const peak=Math.max(...valid);
-   valid.forEach((value,i)=>{
-    const t=from+(to-from)*i/Math.max(1,valid.length-1);
-    trace([ribbon(t,.48),ribbon(t,.48-value/peak*.92)],color,Math.max(1,3*scale));
-   });
-  };
-  plot(evidence?.trades||[],-2.82,-1.85,row=>row.notional,'#e8b783ae');
-  plot([...(evidence?.bids||[]).slice(0,8),...(evidence?.asks||[]).slice(0,8)],-.7,.6,row=>Number(row.qty??row.quantity),'#72d2caae');
-  const candles=evidence?.candles||[];
-  if(candles.length){
-   const low=Math.min(...candles.map(c=>c.l)),high=Math.max(...candles.map(c=>c.h));
-   const v=value=>.56-(value-low)/Math.max(high-low,Math.abs(high)*1e-12,1e-16)*1.12;
-   candles.forEach((c,i)=>{
-    const t=1.8+1.15*i/Math.max(1,candles.length-1),color=c.c>=c.o?'#8ee1ce':'#e49a85';
-    trace([ribbon(t,v(c.h)),ribbon(t,v(c.l))],color,.8);
-    trace([ribbon(t,v(c.o)),ribbon(t,v(c.c))],color,Math.max(1.4,3.4*scale));
-   });
+  for(let lane=0;lane<48;lane++){
+   const u=lane*tau/48,v=lane*2.399963;
+   stroke(turns.filter((_,i)=>i%4===0).map(t=>torus(u,t)),'#a3beff36',.6);
+   const p=torus(u,v);
+   dot(p,p.z>0?'#d8edffb5':'#a1c6e560',lane%8===0?1.8:1);
   }
-  const nodes={
-   quote:project(-233,-112,0),collect:ribbon(-2.72,0),compute:ribbon(-.82,0),
-   forecast:project(198,5,0),verify:ribbon(1.28,0),learn:ribbon(2.67,0)
+  const gates={
+   trades:project(-269,-124,0),liquidity:project(-273,-17,0),candles:project(-268,100,0),
+   collect:torus(3.35,.3), compute:torus(4.72,1.25),
+   forecast:project(245,-83,0),verify:torus(.71,.2),learn:torus(1.43,1.35),
+   liquidityContext:torus(2.75,.4),quote:project(-269,-124,0)
   };
-  for(const key of ['15m','1h','4h','1d'])nodes[key]=nodes.forecast;
-  const paths=[
-   {name:'Trades',at:project(-233,-112,0),tip:nodes.collect,ready:available.trades,color:'#eab77b'},
-   {name:'Liquidity',at:project(-233,-12,0),tip:ribbon(0,0),ready:available.liquidity,color:'#80c7cb'},
-   {name:'Candles',at:project(-233,95,0),tip:nodes.collect,ready:available.candles,color:'#92dfd2'}
+  const names={trades:'TRADES',liquidity:'DEPTH',candles:'CANDLES',collect:'COLLECT',compute:'MODEL',
+   forecast:'FORECAST',verify:'VERIFY',learn:'LEARN'};
+  const segments=[
+   ['trades','collect'],['quote','collect'],['liquidity','liquidityContext'],['candles','collect'],
+   ['collect','compute'],['compute','forecast'],['forecast','verify'],['verify','learn'],['learn','compute']
   ];
-  const stageIds=['collect','compute','forecast','verify','learn'];
-  for(const item of paths)nodes[item.name.toLowerCase()]=item.at;
-  nodes.liquidityContext=paths[1].tip;
-  for(const item of paths){
-   const color=item.ready?item.color:'#697982';
-   ctx.shadowColor=color;ctx.shadowBlur=item.ready?8:0;
-   trace([item.at,{x:item.tip.x*.55+item.at.x*.45,y:item.at.y},item.tip],color,1.45,item.name==='Candles'?[]:[3,4]);
-   ctx.shadowBlur=0;
-   point(item.at,color,3.8);label({x:item.at.x,y:item.at.y-15},item.name,color);
+  for(const [from,to] of segments){
+   if(from==='quote')continue;
+   const ready=available[from]??(to==='forecast'?matched:false);
+   stroke([gates[from],gates[to]],ready?colors[from]:'#647da481',ready?1.3:.9,ready?[]:[3,5]);
   }
-  trace(stops.map(t=>ribbon(t,0)),'#79c8d145',1);
-  trace([nodes.compute,nodes.forecast],matched?'#ffc990':'#7f8b96',1.5,matched?[]:[3,4]);
-  trace([nodes.forecast,nodes.verify,nodes.learn,nodes.compute],'#9c9ad684',1,[4,5]);
-  const hits=paths.map(item=>({x:item.at.x,y:item.at.y-7,kind:'source',id:item.name.toLowerCase(),radius:22}));
-  for(const id of stageIds){
-   const p=nodes[id];
-   const color=id===stage?'#ffd199':id==='forecast'&&matched?'#ffca88':'#95c6ca';
-   point(p,'#122330',8);point(p,color,id===stage?5:3.5);
-   hits.push({x:p.x,y:p.y,kind:'stage',id,radius:18});
-  }
-  label({x:nodes.forecast.x,y:nodes.forecast.y-16},'Forecast',matched?'#ffca88':'#a1abb6','center');
-  for(const event of events){
-   const f=(now-event.at)/lifetime;
-   const route=event.path.map(k=>nodes[k]).filter(Boolean).filter((p,i,points)=>i===0||p!==points[i-1]);
-   if(f<0||f>=1||route.length<2)continue;
-   const pos=f*(route.length-1),idx=Math.floor(pos),a=route[idx],b=route[idx+1],t=pos-idx;
-   if(a===b)continue;
-   const p={x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
-   ctx.shadowBlur=13;ctx.shadowColor=event.color;
-   const trail=Array.from({length:9},(_,i)=>{
-    const v=Math.max(0,t-(8-i)*.031);
-    return {x:a.x+(b.x-a.x)*v,y:a.y+(b.y-a.y)*v+Math.sin(i*1.4+now/75)*Math.sin(i*Math.PI/8)*3};
+  const observed=(values,valueOf,start,length,color)=>{
+   const peak=values.reduce((max,item)=>Math.max(max,Math.abs(valueOf(item))||0),0);
+   if(!peak)return;
+   values.forEach((item,i)=>{
+    const magnitude=Math.abs(valueOf(item))/peak;
+    if(!Number.isFinite(magnitude))return;
+    const u=start+length*i/Math.max(1,values.length-1);
+    const v=.64+magnitude*1.25;
+    dot(torus(u,v),typeof color==='function'?color(item):color,1.15+magnitude*1.45);
    });
-   trace(trail,event.color,1.4);point(p,event.color,4);ctx.shadowBlur=0;
+  };
+  observed(evidence.trades,t=>Number(t.notional),2.85,1.45,t=>t.side==='sell'?'#ff826f':'#66ecc0');
+  const size=level=>Number(Array.isArray(level)?level[1]:level?.quantity??level?.size);
+  observed(evidence.bids.slice(0,14),size,1.6,.7,'#66e8b9');
+  observed(evidence.asks.slice(0,14),size,2.28,.65,'#e98c8d');
+  observed(evidence.candles,c=>Number(c.c)-Number(c.o),4.2,1.4,c=>c.c<c.o?'#ff826f':'#b3cfff');
+  for(const event of events){
+   const progress=(now-event.at)/lifetime;
+   const route=event.path.map(id=>gates[id]||(id==='15m'||id==='1h'||id==='4h'||id==='1d'?gates.forecast:null))
+    .filter(Boolean).filter((p,i,points)=>i===0||p!==points[i-1]);
+   if(progress<0||progress>=1||route.length<2)continue;
+   const step=progress*(route.length-1),index=Math.floor(step),a=route[index],b=route[index+1],t=step-index;
+   const tail=Array.from({length:12},(_,i)=>{
+    const s=Math.max(0,t-(11-i)*.023);
+    return {x:a.x+(b.x-a.x)*s,y:a.y+(b.y-a.y)*s+Math.sin(i*1.8+now/65)*Math.sin(i*Math.PI/11)*3};
+   });
+   ctx.shadowColor=event.color;ctx.shadowBlur=14;
+   stroke(tail,event.color,1.75);dot(tail.at(-1),event.color,3.5);ctx.shadowBlur=0;
   }
+  const hits=[];
+  for(const [id,name] of Object.entries(names)){
+   const p=gates[id],source=Object.hasOwn(available,id);
+   const tone=source&&!available[id]?'#8e9eac':colors[id];
+   dot(p,'#060b12',7);dot(p,tone,id===stage?5:3.2);
+   label({x:p.x,y:p.y-14},name,tone,source?'left':'center');
+   hits.push({x:p.x,y:p.y-6,radius:22,kind:source?'source':'stage',id});
+  }
+  ctx.restore();
   return hits;
  }
  window.StampSpine={draw};
