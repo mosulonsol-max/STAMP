@@ -1,4 +1,6 @@
 """Evaluate challengers on chronological and subsequently observed outcomes."""
+import hashlib
+import json
 import math
 
 DEFAULT = {"lookback": 6, "scale": 1.0, "version": "causal_6_return_momentum"}
@@ -12,7 +14,41 @@ CANDIDATES = [
 MIN_FORWARD = 20
 
 
+def neural_inputs(returns):
+    return [math.tanh(100 * sum(returns[-n:]) / n) for n in (3, 6, 20)]
+
+
+def hidden_values(inputs, weights):
+    return [math.tanh(row[0] + sum(w*x for w,x in zip(row[1:], inputs))) for row in weights]
+
+
+def train_neural(rows):
+    """Train a small nonlinear challenger using only matured training rows."""
+    data = [(neural_inputs(returns), max(-5, min(5, actual*100)))
+            for returns, actual in samples(rows)]
+    hidden = [[0., .45, -.2, .15], [0., -.25, .4, .2], [0., .1, -.3, .5]]
+    output = [0., 0., 0., 0.]
+    for _ in range(36):
+        for inputs, actual in data:
+            activations = hidden_values(inputs, hidden)
+            error = output[0] + sum(w*x for w,x in zip(output[1:], activations)) - actual
+            for row, activation, weight in zip(hidden, activations, output[1:]):
+                change = .008 * error * weight * (1 - activation**2)
+                for i, value in enumerate([1., *inputs]):
+                    row[i] -= change * value
+            for i, value in enumerate([1., *activations]):
+                output[i] -= .008 * error * value
+    weights = {"hidden": hidden, "output": output}
+    identifier = hashlib.sha256(json.dumps(weights,sort_keys=True).encode()).hexdigest()[:12]
+    return {"version": "neural_" + identifier, "lookback": 20, "weights": weights}
+
+
 def drift(returns, model):
+    if "weights" in model:
+        weights = model["weights"]
+        values = hidden_values(neural_inputs(returns), weights["hidden"])
+        prediction = weights["output"][0] + sum(w*x for w,x in zip(weights["output"][1:], values))
+        return max(-.05, min(.05, prediction/100))
     n = model["lookback"]
     return model.get("scale", 1.0) * sum(returns[-n:]) / n
 
@@ -91,13 +127,15 @@ def advance(rows, incumbent, state, now):
     train = [row for row in rows[:split] if row.get("due_at_utc", cutoff) <= cutoff]
     if not train:
         return incumbent, {**report, "status": "insufficient_chronological_samples"}
-    challenger = min(CANDIDATES, key=lambda model: model_error(train, model))
+    candidates = [*CANDIDATES, train_neural(train)] if len(train)>=80 else CANDIDATES
+    challenger = min(candidates, key=lambda model: model_error(train, model))
     result = compare(test, challenger, incumbent)
     report["tested_model"] = challenger["version"]
     report["error_hypothesis"] = {
         "momentum": "mismatched_lookback",
         "damped": "momentum_magnitude_too_high",
         "reversal": "momentum_direction_not_persistent",
+        "neural": "nonlinear_return_relationship",
     }[challenger["version"].rsplit("_", 1)[0]] if result["passes"] else "no_supported_model_change"
     if not result["passes"]:
         return incumbent, {**report, "status": "retain_incumbent", "holdout": result,

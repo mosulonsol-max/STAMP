@@ -11,12 +11,18 @@
   const closed=(market.candles?.[frame]||[]).filter(b=>b.t+step<=ref),returns=[];
   for(let i=1;i<closed.length;i++)if(closed[i].t-closed[i-1].t===step&&closed[i].c>0&&closed[i-1].c>0)returns.push(Math.log(closed[i].c/closed[i-1].c));
   const recent=returns.slice(-20);
-  const usePeer=Number.isInteger(model?.lookback)&&model.lookback>=3&&model.lookback<=20&&recent.length>=model.lookback&&Number.isFinite(model.scale);
+  const neural=model?.version?.startsWith('neural_')&&model.weights;
+  const lookbacks=[3,6,20];
+  const mean=n=>recent.slice(-n).reduce((a,b)=>a+b,0)/n;
+  const inputs=neural?lookbacks.map(n=>Math.tanh(100*mean(n))):[];
+  const activation=(row,values)=>row[0]+values.reduce((sum,x,i)=>sum+x*row[i+1],0);
+  const neuralDrift=neural?Math.max(-.05,Math.min(.05,activation(neural.output,neural.hidden.map(row=>Math.tanh(activation(row,inputs))))/100)):null;
+  const usePeer=Number.isInteger(model?.lookback)&&model.lookback>=3&&model.lookback<=20&&recent.length>=model.lookback&&(neural?Number.isFinite(neuralDrift):Number.isFinite(model.scale));
   const lookback=usePeer?model.lookback:6,scale=usePeer?model.scale:1,available=recent.length>=lookback;
-  const calculated=available?f.reference_price*Math.exp(scale*recent.slice(-lookback).reduce((a,b)=>a+b,0)/lookback):null;
+  const calculated=available?f.reference_price*Math.exp((usePeer&&neural?neuralDrift:scale*mean(lookback))):null;
   return {...f,predicted_price:usePeer?calculated:f.predicted_price,id:'current:'+market.venue+':'+market.symbol+'|'+frame+'|'+f.reference_at_utc,frame,venue:market.venue,recorded:false,outcome:null,model_version:usePeer?model.version:f.method,model_origin:usePeer?(model.origin||'peer'):'default',validation_at_issue:'current_projection',
    inputs:{available,source:market.venue+' closed spot candles',recent_log_returns:recent,lookback},
-   calculation:{formula:usePeer?`Reference × exp(${scale} × mean of last ${lookback} log returns)`:null,recomputed_price:calculated,matches_recorded:available&&(usePeer||Math.abs(calculated-f.predicted_price)<=Math.abs(f.predicted_price)*1e-9)},review:{status:'projection',reason:usePeer?(model.origin==='pair'?'computed_with_pair_model':'computed_with_peer_model'):'computed_from_current_closed_candles'}};
+   calculation:{formula:usePeer&&neural?"Reference × exp(neural network output)":usePeer?`Reference × exp(${scale} × mean of last ${lookback} log returns)`:null,recomputed_price:calculated,matches_recorded:available&&(usePeer||Math.abs(calculated-f.predicted_price)<=Math.abs(f.predicted_price)*1e-9)},review:{status:'projection',reason:usePeer?(model.origin==='pair'?'computed_with_pair_model':'computed_with_peer_model'):'computed_from_current_closed_candles'}};
  }
  function active(engine,market,frame,now=Date.now()){
   const saved=engine?.latest?.[frame],matching=!market||market.venue==='MEXC';

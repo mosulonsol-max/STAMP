@@ -351,6 +351,8 @@ def cycle(pairs=None):
             models=(data.get("news_intelligence") or {}).setdefault("models",{})
             models[frame]=news_feature["model"]
             features={"recent_returns":recent,"base_predicted_log_return":news_feature["base_predicted_log_return"],"news":news_feature["analysis"]}
+            if selected and "weights" in selected and result["method"]==selected["version"]:
+                features["neural_model"] = selected
             data["records"].append(dict(features=features,news_effect={"used_in_directional_forecast":news_feature["used_in_directional_forecast"],"applied_log_return_adjustment":news_feature["applied_log_return_adjustment"],"model_status":news_feature["model"]["status"]},validation_at_issue=gate.get("status","research_only"),model_version=result["method"],model_origin=("pair" if key in (data.get("model_selections") or {}) else "peer" if selected else "default"),id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))

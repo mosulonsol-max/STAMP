@@ -67,8 +67,11 @@
   const paths=[
    {name:'Trades',at:project(-233,-112,0),tip:nodes.collect,ready:available.trades,color:'#eab77b'},
    {name:'Liquidity',at:project(-233,-12,0),tip:ribbon(0,0),ready:available.liquidity,color:'#80c7cb'},
-   {name:'Candles',at:project(-233,95,0),tip:nodes.compute,ready:available.candles,color:'#92dfd2'}
+   {name:'Candles',at:project(-233,95,0),tip:nodes.collect,ready:available.candles,color:'#92dfd2'}
   ];
+  const stageIds=['collect','compute','forecast','verify','learn'];
+  for(const item of paths)nodes[item.name.toLowerCase()]=item.at;
+  nodes.liquidityContext=paths[1].tip;
   for(const item of paths){
    const color=item.ready?item.color:'#697982';
    ctx.shadowColor=color;ctx.shadowBlur=item.ready?8:0;
@@ -78,8 +81,10 @@
   }
   trace(stops.map(t=>ribbon(t,0)),'#79c8d145',1);
   trace([nodes.compute,nodes.forecast],matched?'#ffc990':'#7f8b96',1.5,matched?[]:[3,4]);
+  trace([nodes.forecast,nodes.verify,nodes.learn,nodes.compute],'#9c9ad684',1,[4,5]);
   const hits=paths.map(item=>({x:item.at.x,y:item.at.y-7,kind:'source',id:item.name.toLowerCase(),radius:22}));
-  for(const [id,p] of Object.entries(nodes).slice(1,6)){
+  for(const id of stageIds){
+   const p=nodes[id];
    const color=id===stage?'#ffd199':id==='forecast'&&matched?'#ffca88':'#95c6ca';
    point(p,'#122330',8);point(p,color,id===stage?5:3.5);
    hits.push({x:p.x,y:p.y,kind:'stage',id,radius:18});
@@ -87,12 +92,17 @@
   label({x:nodes.forecast.x,y:nodes.forecast.y-16},'Forecast',matched?'#ffca88':'#a1abb6','center');
   for(const event of events){
    const f=(now-event.at)/lifetime;
-   const route=event.path.map(k=>nodes[k]).filter(Boolean);
+   const route=event.path.map(k=>nodes[k]).filter(Boolean).filter((p,i,points)=>i===0||p!==points[i-1]);
    if(f<0||f>=1||route.length<2)continue;
    const pos=f*(route.length-1),idx=Math.floor(pos),a=route[idx],b=route[idx+1],t=pos-idx;
    if(a===b)continue;
    const p={x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};
-   ctx.shadowBlur=15;ctx.shadowColor=event.color;point(p,event.color,4);ctx.shadowBlur=0;
+   ctx.shadowBlur=13;ctx.shadowColor=event.color;
+   const trail=Array.from({length:9},(_,i)=>{
+    const v=Math.max(0,t-(8-i)*.031);
+    return {x:a.x+(b.x-a.x)*v,y:a.y+(b.y-a.y)*v+Math.sin(i*1.4+now/75)*Math.sin(i*Math.PI/8)*3};
+   });
+   trace(trail,event.color,1.4);point(p,event.color,4);ctx.shadowBlur=0;
   }
   return hits;
  }

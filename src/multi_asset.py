@@ -274,15 +274,40 @@ def snapshot(pair,preferred=None):
     with ThreadPoolExecutor(max_workers=len(candidates)) as pool:
         responses=dict(zip(candidates,pool.map(probe,candidates)))
     available=[name for name in candidates if responses[name] is not None]
-    venue=available[0] if available else None
-    ticker=responses.get(venue) if venue else None
-    if venue is None:raise OSError("all_venue_pair_data_unavailable")
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        tasks={frame:pool.submit(venue_candles,venue,pair,frame) for frame in ("15m","1h","4h","1d")}
-        frames={}
-        for frame,task in tasks.items():
-            try:frames[frame]=task.result()
-            except (OSError,ValueError,KeyError,TypeError,IndexError):frames[frame]=[]
+    if not available:raise OSError("all_venue_pair_data_unavailable")
+
+    def read_frame(name, frame):
+        try:return venue_candles(name,pair,frame)
+        except (OSError,ValueError,KeyError,TypeError,IndexError):return []
+
+    def finite_value(value):
+        try:
+            number=float(value)
+            return number if math.isfinite(number) and number>0 else 0
+        except (TypeError,ValueError):return 0
+
+    now_ms=dt.datetime.now(dt.timezone.utc).timestamp()*1000
+    verified=pair in {"BTCUSDT","ETHUSDT","SOLUSDT"}
+    # STAMP symbols can refer to different assets. Keep its established listing.
+    comparable=available if pair!="STAMPUSDT" or preferred else [v for v in available if v=="MEXC"]
+    if not comparable:raise OSError("verified_stamp_listing_unavailable")
+    with ThreadPoolExecutor(max_workers=len(comparable)) as pool:
+        hourly=dict(zip(comparable,pool.map(lambda name:read_frame(name,"1h"),comparable)))
+
+    def quality(name):
+        ticker=responses[name]
+        at=finite_value(ticker.get("closeTime"))
+        quote_fresh=2 if 0<=now_ms-at<=120000 else 1 if not at else 0
+        series=hourly[name]
+        latest=series[-1]["t"] if series else 0
+        candles_fresh=0<=now_ms-latest<=7200000
+        return candles_fresh,quote_fresh,finite_value(ticker.get("quoteVolume"))
+
+    venue=max(comparable,key=quality)
+    ticker=responses[venue]
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        tasks={frame:pool.submit(read_frame,venue,frame) for frame in ("15m","4h","1d")}
+        frames={"1h":hourly[venue],**{frame:task.result() for frame,task in tasks.items()}}
     projections=forecasts(frames)
     for frame,result in projections.items():
         result["source"]=venue+" closed spot candles"
@@ -290,7 +315,8 @@ def snapshot(pair,preferred=None):
     return {
         "symbol": pair, "ticker": ticker, "candles": frames,
         "research_forecasts": projections, "source": venue+" public spot REST","venue":venue,
-        "available_venues":available,"venue_identity":"symbol_match_only" if pair not in {"BTCUSDT","ETHUSDT","SOLUSDT"} else "major_pair",
+        "available_venues":available,"venue_identity":"major_pair" if verified else "symbol_match_only",
+        "venue_selection":"manual" if preferred else "fresh_hourly_candles_then_quote_freshness_then_24h_volume",
         "retrieved_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
     }
 

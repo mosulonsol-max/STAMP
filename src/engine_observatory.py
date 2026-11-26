@@ -5,9 +5,9 @@ from array import array
 from collections import Counter
 from multi_asset_governor import audit_records
 try:
-    from forecast_adaptation import transferred_model
+    from forecast_adaptation import drift, transferred_model
 except ImportError:
-    from src.forecast_adaptation import transferred_model
+    from src.forecast_adaptation import drift, transferred_model
 
 FRAMES=("15m","1h","4h","1d")
 def summarize(data,pair,worker=None):
@@ -22,22 +22,25 @@ def summarize(data,pair,worker=None):
         base_version=version.removesuffix("_validated_news")
         scale=0 if base_version=="no_change" else .5 if base_version.startswith("damped_") else -.5 if base_version.startswith("reversal_") else 1
         lookback=int(base_version.split("_")[-1]) if base_version.startswith(("momentum_","damped_","reversal_")) and base_version.split("_")[-1].isdigit() else 6
-        valid=isinstance(returns,(list,array)) and len(returns)>=lookback and all(isinstance(x,(float,int)) and math.isfinite(x) for x in returns)
+        neural=base_version.startswith("neural_")
+        model=features.get("neural_model") or {}
+        if neural:lookback=20
+        valid=(not neural or (model.get("version")==base_version and "weights" in model)) and isinstance(returns,(list,array)) and len(returns)>=lookback and all(isinstance(x,(float,int)) and math.isfinite(x) for x in returns)
         expected=None;matches=None
         if valid:
             try:
-                expected=float(r["reference_price"])*math.exp(scale*sum(returns[-lookback:])/lookback)
+                expected=float(r["reference_price"])*math.exp(drift(returns,model) if neural else scale*sum(returns[-lookback:])/lookback)
                 news_effect=r.get("news_effect") or {}
                 if news_effect.get("used_in_directional_forecast"):
                     expected*=math.exp(float(news_effect["applied_log_return_adjustment"]))
                 if not math.isfinite(expected) or expected<=0:raise ValueError("invalid_calculation")
                 matches=math.isclose(expected,float(r["predicted_price"]),rel_tol=1e-9)
-            except (KeyError,TypeError,ValueError,OverflowError):expected=None
+            except (IndexError,KeyError,TypeError,ValueError,OverflowError):expected=None
         news_effect=r.get("news_effect") or {}
         display_version=version+"_validated_news" if news_effect.get("used_in_directional_forecast") else version
         return {k:r.get(k) for k in ("id","frame","reference_at_utc","due_at_utc","reference_price","predicted_price","outcome","validation_at_issue","model_origin")}|{
             "model_version":display_version,"inputs":{"source":"MEXC closed spot candles","recent_log_returns":list(returns) if valid else [],"lookback":lookback,"news":features.get("news"),"available":valid},
-            "calculation":{"formula":f"Reference × exp({scale:g} × mean of last {lookback} log returns + validated news correction)","recomputed_price":expected,"matches_recorded":matches},
+            "calculation":{"formula":"Reference × exp(neural network output + validated news correction)" if neural else f"Reference × exp({scale:g} × mean of last {lookback} log returns + validated news correction)","recomputed_price":expected,"matches_recorded":matches},
             "news_effect":r.get("news_effect"),
             "review":reviews.get(r.get("id"),{"status":"unreviewed","reason":"no_saved_decision"})}
     ids = Counter(record.get("id") for record in records)

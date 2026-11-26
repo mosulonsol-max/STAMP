@@ -66,7 +66,11 @@ async function loadSpineBook(){
  try{
   const book=await request('/api/assets/microstructure?symbol='+encodeURIComponent(pair)+'&venue='+encodeURIComponent(venue),'spine-book',9500);
   if(version!==epoch||book.symbol!==pair||book.venue!==market?.venue)return;
+  const previous=bookEvidence?.result?.book?.retrieved_at_utc;
   bookEvidence=book;
+  const observed=book.result?.book;
+  if(observed?.data&&Date.parse(observed.retrieved_at_utc)>Date.parse(previous||'1970-01-01')&&age(observed.retrieved_at_utc)<90)
+   signal(['liquidity','liquidityContext'],colors.cyan,venue+' order book updated',observed.retrieved_at_utc);
  }catch{if(version!==epoch)return}
  if(sourceDetail)renderInspector();else draw();
 }
@@ -287,16 +291,18 @@ async function loadMarket(){if(pending.has('market')||document.hidden)return;con
   pending.get('spine-book')?.abort();pending.delete('spine-book');
   lastQuote=null;bookEvidence=null;set('quote','—');
  }
- market=d;$('venue').value=venue||d.venue;
+ market=d;$('venue').value=venue;
  const bars=d.candles?.[frame]||[];
  const fallback=venue&&venue!==d.venue?venue+' unavailable. Showing '+d.venue+' for '+pair+'. ':'';
- marketFeedback(fallback+(bars.length?'':d.venue+' returned a price but no candles for '+frame+'.'),bars.length?'ready':'error');
+ const selection=!venue&&d.venue_selection?'Auto-selected '+d.venue+' by candle freshness, quote freshness and volume. ':'';
+ const identity=d.venue_identity==='symbol_match_only'?'Listing matched by ticker. ':'';
+ marketFeedback(fallback+selection+identity+(bars.length?'':d.venue+' returned a price but no candles for '+frame+'.'),bars.length?'ready':'error');
  syncQuoteStream();drawPairMood();loadSpineBook();paintSpineTape();
  for(const horizon of Object.keys(MS)){
   const current=Model.active(engine,d,horizon);
   const prior=previousMarket?.research_forecasts?.[horizon];
   if(current?.recorded===false&&Date.parse(current.reference_at_utc)>Date.parse(prior?.reference_at_utc||'1970-01-01'))
-   signal(['collect','compute','forecast',horizon],colors.amber,'Projection calculated · '+horizon,current.reference_at_utc);
+   signal(['candles','collect','compute','forecast',horizon],colors.amber,'Projection calculated · '+horizon,current.reference_at_utc);
  }
  const currentQuote=lastQuote;if(currentQuote?.venue===d.venue&&currentQuote.transport==='WebSocket'&&Date.now()-currentQuote.fetchedMs<8000)applyQuote(currentQuote.value,d.venue,new Date(currentQuote.fetchedMs).toISOString(),new Date(currentQuote.providerMs).toISOString(),'WebSocket');
  const close=d.ticker?.closeTime;applyQuote(d.ticker?.lastPrice,d.venue,d.retrieved_at_utc,close?new Date(Number(close)).toISOString():null);renderOutput();
@@ -634,7 +640,14 @@ async function loadTape(){
  try{
   const result=await request('/api/trade-tape?'+query,'trade-tape',24000);
   if(revision!==tapeRevision||result.symbol!==pair)return;
-  for(const row of result.trades)tapeRows.set(row.id,row);
+  let newestTrade=0;
+  for(const row of result.trades){
+   if(!tapeRows.has(row.id)&&row.type==='CEX'&&row.source===market?.venue+' Spot')
+    newestTrade=Math.max(newestTrade,row.time_ms||0);
+   tapeRows.set(row.id,row);
+  }
+  if(newestTrade&&Math.abs(Date.now()-newestTrade)<30000)
+   signal(['trades','collect'],colors.amber,market.venue+' executed trades received',new Date(newestTrade).toISOString());
   if(tapeRows.size>5000){
    const oldest=[...tapeRows.values()].sort((a,b)=>a.time_ms-b.time_ms);
    for(const row of oldest.slice(0,tapeRows.size-5000))tapeRows.delete(row.id);
@@ -738,7 +751,7 @@ function observeArchive(previous,next){
  for(const [h,record] of Object.entries(next.latest||{})){
   if(!record?.id||record.id===previous?.latest?.[h]?.id||
    (!previous&&!recent(record.reference_at_utc)))continue;
-  const path=record.calculation?.matches_recorded?['collect','compute','forecast',h]:['forecast',h];
+  const path=record.calculation?.matches_recorded?['candles','collect','compute','forecast',h]:['forecast',h];
   signal(path,colors.amber,'Saved '+h+' forecast',record.reference_at_utc);
  }
  const previousIds=new Set((previous?.scene_outcomes||[]).map(record=>record.id));
