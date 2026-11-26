@@ -137,7 +137,51 @@ function paintSpineSummary(record,change){
  set('spineCardTarget',record?price(record.predicted_price)+' USDT':'—');
  set('spineCardMethod',record?[record.frame,record.model_version].filter(Boolean).join(' · '):'Target unavailable');
 }
+function tradePlan(record,quote,validation,performance,now){
+ if(!record||record.outcome)return {state:'WAIT',reason:'No current forecast for this pair and horizon.'};
+ const issued=Date.parse(record.reference_at_utc),due=Date.parse(record.due_at_utc);
+ if(!(issued<=now&&due>now))return {state:'WAIT',reason:'Forecast is outside its valid time window.'};
+ const target=Number(record.predicted_price),reference=Number(record.reference_price);
+ if(!(target>0&&reference>0&&Number.isFinite(target)&&Number.isFinite(reference)))return {state:'WAIT',reason:'The forecast has no valid price levels.'};
+ if(!record.recorded||record.calculation?.matches_recorded!==true||validation?.status!=='eligible_research'||
+    !(validation.observed_skill>=.05)||!(performance?.samples>=30))
+  return {state:'WAIT',reason:'This forecast lacks fresh, verified evidence for the same venue and model.'};
+ if(!quote||quote.venue!==record.venue||!(quote.fetchedMs<=now&&now-quote.fetchedMs<=20000)||
+    !(quote.providerMs<=now&&now-quote.providerMs<=60000)||!(quote.value>0))
+  return {state:'WAIT',reason:'Waiting for a fresh, timestamped price from the forecast venue.'};
+ const error=performance.mean_price_error_pct/100;
+ if(!(error>0&&error<1))return {state:'WAIT',reason:'There is insufficient measured price error to set an invalidation level.'};
+ const move=target/reference-1;
+ if(!(move>error))return {state:'WAIT',reason:'The projected upside does not exceed the model’s historical price error.'};
+ const invalidation=reference*(1-error);
+ if(quote.value<=invalidation||quote.value>=target)
+  return {state:'WAIT',reason:'The observed price already reached the target or breached the invalidation level.'};
+ return {state:quote.value>reference?'WAIT FOR ENTRY':'ENTRY WINDOW OPEN',entry:reference,target,invalidation,now:quote.providerMs,due,
+  reason:'Research plan based on the observed trade price. Fees and execution slippage are excluded.'};
+}
+const planPanel=element('section','','panel');
+planPanel.style.padding='12px 16px';
+planPanel.style.marginBlock='10px';
+planPanel.setAttribute('aria-label','Trade plan');
+const planTitle=element('h2','Trade plan');
+const planState=element('p','Waiting for a current forecast.');
+const planDetails=element('p','');
+planPanel.append(planTitle,planState,planDetails);
+($('marketFeedback')||$('forecastDirection')).after(planPanel);
+function renderTradePlan(record=selected?null:activeRecord()){
+ const validation=engine&&archiveFresh(engine)&&!engineFailed&&engine?.symbol===pair?engine.validation?.[record?.frame]:null;
+ const performance=engine?.target_rates?.[record?.frame]?.[record?.model_version];
+ const p=tradePlan(record,lastQuote,validation,performance,Date.now());
+ const title=pair.replace('USDT',' / USDT')+' · '+frame+' spot trade plan';
+ const status=p.state+' · '+p.reason;
+ const details=p.entry?'Entry: above '+price(p.invalidation)+' and at or below '+price(p.entry)+' USDT, from '+worldTime(new Date(p.now).toISOString())+' Baghdad until expiry. Exit: '+price(p.target)+' USDT on target, at or below '+price(p.invalidation)+' on invalidation, or at '+worldTime(new Date(p.due).toISOString())+' Baghdad if neither level is reached.':'';
+ if(planTitle.textContent!==title)planTitle.textContent=title;
+ if(planState.textContent!==status)planState.textContent=status;
+ if(planDetails.textContent!==details)planDetails.textContent=details;
+ planDetails.hidden=!details;
+}
 function renderOutput(){
+ renderTradePlan();
  const r=activeRecord(),v=r?.venue==='MEXC'?(engine?.validation?.[r?.frame||frame]||{}):{};
  set('recordKind',selected?'HISTORICAL RESULT':r?.recorded===false?'CURRENT CANDLE PROJECTION':'SAVED UPCOMING FORECAST');
  const change=r?100*(r.predicted_price/r.reference_price-1):null;
@@ -267,7 +311,7 @@ function applyQuote(value,venue,fetched,provider,transport='REST'){
  if(isNewExecution)signal(['quote','collect'],colors.cyan,venue+' reported a newer quote',new Date(providerMs).toISOString());set('quote',price(value));paintQuote();
  const tail=market.candles?.[frame]?.at(-1);if(tail&&providerMs>=tail.t&&providerMs<tail.t+MS[frame]&&tail.t+MS[frame]>Date.now()){tail.c=Number(value);tail.h=Math.max(tail.h,tail.c);tail.l=Math.min(tail.l,tail.c);series?.update({time:Math.floor(tail.t/1000),open:tail.o,high:tail.h,low:tail.l,close:tail.c})}
 }
-function paintQuote(){if(!lastQuote)return;const stale=Date.now()-lastQuote.fetchedMs>20000;const timed=Number.isFinite(lastQuote.providerMs);const oldProvider=timed&&Date.now()-lastQuote.providerMs>60000;
+function paintQuote(){renderTradePlan();if(!lastQuote)return;const stale=Date.now()-lastQuote.fetchedMs>20000;const timed=Number.isFinite(lastQuote.providerMs);const oldProvider=timed&&Date.now()-lastQuote.providerMs>60000;
  $('quote').dataset.state=stale||oldProvider?'stale':'current';set('quoteTime',lastQuote.venue+' Spot · '+lastQuote.transport+' · '+(stale||oldProvider?'DELAYED · ':'')+(timed?'exchange '+utc(new Date(lastQuote.providerMs).toISOString()):'exchange time unavailable')+' · fetched '+utc(new Date(lastQuote.fetchedMs).toISOString()));$('quoteTime').dataset.state=stale||oldProvider?'error':'ok';}
 async function loadMarket(){if(pending.has('market')||document.hidden)return;const version=epoch,venue=preferredVenue;
  const path='/api/assets/snapshot?symbol='+encodeURIComponent(pair);
