@@ -1,20 +1,20 @@
 {
-  "generated_at_utc": "2026-11-26T04:59:11.649924+00:00",
+  "generated_at_utc": "2026-11-26T12:53:21.523400+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-26T04:59:11.649924+00:00",
+    "generated_at_utc": "2026-11-26T12:53:21.523400+00:00",
     "state": "healthy",
-    "previous_pipeline_passed": false,
-    "previous_pipeline_at_utc": "2026-11-26T02:45:04.361761+00:00",
+    "previous_pipeline_passed": true,
+    "previous_pipeline_at_utc": "2026-11-26T12:52:36.649608+00:00",
     "failed_checks": [],
     "checks": {
       "pipeline_steps": {
-        "passed": null,
-        "details": "previous cycle; current CI result pending"
+        "passed": true,
+        "details": "Every required stage must report success; a missing stage is a failure."
       },
       "pipeline_outcome": {
-        "passed": null,
-        "details": "previous cycle; current CI result pending"
+        "passed": true,
+        "details": ""
       },
       "exact_contract": {
         "passed": true,
@@ -70,33 +70,33 @@
       },
       "ticker": {
         "status": "missing",
-        "historical_points": 8,
+        "historical_points": 2,
         "currently_available": false
       },
       "orderbook": {
         "status": "missing",
-        "historical_points": 8,
+        "historical_points": 2,
         "currently_available": false
       },
       "trades": {
         "status": "missing",
-        "historical_points": 8,
+        "historical_points": 2,
         "currently_available": false
       },
       "dex": {
         "status": "missing",
-        "historical_points": 22,
+        "historical_points": 11,
         "currently_available": false
       },
       "onchain": {
-        "status": "used",
-        "historical_points": 90,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 48,
+        "currently_available": false
       },
       "news": {
-        "status": "used",
-        "historical_points": 84,
-        "currently_available": true
+        "status": "missing",
+        "historical_points": 48,
+        "currently_available": false
       },
       "project": {
         "status": "missing",
@@ -105,7 +105,7 @@
       },
       "macro": {
         "status": "missing",
-        "historical_points": 21,
+        "historical_points": 10,
         "currently_available": false
       },
       "derivatives": {
@@ -123,14 +123,14 @@
   },
   "experiments": [
     {
-      "id": "4b1db79fb44eb9c6",
+      "id": "ef16261196f5479f",
       "horizon": "1h",
-      "candidate": "technical_absolute",
-      "action": "continue_sandbox",
-      "reason": "improvement_below_research_gate",
+      "candidate": "forest_absolute",
+      "action": "revise_in_sandbox",
+      "reason": "failed_no_change_baseline",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": 0.0013178167644709582,
+      "skill_vs_zero": -0.012226202904978,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
@@ -138,23 +138,23 @@
       "id": "d232bb57b9faecaa",
       "horizon": "4h",
       "candidate": "technical_absolute",
-      "action": "revise_in_sandbox",
-      "reason": "failed_no_change_baseline",
+      "action": "continue_sandbox",
+      "reason": "improvement_below_research_gate",
       "replay_consistent": true,
       "later_samples": 120.0,
-      "skill_vs_zero": -0.009085738357341278,
+      "skill_vs_zero": 0.0024533527656008802,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
     {
-      "id": "826221cda064c0b3",
+      "id": "bace7209c1d171e3",
       "horizon": "24h",
-      "candidate": "technical_absolute",
+      "candidate": "forest_absolute",
       "action": "continue_sandbox",
       "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
-      "later_samples": 31.0,
-      "skill_vs_zero": -0.05509587282853068,
+      "later_samples": 33.0,
+      "skill_vs_zero": -0.09233958858393643,
       "production_status": "experimental",
       "promotion_permitted_by_lab": false
     },
