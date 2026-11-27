@@ -807,7 +807,7 @@ const cities=[
 const sceneEvents=[],eventLifetime=2100;
 let traceEnd=0,linkedRow=null;
 const sceneTables={
- trades:'spineRecentTrades',tape:'tapeRows',sessions:'flow',ranking:'flow',verify:'history'
+ trades:'spineRecentTrades',tape:'tapeRows',sessions:'flow',ranking:'flow',verify:'history',discovery:'dexSwaps'
 };
 function highlightLinkedRow(){
  if(!previewSpine||!linkedRow)return;
@@ -835,6 +835,7 @@ function bindSceneRow(row,cell,key,path,color,label,at,tables,openRecord){
  });
 }
 function openSceneTable(node){
+ if(node==='discovery'){$('dexDiscovery').scrollIntoView({block:'start'});$('dexSearch').focus({preventScroll:true});return;}
  const id=sceneTables[node];
  const body=id&&$(id);
  if(!body)return;
@@ -844,7 +845,7 @@ function openSceneTable(node){
  if(target?.matches('button'))target.focus({preventScroll:true});
 }
 const traceNames={quote:'Price',trades:'Trades',liquidity:'Depth',liquidityContext:'Depth context',
- tape:'CEX and DEX trade tape',sessions:'Market sessions',ranking:'Session ranking',candles:'Candles',collect:'Collection',compute:'Calculation',forecast:'Forecast',verify:'Verification',learn:'Learning'};
+ discovery:'DEX discovery',tape:'CEX and DEX trade tape',sessions:'Market sessions',ranking:'Session ranking',candles:'Candles',collect:'Collection',compute:'Calculation',forecast:'Forecast',verify:'Verification',learn:'Learning'};
 let sessionStates=new Map(),hitboxes=[],drag=null,lastDraw=0,continuous=false;
 const colors={cyan:'#78e4ff',amber:'#ffc57f',green:'#82e6ad',violet:'#bba8ff',gray:'#6b8298'};
 function signal(path,color,label,at,immediate=false){
@@ -1106,4 +1107,94 @@ setInterval(loadMarketMood,900000);
 setInterval(prioritizePair,240000);
 setInterval(loadEngine,15000);setInterval(loadNews,300000);setInterval(loadMarket,30000);setInterval(loadQuote,5000);setInterval(paintQuote,1000);setInterval(()=>{if(market&&!document.hidden&&!selected&&activeRecord()===null)renderOutput()},5000);setInterval(loadWorld,15000);setInterval(updateSessionCountdowns,1000);setInterval(()=>{if(!document.hidden&&engine&&$('workerState').textContent!=='Evidence delayed'&&!archiveFresh(engine)&&!engineFailed)renderEngine()},5000);
 document.addEventListener('visibilitychange',()=>{syncQuoteStream();if(!document.hidden){loadEngine();loadMarket();loadQuote();loadWorld();loadTape();loadNews();loadMarketMood()}});
+// Public DEX discovery is independent of the selected spot pair.
+if(previewSpine&&$('dexDiscovery')){
+ let discovery=null,chosen=null,feedRevision=0,tokenRevision=0;
+ const network=$('dexNetwork'),feed=$('dexFeed'),search=$('dexSearch');
+ const money=value=>value==null?'—':Number(value).toLocaleString('en-US',{maximumSignificantDigits:7});
+ function external(label,href){
+  const link=element('a',label);link.href=href;link.target='_blank';link.rel='noopener noreferrer';return link;
+ }
+ function showDexMarkets(){
+  const query=search.value.trim().toLowerCase();
+  const rows=(discovery?.markets||[]).filter(row=>
+   [row.name,row.symbol,row.mint,row.venue].some(value=>String(value||'').toLowerCase().includes(query)));
+  $('dexMarkets').replaceChildren(...rows.map(row=>{
+   const tr=element('tr',''),cell=element('th','');
+   cell.scope='row';
+   const button=element('button',row.symbol?row.symbol+' · '+row.name:row.name,'scene-row-button');
+   button.type='button';button.title=row.mint;
+   button.setAttribute('aria-pressed',String(chosen?.mint===row.mint&&chosen?.pool===row.pool));
+   button.addEventListener('click',()=>selectDex(row));
+   cell.append(button);tr.append(cell,element('td',row.venue),element('td',money(row.price_usd)),
+    element('td',money(row.liquidity_usd)),element('td',money(row.volume_24h_usd)));
+   return tr;
+  }));
+  if(!rows.length){const tr=element('tr',''),td=element('td',query?'No matching pools in this feed.':'No pools returned.');td.colSpan=5;tr.append(td);$('dexMarkets').append(tr)}
+ }
+ async function loadDexMarkets(){
+  const rev=++feedRevision;
+  if(!discovery)set('dexStatus','Loading public DEX pools…');
+  try{
+   const data=await request('/api/dex-markets?'+new URLSearchParams({network:network.value,feed:feed.value}),'dex-discovery',12000);
+   if(rev!==feedRevision||data.network!==network.value||data.feed!==feed.value)return;
+   const next=(data.markets||[]).map(row=>[row.pool,row.price_usd,row.volume_24h_usd].join(':')).join('|');
+   const prev=(discovery?.markets||[]).map(row=>[row.pool,row.price_usd,row.volume_24h_usd].join(':')).join('|');
+   discovery=data;showDexMarkets();
+   set('dexStatus',data.source+' · '+data.markets.length+' pools · fetched '+utc(data.observed_utc));
+   if(next&&next!==prev)signal(['discovery','tape'],colors.green,data.network+' · '+data.feed+' pool feed updated',data.observed_utc);
+  }catch(e){if(rev===feedRevision)set('dexStatus','DEX source unavailable.'+(discovery?' Showing last received pools from '+utc(discovery.observed_utc)+'.':''));}
+ }
+ async function loadDexSwaps(){
+  if(!chosen)return;
+  const rev=++tokenRevision,id=chosen.mint,chain=chosen.network;
+  try{
+   const data=await request('/api/dex-token-trades?'+new URLSearchParams({network:chain,contract:id}),'dex-token',15000);
+   if(rev!==tokenRevision||data.contract!==id||data.network!==chain)return;
+   $('dexSwaps').replaceChildren(...data.trades.slice(0,20).map(item=>{
+    const row=element('tr',''),side=element('td',item.side.toUpperCase(),'tape-side');
+    side.dataset.tone=item.side==='buy'?'positive':'negative';
+    row.append(element('td',tapeClock.format(item.time_ms)),element('td',item.source),side,element('td',money(item.price)));
+    bindSceneRow(row,row.cells[0],item.id,['discovery','tape'],item.side==='buy'?colors.green:'#ff826f',
+     chosen.symbol+' · '+item.source+' · '+item.side.toUpperCase()+' · '+money(item.price)+' USD',new Date(item.time_ms).toISOString(),['dexSwaps']);
+    return row;
+   }));
+   $('dexSwapTable').hidden=!data.trades.length;
+   const failures=(data.sources||[]).filter(source=>source.status==='unavailable').length;
+   set('dexTradeStatus',data.trades.length+' recent swaps · '+data.sources.length+'/'+data.discovered_pools+' pools checked'+
+    (failures?' · '+failures+' sources unavailable':'')+' · '+utc(data.observed_utc));
+  }catch(e){if(rev===tokenRevision)set('dexTradeStatus','Swap source unavailable.');}
+ }
+ function selectDex(row){
+  chosen={...row,network:network.value};
+  set('dexSelected',row.symbol||row.name);set('dexMint',chosen.network+' · '+row.mint);
+  const links=[];
+  if(chosen.network==='solana'){
+   links.push(external('View in Phantom','https://phantom.com/tokens/solana/'+encodeURIComponent(row.mint)));
+   if(row.venue==='pump-fun')links.push(external('View on Pump.fun','https://pump.fun/coin/'+encodeURIComponent(row.mint)));
+  }
+  if(row.pool)links.push(external('View pool','https://www.geckoterminal.com/'+chosen.network+'/pools/'+encodeURIComponent(row.pool)));
+  $('dexLinks').replaceChildren(...links);
+  $('dexSwapTable').hidden=true;$('dexSwaps').replaceChildren();set('dexTradeStatus','Loading contract-matched swaps…');
+  showDexMarkets();loadDexSwaps();
+  if(discovery?.observed_utc)signal(['discovery','tape'],colors.green,'Selected DEX pool · '+(row.symbol||row.name)+' · '+row.venue,discovery.observed_utc,true);
+ }
+ function resetDexMarkets(){
+  discovery=null;chosen=null;tokenRevision++;
+  $('dexMarkets').replaceChildren();$('dexSwaps').replaceChildren();$('dexSwapTable').hidden=true;$('dexLinks').replaceChildren();
+  set('dexSelected','Select a token');set('dexMint','The contract address and captured swaps appear here.');set('dexTradeStatus','');
+  loadDexMarkets();
+ }
+ network.addEventListener('change',()=>{
+  const sol=network.value==='solana';
+  for(const option of feed.options)if(option.value.startsWith('pump'))option.disabled=!sol;
+  feed.value=sol?'pump':'trending';
+  resetDexMarkets();
+ });
+ feed.addEventListener('change',resetDexMarkets);
+ search.addEventListener('input',showDexMarkets);
+ $('dexRefresh').addEventListener('click',()=>{loadDexMarkets();loadDexSwaps()});
+ loadDexMarkets();
+ setInterval(()=>{if(!document.hidden){loadDexMarkets();loadDexSwaps()}},60000);
+}
 })();

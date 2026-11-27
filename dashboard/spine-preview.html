@@ -1,7 +1,29 @@
 <!doctype html>
-<html lang="en" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>STAMP NEXUS · Market Terminal</title><link rel="stylesheet" href="/assets/command.css?v=workspace-2"><script src="/assets/chart.js" defer></script><script src="/assets/command-model.js?v=workspace-2" defer></script><script src="/assets/market-stream.js?v=chart-live-1" defer></script><link rel="stylesheet" href="/assets/spine-preview.css?v=terminal-tables-3"><script src="/assets/spine-preview.js?v=terminal-tables-3" defer></script><script src="/assets/command.js?v=terminal-tables-3" defer></script></head>
-<body class="nexus-preview"><header class="topbar"><a class="brand" href="/nexus">STAMP <b>NEXUS</b></a><span class="edition">Market intelligence terminal</span><a class="current-dashboard" href="/nexus-classic">Classic view</a><button id="signout" class="quiet">Sign out</button></header>
+<html lang="en" dir="ltr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>STAMP NEXUS · Market Terminal</title><link rel="stylesheet" href="/assets/command.css?v=workspace-2"><script src="/assets/chart.js" defer></script><script src="/assets/command-model.js?v=workspace-2" defer></script><script src="/assets/market-stream.js?v=chart-live-1" defer></script><link rel="stylesheet" href="/assets/spine-preview.css?v=discovery-4"><script src="/assets/spine-preview.js?v=discovery-4" defer></script><script src="/assets/command.js?v=discovery-4" defer></script></head>
+<body class="nexus-preview"><header class="topbar"><a class="brand" href="/nexus">STAMP <b>NEXUS</b></a><span class="edition">Market workspace</span><a class="current-dashboard" href="/nexus-classic">Classic view</a><button id="signout" class="quiet">Sign out</button></header>
 <main>
+<header class="workspace-heading">
+ <h1>Market Workspace</h1>
+ <nav aria-label="Workspace shortcuts"><a href="#dexDiscovery">Memecoins &amp; DEXs</a><a href="#marketWorkspace">Price &amp; forecast</a><a href="#forecastHistory">Forecast history</a></nav>
+</header>
+<section id="dexDiscovery" class="panel dex-discovery" aria-labelledby="dexTitle">
+ <header><div><h2 id="dexTitle">Memecoins &amp; DEXs</h2><p>Browse live pools by network. Select a token by its contract address.</p></div>
+ <button id="dexRefresh" type="button" class="quiet">Refresh</button></header>
+ <div class="dex-controls">
+  <label>Network <select id="dexNetwork"><option value="solana">Solana</option><option value="eth">Ethereum</option><option value="base">Base</option><option value="bsc">BNB Chain</option><option value="arbitrum">Arbitrum</option><option value="polygon_pos">Polygon</option></select></label>
+  <label>Feed <select id="dexFeed"><option value="pump">Pump.fun pools</option><option value="pumpswap">PumpSwap pools</option><option value="trending">Trending DEX pools</option><option value="new">New DEX pools</option></select></label>
+  <label>Find in feed <input id="dexSearch" type="search" placeholder="Name, symbol or mint"></label>
+ </div>
+ <p id="dexStatus" class="footnote" role="status">Loading public DEX pools…</p>
+ <div class="dex-workbench">
+  <div class="table-scroll"><table><thead><tr><th>Token</th><th>Venue</th><th>Price · USD</th><th>Liquidity · USD</th><th>24h volume · USD</th></tr></thead><tbody id="dexMarkets"></tbody></table></div>
+  <article id="dexDetail" class="dex-detail" aria-label="Selected DEX token">
+   <h3 id="dexSelected">Select a token</h3><p id="dexMint">The contract address and captured swaps appear here.</p>
+   <div id="dexLinks" class="dex-links"></div><p id="dexTradeStatus" class="footnote" role="status"></p>
+   <div class="table-scroll" id="dexSwapTable" hidden><table><thead><tr><th>Time · Baghdad</th><th>Venue</th><th>Side</th><th>Price · USD</th></tr></thead><tbody id="dexSwaps"></tbody></table></div>
+  </article>
+ </div>
+</section>
 <section class="market-band" aria-label="Selected market summary">
 <form id="pairForm" class="pair-form"><label for="pairSelect">Currency list · USDT spot</label><select id="pairSelect" aria-label="Currency list"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option><option value="STAMPUSDT">STAMP / USDT</option><option value="ZECUSDT">ZEC / USDT</option></select><details class="pair-settings"><summary>Market settings</summary><div class="settings-content"><div class="pair-search"><input id="pair" value="" placeholder="Search currencies…" autocomplete="off" aria-label="Search currencies"><button type="submit">Load market</button></div><div class="source-select favorites-select"><label for="favoriteSelect">Favorites</label><select id="favoriteSelect"><option value="">No saved favorites</option></select><button id="assetFavorite" class="quiet" type="button" aria-pressed="false">☆ Save</button></div><div class="source-select"><label for="venue">Price &amp; chart venue</label><select id="venue" aria-label="Price and chart venue"><option value="">Find available venue</option><option>MEXC</option><option>OKX</option><option>Binance</option><option>Bybit</option><option>KuCoin</option><option>Gate</option><option>Bitget</option></select></div><small id="catalogStatus" role="status">Loading exchange listings…</small><button id="retryCatalog" class="quiet" type="button" hidden>Reload currency list</button></div></details></form>
  <div class="band-value"><span id="quotePair" class="visually-hidden"></span><span>Last price</span><strong id="quote">—</strong><small>USDT</small></div>

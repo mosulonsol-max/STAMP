@@ -568,6 +568,19 @@ class Handler(BaseHTTPRequestHandler):
     return self.send(200,json.dumps(worker_status(),allow_nan=False).encode(),"application/json; charset=utf-8")
    except Exception as exc:
     return self.send(503,json.dumps({"error":"worker_status_unavailable","code":type(exc).__name__}).encode(),"application/json; charset=utf-8")
+  if path in ("/api/dex-markets","/api/dex-token-trades"):
+   try:
+    try:from src.trade_tape import dex_market_catalog,dex_token_trades
+    except ImportError:from trade_tape import dex_market_catalog,dex_token_trades
+    query=parse_qs(urlsplit(self.path).query)
+    network=query.get("network",["solana"])[0]
+    result=(dex_market_catalog(network,query.get("feed",["pump"])[0]) if path=="/api/dex-markets"
+            else dex_token_trades(network,query.get("contract",[""])[0]))
+    return self.send(200,json.dumps(result,allow_nan=False).encode(),"application/json; charset=utf-8")
+   except ValueError as exc:
+    return self.send(400,json.dumps({"error":str(exc)}).encode(),"application/json; charset=utf-8")
+   except (OSError,KeyError,TypeError,IndexError):
+    return self.send(503,b'{"error":"dex_source_unavailable"}',"application/json; charset=utf-8")
   if path=="/api/trade-tape":
    try:
     from src.trade_tape import snapshot as trade_tape_snapshot

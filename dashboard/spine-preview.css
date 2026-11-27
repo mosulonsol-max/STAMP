@@ -180,3 +180,31 @@ body.nexus-preview{
 .nexus-preview tr[data-scene-selected="true"]>th,.nexus-preview tr[data-scene-selected="true"]>td{
  background:#15364a;box-shadow:inset 0 1px #63bad5,inset 0 -1px #63bad5;
 }
+
+body.nexus-preview{--bg:#0a1115;--panel:#101b20;--line:#354449;--cyan:#a4ecd4;--amber:#f2bc76;background:#0a1115}
+.nexus-preview .topbar{background:#0e191e}
+.workspace-heading{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;margin:14px 0}
+.workspace-heading h1{font-size:clamp(1.65rem,3.5vw,2.85rem);letter-spacing:-.07em;margin:0}
+.workspace-heading nav,.dex-links{display:flex;gap:14px;flex-wrap:wrap}
+.workspace-heading a,.dex-links a{color:var(--cyan);font-size:.77rem}
+.nexus-preview .dex-discovery{padding:14px 16px;background:#101d22;margin-bottom:14px;border-radius:8px;border-top:2px solid #90cbb6}
+.dex-discovery header{display:flex;justify-content:space-between;gap:12px;align-items:start}
+.dex-discovery h2,.dex-detail h3{margin:0;font-size:1.05rem}
+.dex-discovery header p,.dex-detail p{margin:5px 0 9px;font-size:.75rem;color:#b0c6c9}
+.dex-controls{display:flex;gap:10px;flex-wrap:wrap}
+.dex-controls label{display:grid;gap:4px;color:#b5c6cc;font-size:.72rem}
+.dex-controls input,.dex-controls select{min-height:36px}
+.dex-workbench{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(245px,1fr);gap:13px}
+.dex-workbench .table-scroll{overflow:auto;max-height:245px;border:1px solid var(--line)}
+.dex-workbench table{width:100%;white-space:nowrap;font-size:.75rem}
+.dex-workbench th{position:sticky;top:0;background:#14242b;z-index:1}
+.dex-workbench td,.dex-workbench th{text-align:left;padding:6px 8px}
+.dex-detail{min-width:0;border-left:1px solid var(--line);padding-left:13px}
+#dexMint{overflow-wrap:anywhere}#dexLinks:empty{display:none}
+.dex-discovery button[aria-pressed="true"]{color:var(--cyan);font-weight:700}
+.nexus-preview .market-band,.nexus-preview .panel.trade-plan{border-radius:7px}
+@media(max-width:810px){
+ .dex-workbench{grid-template-columns:minmax(0,1fr)}
+ .dex-detail{border-left:0;border-top:1px solid var(--line);padding:11px 0 0}
+ .nexus-preview .dex-discovery{padding:10px}
+}

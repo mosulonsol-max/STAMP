@@ -113,3 +113,43 @@ def snapshot(pair, network="", address=""):
     return {"symbol":pair,"network":network if address else None,"contract":address or None,
             "observed_utc":utc(),"sources":sources,"dex_pools_discovered":found,
             "dex_pool_limit":POOL_CAP,"trades":records}
+
+
+def dex_market_catalog(network, feed):
+    """Public DEX discovery keyed by mint, retaining each quoting pool."""
+    if network not in NETWORKS:
+        raise ValueError("unsupported_network")
+    paths = {"trending": "trending_pools", "new": "new_pools"}
+    if network == "solana":
+        paths.update(pump="dexes/pump-fun/pools", pumpswap="dexes/pumpswap/pools")
+    if feed not in paths:
+        raise ValueError("unsupported_market_feed")
+    payload = public_json(DEX_ROOT+network+"/"+paths[feed]+"?include=base_token,dex&page=1",timeout=8)
+    tokens = {item["id"]:item.get("attributes",{}) for item in payload.get("included",[]) if item.get("type")=="token"}
+    markets = []
+    for pool in payload.get("data",[]):
+        try:
+            a, refs = pool["attributes"], pool["relationships"]
+            base = refs["base_token"]["data"]["id"]
+            mint = address_key(network,base.removeprefix(network+"_"))
+            pool_address = address_key(network,a["address"])
+            token = tokens.get(base,{})
+            venue = refs["dex"]["data"]["id"]
+            markets.append({"mint":mint,"pool":pool_address,"venue":venue,
+                            "name":token.get("name") or a.get("name") or mint,
+                            "symbol":token.get("symbol") or "",
+                            "price_usd":positive(a.get("base_token_price_usd")),
+                            "liquidity_usd":positive(a.get("reserve_in_usd")),
+                            "volume_24h_usd":positive((a.get("volume_usd") or {}).get("h24")),
+                            "created_at":a.get("pool_created_at")})
+        except (KeyError,TypeError,ValueError):
+            continue
+    return {"network":network,"feed":feed,"source":"GeckoTerminal","observed_utc":utc(),"markets":markets}
+
+
+def dex_token_trades(network, contract):
+    contract = address_key(network,contract)
+    records, feeds, found = dex_sample(network,contract)
+    records.sort(key=lambda row:(row["time_ms"],row["id"]),reverse=True)
+    return {"network":network,"contract":contract,"observed_utc":utc(),
+            "sources":feeds,"discovered_pools":found,"trades":records[:80]}
