@@ -267,7 +267,7 @@ function attachForecastArrow(){
    const direction=Math.sign(forecastArrowPoints[1].value-forecastArrowPoints[0].value);
    const caption=(direction>0?'↑ ':direction<0?'↓ ':'→ ')+'Target '+price(forecastArrowPoints[1].value);
    ctx.save();ctx.lineCap='round';
-   ctx.strokeStyle='#ffd185';ctx.fillStyle='#ffd185';ctx.lineWidth=3;
+   ctx.strokeStyle=previewSpine?'#9f541d':'#ffd185';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=3;
    ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.stroke();
    ctx.beginPath();ctx.moveTo(end.x,end.y);
    for(const offset of [-.48,.48])ctx.lineTo(end.x-size*Math.cos(angle+offset),end.y-size*Math.sin(angle+offset));
@@ -285,8 +285,10 @@ function attachForecastArrow(){
  predicted.attachPrimitive({paneViews:()=>[{zOrder:()=> 'top',renderer:()=>renderer}]});
 }
 function initChart(){if(chart||!window.LightweightCharts)return;const L=window.LightweightCharts;
- chart=L.createChart($('priceChart'),{autoSize:true,layout:{background:{type:'solid',color:'#101c26'},textColor:'#9ab2c4',attributionLogo:false},grid:{vertLines:{color:'#20313d'},horzLines:{color:'#20313d'}},timeScale:{timeVisible:true},rightPriceScale:{borderColor:'#34505f'},handleScale:{pinch:true,mouseWheel:true},handleScroll:{pressedMouseMove:true,horzTouchDrag:true}});
- series=chart.addSeries(L.CandlestickSeries,{upColor:'#67c9c7',downColor:'#d28294',wickUpColor:'#67c9c7',wickDownColor:'#d28294',borderVisible:false,priceFormat:{type:'price',precision:8,minMove:.00000001}});
+ const palette=previewSpine?{background:'#fffdf7',text:'#4a5554',grid:'#e4e7de',border:'#cbd2c9',up:'#12765e',down:'#ab3e45'}:
+  {background:'#101c26',text:'#9ab2c4',grid:'#20313d',border:'#34505f',up:'#67c9c7',down:'#d28294'};
+ chart=L.createChart($('priceChart'),{autoSize:true,layout:{background:{type:'solid',color:palette.background},textColor:palette.text,attributionLogo:false},grid:{vertLines:{color:palette.grid},horzLines:{color:palette.grid}},timeScale:{timeVisible:true},rightPriceScale:{borderColor:palette.border},handleScale:{pinch:true,mouseWheel:true},handleScroll:{pressedMouseMove:true,horzTouchDrag:true}});
+ series=chart.addSeries(L.CandlestickSeries,{upColor:palette.up,downColor:palette.down,wickUpColor:palette.up,wickDownColor:palette.down,borderVisible:false,priceFormat:{type:'price',precision:8,minMove:.00000001}});
  predicted=chart.addSeries(L.LineSeries,{color:'#edbb74',lineVisible:false,priceLineVisible:false,lastValueVisible:false,priceFormat:{type:'price',precision:8,minMove:.00000001}});attachForecastArrow();actualLine=chart.addSeries(L.LineSeries,{color:'#8addb0',lineWidth:2,pointMarkersVisible:true,priceLineVisible:false,lastValueVisible:false});
 }
 let chartView='';function renderChart(){initChart();const rows=market?.candles?.[frame]||[];const bars=rows.filter(c=>c.t<=Date.now()).map(c=>({time:Math.floor(c.t/1000),open:c.o,high:c.h,low:c.l,close:c.c}));
