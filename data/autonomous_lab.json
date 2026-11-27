@@ -1,22 +1,20 @@
 {
-  "generated_at_utc": "2026-11-27T08:19:07.185425+00:00",
+  "generated_at_utc": "2026-11-27T18:54:48.929006+00:00",
   "authority": "autonomous_lab_v1",
   "flow": {
-    "generated_at_utc": "2026-11-27T08:19:07.185425+00:00",
-    "state": "degraded",
-    "previous_pipeline_passed": true,
-    "previous_pipeline_at_utc": "2026-11-27T04:09:20.590106+00:00",
-    "failed_checks": [
-      "fresh_pipeline"
-    ],
+    "generated_at_utc": "2026-11-27T18:54:48.929006+00:00",
+    "state": "healthy",
+    "previous_pipeline_passed": false,
+    "previous_pipeline_at_utc": "2026-11-27T18:36:50.444268+00:00",
+    "failed_checks": [],
     "checks": {
       "pipeline_steps": {
-        "passed": true,
-        "details": "Every required stage must report success; a missing stage is a failure."
+        "passed": null,
+        "details": "previous cycle; current CI result pending"
       },
       "pipeline_outcome": {
-        "passed": true,
-        "details": ""
+        "passed": null,
+        "details": "previous cycle; current CI result pending"
       },
       "exact_contract": {
         "passed": true,
@@ -27,7 +25,7 @@
         "details": "No missing/future clock"
       },
       "fresh_pipeline": {
-        "passed": false,
+        "passed": true,
         "details": "Scheduled Actions are best effort; 3 hours is a health threshold."
       },
       "horizon_wiring": {
@@ -128,8 +126,8 @@
       "id": "34e1f4ff1b574e8f",
       "horizon": "1h",
       "candidate": "no_change",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "revise_in_sandbox",
+      "reason": "failed_no_change_baseline",
       "replay_consistent": true,
       "later_samples": 120.0,
       "skill_vs_zero": 0.0,
@@ -140,8 +138,8 @@
       "id": "d232bb57b9faecaa",
       "horizon": "4h",
       "candidate": "technical_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "improvement_below_research_gate",
       "replay_consistent": true,
       "later_samples": 120.0,
       "skill_vs_zero": 0.0015628001093126453,
@@ -152,8 +150,8 @@
       "id": "bace7209c1d171e3",
       "horizon": "24h",
       "candidate": "forest_absolute",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 34.0,
       "skill_vs_zero": -0.10897808083525717,
@@ -164,8 +162,8 @@
       "id": "7440be94f8179bf6",
       "horizon": "7d",
       "candidate": "no_change",
-      "action": "quarantine",
-      "reason": "invalid_replay_or_dataflow",
+      "action": "continue_sandbox",
+      "reason": "insufficient_independent_later_tests",
       "replay_consistent": true,
       "later_samples": 4.0,
       "skill_vs_zero": 0.0,
