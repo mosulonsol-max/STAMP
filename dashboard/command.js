@@ -267,7 +267,7 @@ function attachForecastArrow(){
    const direction=Math.sign(forecastArrowPoints[1].value-forecastArrowPoints[0].value);
    const caption=(direction>0?'↑ ':direction<0?'↓ ':'→ ')+'Target '+price(forecastArrowPoints[1].value);
    ctx.save();ctx.lineCap='round';
-   ctx.strokeStyle=previewSpine?'#9f541d':'#ffd185';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=3;
+   ctx.strokeStyle=previewSpine?'#ffb873':'#ffd185';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=3;
    ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.stroke();
    ctx.beginPath();ctx.moveTo(end.x,end.y);
    for(const offset of [-.48,.48])ctx.lineTo(end.x-size*Math.cos(angle+offset),end.y-size*Math.sin(angle+offset));
@@ -285,7 +285,7 @@ function attachForecastArrow(){
  predicted.attachPrimitive({paneViews:()=>[{zOrder:()=> 'top',renderer:()=>renderer}]});
 }
 function initChart(){if(chart||!window.LightweightCharts)return;const L=window.LightweightCharts;
- const palette=previewSpine?{background:'#fffdf7',text:'#4a5554',grid:'#e4e7de',border:'#cbd2c9',up:'#12765e',down:'#ab3e45'}:
+ const palette=previewSpine?{background:'#15181e',text:'#bcc6d4',grid:'#252b34',border:'#394352',up:'#63d6b2',down:'#f08286'}:
   {background:'#101c26',text:'#9ab2c4',grid:'#20313d',border:'#34505f',up:'#67c9c7',down:'#d28294'};
  chart=L.createChart($('priceChart'),{autoSize:true,layout:{background:{type:'solid',color:palette.background},textColor:palette.text,attributionLogo:false},grid:{vertLines:{color:palette.grid},horzLines:{color:palette.grid}},timeScale:{timeVisible:true},rightPriceScale:{borderColor:palette.border},handleScale:{pinch:true,mouseWheel:true},handleScroll:{pressedMouseMove:true,horzTouchDrag:true}});
  series=chart.addSeries(L.CandlestickSeries,{upColor:palette.up,downColor:palette.down,wickUpColor:palette.up,wickDownColor:palette.down,borderVisible:false,priceFormat:{type:'price',precision:8,minMove:.00000001}});
