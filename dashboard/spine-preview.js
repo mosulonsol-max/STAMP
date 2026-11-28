@@ -2,7 +2,7 @@
 (() => {
  const tau = Math.PI * 2;
  const colors = {
-  discovery:'#91eac9',tape:'#7ce6d6',sessions:'#90a7ff',ranking:'#90c9ff',trades:'#e7ba70', liquidity:'#72dad9', candles:'#91adff',
+  news:'#f5a4cb',mood:'#dfbcfc',discovery:'#91eac9',tape:'#7ce6d6',sessions:'#90a7ff',ranking:'#90c9ff',trades:'#e7ba70', liquidity:'#72dad9', candles:'#91adff',
   collect:'#7dceda', compute:'#aebafe', forecast:'#ffca83', verify:'#82ddb0', learn:'#ccacf9'
  };
  const turns=Array.from({length:97},(_,i)=>i*tau/96);
@@ -57,13 +57,13 @@
    collect:torus(3.35,.3), compute:torus(4.72,1.25),
    forecast:project(245,-83,0),verify:torus(.71,.2),learn:torus(1.43,1.35),
    liquidityContext:torus(2.75,.4),quote:project(-269,-124,0),
-   discovery:project(243,-150,0),tape:project(-255,153,0),sessions:project(200,81,0),ranking:project(241,137,0)
+   discovery:project(243,-150,0),tape:project(-255,153,0),sessions:project(200,81,0),ranking:project(241,137,0),news:project(104,-184,0),mood:project(25,188,0),newsContext:torus(5.3,1.25),moodContext:torus(1.04,.65)
   };
-  const names={discovery:'DEX DISCOVERY',tape:'TRADE TAPE',sessions:'SESSIONS',ranking:'RANKINGS',trades:'TRADES',liquidity:'DEPTH',candles:'CANDLES',collect:'COLLECT',compute:'MODEL',
+  const names={news:'NEWS',mood:'SENTIMENT',discovery:'DEX DISCOVERY',tape:'TRADE TAPE',sessions:'SESSIONS',ranking:'RANKINGS',trades:'TRADES',liquidity:'DEPTH',candles:'CANDLES',collect:'COLLECT',compute:'MODEL',
    forecast:'FORECAST',verify:'VERIFY',learn:'LEARN'};
   const segments=[
    ['trades','collect'],['quote','collect'],['liquidity','liquidityContext'],['candles','collect'],
-   ['discovery','tape'],['trades','tape'],['sessions','ranking'],['collect','compute'],['compute','forecast'],['forecast','verify'],['verify','learn'],['learn','compute']
+   ['news','newsContext'],['mood','moodContext'],['candles','mood'],['discovery','tape'],['trades','tape'],['sessions','ranking'],['collect','compute'],['compute','forecast'],['forecast','verify'],['verify','learn'],['learn','compute']
   ];
   for(const [from,to] of segments){
    if(from==='quote')continue;
@@ -110,10 +110,10 @@
    const tone=id===activeNode?trace.color:source&&!available[id]?'#8e9eac':colors[id];
    dot(p,'#060b12',7);dot(p,tone,id===activeNode?6:id===stage?5:3.2);
    label({x:p.x,y:p.y-14},name,tone,source?'left':'center');
-   hits.push({x:p.x,y:p.y-6,radius:22,kind:id==='ranking'||id==='tape'||id==='sessions'||id==='discovery'?'table':source?'source':'stage',id});
+   hits.push({x:p.x,y:p.y-6,radius:22,kind:id==='ranking'||id==='tape'||id==='sessions'||id==='discovery'||id==='news'||id==='mood'?'table':source?'source':'stage',id});
   }
   ctx.restore();
-  return hits;
+  return {hits,gates};
  }
  window.StampSpine={draw};
 })();

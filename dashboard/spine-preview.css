@@ -165,3 +165,17 @@ footer{display:flex;justify-content:space-between;gap:8px;margin-top:16px;color:
  .dex-discovery,.world,.evidence,.service-details{padding:10px}
  .dex-controls label,.tape-controls label{max-width:100%}
 }
+#graphRoutes{position:fixed;inset:0;width:100%;height:100%;z-index:7;pointer-events:none}
+.graph-ports{display:flex;flex-wrap:wrap;gap:5px;padding:9px 12px;border-bottom:1px solid #3a425b}
+.graph-ports a{display:inline-flex;align-items:center;gap:5px;border:1px solid #454f67;color:#d6def0;
+ text-decoration:none;border-radius:99px;padding:3px 7px;font-size:.67rem;background:#242838}
+.graph-ports a::before{content:'';width:5px;height:5px;border-radius:50%;background:#8297b2}
+.graph-ports a[data-active=true]{border-color:#ffd39e;color:#ffe0be}
+.graph-ports a[data-active=true]::before{background:#ffd39e;box-shadow:0 0 9px #ffd39e}
+.graph-linked{position:relative}
+[data-route-hot=true]{outline:1px solid var(--route-color,#5dcaad);outline-offset:-2px}
+.graph-port-index{min-width:0;color:var(--muted);font-size:.72rem}
+@media(max-width:650px){.graph-ports{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+ .graph-ports a{justify-content:center;text-align:center}}
+.dex-workbench td meter,.tape-net-item meter{display:block;width:100%;height:7px;margin:4px 0;accent-color:#7bdfca}
+.dex-workbench td meter::-webkit-meter-optimum-value,.tape-net-item meter::-webkit-meter-optimum-value{background:#72c8b3}
