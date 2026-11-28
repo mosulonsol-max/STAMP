@@ -28,6 +28,7 @@ def _decode_archive(source, *, skip_review):
     # and capped so growing archive identifiers cannot accumulate across cycles.
     field_names = {}
     values = {}
+    shared_news = {}
 
     class ArchiveMap(dict):
         __slots__ = ()
@@ -50,7 +51,27 @@ def _decode_archive(source, *, skip_review):
                       and not item[0].startswith("autonomous_review.")
                       and item != ("", "map_key", "autonomous_review"))
         for prefix, event, value in events:
-            if prefix == "records.item.features.recent_returns" and event == "start_array":
+            if skip_review and event == "start_map" and prefix in (
+                "records.item.features.news", "records.item.news_effect"
+            ):
+                builder = ijson.common.ObjectBuilder(map_type=ArchiveMap)
+                builder.event(event, value)
+                depth = 1
+                for _, item, detail in events:
+                    builder.event(item, detail)
+                    depth += (item in ("start_map", "start_array")) - (item in ("end_map", "end_array"))
+                    if depth == 0:
+                        break
+                value = builder.value
+                # These saved observations are read-only during reconciliation.
+                # Reusing identical values avoids allocating one metadata object tree per forecast.
+                key = json.dumps(value, sort_keys=True, separators=(",", ":"))
+                if key in shared_news:
+                    value = shared_news[key]
+                elif len(shared_news) < 8192 and len(key) < 1024:
+                    shared_news[key] = value
+                yield prefix, "number", value
+            elif prefix == "records.item.features.recent_returns" and event == "start_array":
                 returns = array("d")
                 nested = 0
                 for _, item, number in events:

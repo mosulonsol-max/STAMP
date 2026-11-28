@@ -10,11 +10,44 @@ except ImportError:
     from src.forecast_adaptation import drift, transferred_model
 
 FRAMES=("15m","1h","4h","1d")
+
+def forecast_model_key(record):
+    model = record.get("model_version") or record.get("method") or "unknown"
+    if (record.get("news_effect") or {}).get("used_in_directional_forecast"):
+        return model.removesuffix("_validated_news") + "_validated_news"
+    return model
+
+def empirical_range(record, outcomes):
+    """Estimate a central residual range from outcomes available at issuance."""
+    issued = dt.datetime.fromisoformat(record["reference_at_utc"])
+    known = [row for row in outcomes
+             if dt.datetime.fromisoformat(row["reference_at_utc"]) < issued
+             and dt.datetime.fromisoformat(row["due_at_utc"]) <= issued
+             and dt.datetime.fromisoformat(row["outcome"]["measured_at_utc"]) <= issued][-100:]
+    if len(known) < 30:
+        return None
+    residuals = sorted(math.log(float(row["outcome"]["actual_price"])) -
+                       math.log(float(row["predicted_price"])) for row in known)
+    def quantile(q):
+        index = q * (len(residuals)-1)
+        left = math.floor(index)
+        fraction = index-left
+        return residuals[left]*(1-fraction)+residuals[min(left+1,len(residuals)-1)]*fraction
+    try:
+        target = math.log(float(record["predicted_price"]))
+        lower,upper = math.exp(target+quantile(.1)),math.exp(target+quantile(.9))
+    except OverflowError:
+        return None
+    if not (0 < lower <= upper and math.isfinite(upper)):
+        return None
+    return {"lower":lower,"upper":upper,"samples":len(known),"method":"historical_residual_p10_p90"}
+
 def summarize(data,pair,worker=None):
     now=dt.datetime.now(dt.timezone.utc)
     records=[r for r in data.get("records",[]) if r.get("pair")==pair]
     records.sort(key=lambda r:(r.get("reference_at_utc", ""),r.get("id", "")))
     reviews=(data.get("autonomous_review") or {}).get("decisions") or {}
+    groups = {}
     def entry(r):
         features=r.get("features") or {}
         returns=features.get("recent_returns")
@@ -37,30 +70,26 @@ def summarize(data,pair,worker=None):
                 matches=math.isclose(expected,float(r["predicted_price"]),rel_tol=1e-9)
             except (IndexError,KeyError,TypeError,ValueError,OverflowError):expected=None
         news_effect=r.get("news_effect") or {}
-        display_version=version+"_validated_news" if news_effect.get("used_in_directional_forecast") else version
+        display_version=forecast_model_key(r)
         return {k:r.get(k) for k in ("id","frame","reference_at_utc","due_at_utc","reference_price","predicted_price","outcome","validation_at_issue","model_origin")}|{
             "model_version":display_version,"inputs":{"source":"MEXC closed spot candles","recent_log_returns":list(returns) if valid else [],"lookback":lookback,"news":features.get("news"),"available":valid},
             "calculation":{"formula":"Reference × exp(neural network output + validated news correction)" if neural else f"Reference × exp({scale:g} × mean of last {lookback} log returns + validated news correction)","recomputed_price":expected,"matches_recorded":matches},
             "news_effect":r.get("news_effect"),
+            "historical_range":empirical_range(r,groups.get(r["frame"],{}).get(display_version,[])),
             "review":reviews.get(r.get("id"),{"status":"unreviewed","reason":"no_saved_decision"})}
     ids = Counter(record.get("id") for record in records)
     valid = [record for record in records if ids[record.get("id")] == 1
              and audit_records([record], now)["passed"]]
+    settled = [record for record in valid if record.get("outcome")]
+    # A target is achieved when the audited close is within 1% of its price.
+    # Compare only the same pair, frame and model, with no pooling across venues.
+    for record in settled:
+        groups.setdefault(record["frame"], {}).setdefault(forecast_model_key(record), []).append(record)
     latest = {}
     for record in reversed(valid):
         frame = record["frame"]
         if frame not in latest:
             latest[frame] = entry(record)
-    settled = [record for record in valid if record.get("outcome")]
-    # A target is achieved when the audited close is within 1% of its price.
-    # Compare only the same pair, frame and model, with no pooling across venues.
-    groups = {}
-    for record in settled:
-        model = record.get("model_version") or record.get("method")
-        if (record.get("news_effect") or {}).get("used_in_directional_forecast"):
-            model += "_validated_news"
-        if model:
-            groups.setdefault(record["frame"], {}).setdefault(model, []).append(record)
     target_rates = {}
     for frame, models in groups.items():
         target_rates[frame] = {}
@@ -76,7 +105,13 @@ def summarize(data,pair,worker=None):
                           for actual, predicted, reference in actual_and_forecast)
             mean_error = 100 * sum(abs(predicted / actual - 1)
                                    for actual, predicted, _ in actual_and_forecast) / len(sample)
-            target_rates[frame][model] = {"direction_accuracy": correct / len(sample), "mean_price_error_pct": mean_error,"hits": hits, "samples": len(sample),
+            flat_hits = sum(abs(actual / reference - 1) <= .01
+                            for actual, _, reference in actual_and_forecast)
+            baseline = sum(row["outcome"]["baseline_squared_log_error"] for row in sample)
+            model_error = sum(row["outcome"]["squared_log_error"] for row in sample)
+            target_rates[frame][model] = {"direction_accuracy": correct / len(sample),
+                                         "flat_target_rate":flat_hits / len(sample) if len(sample)>=30 else None,
+                                         "skill_vs_flat":1-model_error/baseline if baseline>0 and len(sample)>=30 else None, "mean_price_error_pct": mean_error,"hits": hits, "samples": len(sample),
                                          "rate": hits / len(sample) if len(sample) >= 30 else None}
     by_verified_at = sorted(settled, key=lambda record: record["outcome"]["measured_at_utc"])[-16:]
     scene_outcomes = [{"id": record["id"], "frame": record["frame"],

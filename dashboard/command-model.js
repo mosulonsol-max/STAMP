@@ -9,7 +9,13 @@
   const f=market?.research_forecasts?.[frame],step=durations[frame],fetched=Date.parse(market?.retrieved_at_utc),ref=Date.parse(f?.reference_at_utc),due=Date.parse(f?.due_at_utc);
   if(!f||!step||!Number.isFinite(fetched)||now-fetched>120000||fetched>now+5000||!Number.isFinite(ref)||ref>now||due<=now||due-ref!==step||!(Number(f.reference_price)>0)||!(Number(f.predicted_price)>0))return null;
   const closed=(market.candles?.[frame]||[]).filter(b=>b.t+step<=ref),returns=[];
-  for(let i=1;i<closed.length;i++)if(closed[i].t-closed[i-1].t===step&&closed[i].c>0&&closed[i-1].c>0)returns.push(Math.log(closed[i].c/closed[i-1].c));
+  for(let i=1;i<closed.length;i++){
+   const previous=closed[i-1],next=closed[i];
+   if(next.t-previous.t!==step||!Number.isFinite(next.c)||!Number.isFinite(previous.c)||next.c<=0||previous.c<=0)returns.length=0;
+   else returns.push(Math.log(next.c)-Math.log(previous.c));
+  }
+  const last=closed.at(-1);
+  if(!last||last.t+step!==ref||Math.abs(last.c/Number(f.reference_price)-1)>1e-9||returns.length<6)return null;
   const recent=returns.slice(-20);
   const neural=model?.version?.startsWith('neural_')&&model.weights;
   const lookbacks=[3,6,20];
@@ -25,7 +31,7 @@
    calculation:{formula:usePeer&&neural?"Reference × exp(neural network output)":usePeer?`Reference × exp(${scale} × mean of last ${lookback} log returns)`:null,recomputed_price:calculated,matches_recorded:available&&(usePeer||Math.abs(calculated-f.predicted_price)<=Math.abs(f.predicted_price)*1e-9)},review:{status:'projection',reason:usePeer?(model.origin==='pair'?'computed_with_pair_model':'computed_with_peer_model'):'computed_from_current_closed_candles'}};
  }
  function active(engine,market,frame,now=Date.now()){
-  const saved=engine?.latest?.[frame],matching=!market||market.venue==='MEXC';
+  const saved=engine?.latest?.[frame],matching=!market||(market.venue==='MEXC'&&market.symbol===engine?.symbol);
   const learned=Date.parse(engine?.archive_updated_at_utc);
   const shared=engine?.symbol===market?.symbol&&learned<=now&&now-learned<600000;
   const model=shared?(market.venue==='MEXC'?engine.learning?.selected_models?.[frame]:null):null;

@@ -2,7 +2,7 @@
 import datetime as dt,gzip,json,math,os,pathlib
 from array import array
 import watch_priority
-from multi_asset import symbol,forecasts,candles,universe
+from multi_asset import symbol,forecasts,candles,universe,recent_closed_returns
 from forecast_adaptation import DEFAULT, advance, drift, shared_models, transferred_model
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
@@ -340,9 +340,11 @@ def cycle(pairs=None):
             selected=(data.get("model_selections") or {}).get(key) or transferred_model(data,pair,frame)
             gate=(data.get("validation") or {}).get(key) or {}
             reference_ms=int(dt.datetime.fromisoformat(result["reference_at_utc"]).timestamp()*1000)
-            closed=[bar for bar in frame_rows[frame] if bar["t"]+HORIZONS[frame]<=reference_ms]
-            recent=[math.log(b["c"]/a["c"]) for a,b in zip(closed,closed[1:]) if b["t"]-a["t"]==HORIZONS[frame]][-20:]
-            if selected and len(recent)>=selected["lookback"]:
+            _,returns=recent_closed_returns(frame_rows[frame],HORIZONS[frame],reference_ms)
+            recent=returns[-20:]
+            if selected and len(recent)<selected["lookback"]:
+                selected=None
+            if selected:
                 result=dict(result,predicted_price=result["reference_price"]*math.exp(drift(recent,selected)),method=selected["version"])
             base_prediction=result["predicted_price"]
             news_prediction,news_feature=apply_news_model(data.get("news_intelligence") or {},data["records"],pair,frame,base_prediction,result["reference_price"],result["reference_at_utc"])
@@ -353,7 +355,7 @@ def cycle(pairs=None):
             features={"recent_returns":recent,"base_predicted_log_return":news_feature["base_predicted_log_return"],"news":news_feature["analysis"]}
             if selected and "weights" in selected and result["method"]==selected["version"]:
                 features["neural_model"] = selected
-            data["records"].append(dict(features=features,news_effect={"used_in_directional_forecast":news_feature["used_in_directional_forecast"],"applied_log_return_adjustment":news_feature["applied_log_return_adjustment"],"model_status":news_feature["model"]["status"]},validation_at_issue=gate.get("status","research_only"),model_version=result["method"],model_origin=("pair" if key in (data.get("model_selections") or {}) else "peer" if selected else "default"),id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
+            data["records"].append(dict(features=features,news_effect={"used_in_directional_forecast":news_feature["used_in_directional_forecast"],"applied_log_return_adjustment":news_feature["applied_log_return_adjustment"],"model_status":news_feature["model"]["status"]},validation_at_issue=gate.get("status","research_only"),model_version=result["method"],model_origin=("pair" if selected and key in (data.get("model_selections") or {}) else "peer" if selected else "default"),id=rid,pair=pair,frame=frame,reference_price=result["reference_price"],
                 predicted_price=result["predicted_price"],reference_at_utc=result["reference_at_utc"],
                 due_at_utc=result["due_at_utc"],method=result["method"],outcome=None))
             issued.add(rid)

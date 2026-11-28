@@ -156,13 +156,33 @@ def compare(primary,secondary):
       "interpretation":"Associations are not evidence of causation or predictive skill; overlapping windows and market-wide factors can create spurious correlations.",
       "observed_through_utc":dt.datetime.fromtimestamp(aligned[-1]/1000,dt.timezone.utc).isoformat() if aligned else None}
 
+def recent_closed_returns(rows, step, as_of_ms):
+    """Keep only the contiguous suffix ending at the latest closed candle."""
+    last = None
+    returns = []
+    for candle in rows:
+        close = float(candle["c"])
+        if candle["t"] + step > as_of_ms:
+            continue
+        if not math.isfinite(close) or close <= 0:
+            last = None
+            returns.clear()
+            continue
+        if last is not None and candle["t"] - last["t"] == step:
+            returns.append(math.log(close) - math.log(float(last["c"])))
+        else:
+            returns.clear()
+        last = candle
+    return last, returns
+
+
 def forecast_frame(rows,frame):
     """Leakage-free one-step holdout: compare momentum forecast to no-change baseline."""
     step={"15m":900000,"1h":3600000,"4h":14400000,"1d":86400000}[frame]
     now=int(dt.datetime.now(dt.timezone.utc).timestamp()*1000)
-    valid=[c for c in rows if c["t"]+step<=now]
-    returns=[math.log(b["c"]/a["c"]) for a,b in zip(valid,valid[1:]) if b["t"]-a["t"]==step]
-    if len(returns)<65 or len(valid)<66:return {"status":"insufficient_evidence","samples":len(returns)}
+    last,returns=recent_closed_returns(rows,step,now)
+    if len(returns)<65:
+        return {"status":"insufficient_evidence","reason":"continuous_closed_candles_required","samples":len(returns)}
     # Prequential validation: each forecast uses only historical returns preceding the target.
     errors=[];baseline=[]
     for i in range(40,len(returns)):
@@ -171,10 +191,12 @@ def forecast_frame(rows,frame):
         errors.append((returns[i]-estimate)**2)
         baseline.append(returns[i]**2)
     improvement=1-sum(errors)/sum(baseline) if sum(baseline)>0 else None
-    last=valid[-1];drift=sum(returns[-6:])/6
+    drift=sum(returns[-6:])/6
     # Research projection only: strict skill gate and no invented probability.
     target=last["c"]*math.exp(drift)
-    volatility=math.sqrt(sum((v-sum(returns[-30:])/30)**2 for v in returns[-30:])/29)
+    recent=returns[-30:]
+    average=sum(recent)/len(recent)
+    volatility=math.sqrt(sum((value-average)**2 for value in recent)/29)
     due=dt.datetime.fromtimestamp((last["t"]+2*step)/1000,dt.timezone.utc).isoformat()
     return {"status":"research_only","method":"causal_6_return_momentum",
       "samples":len(errors),"relative_mse_improvement":round(improvement,5) if improvement is not None else None,
@@ -185,7 +207,17 @@ def forecast_frame(rows,frame):
       "invalidation_price":last["c"]*math.exp(-volatility if drift>0 else volatility),
       "warning":"Unapproved experimental projection, NOT a trading signal; no causal proof or validated confidence probability."}
 def forecasts(frames):
-    return {frame:forecast_frame(rows,frame) for frame,rows in frames.items() if frame in ("15m","1h","4h","1d")}
+    now = dt.datetime.now(dt.timezone.utc)
+    outcomes = {}
+    for frame, rows in frames.items():
+        if frame not in ("15m","1h","4h","1d"):
+            continue
+        forecast = forecast_frame(rows, frame)
+        due = forecast.get("due_at_utc")
+        if due and dt.datetime.fromisoformat(due) <= now:
+            forecast = {"status":"stale_candles","reference_at_utc":forecast["reference_at_utc"]}
+        outcomes[frame] = forecast
+    return outcomes
 
 def venue_ticker(venue,pair):
     base=pair[:-4]
